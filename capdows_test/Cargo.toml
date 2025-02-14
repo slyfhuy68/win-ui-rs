@@ -1,0 +1,13 @@
+[package]
+name = "capdows_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.capdows]
+path = "../capdows"
+
+[dependencies.capdows_controls]
+path = "../capdows_controls"
+
+[build-dependencies]
+winres = "0.1.12"
