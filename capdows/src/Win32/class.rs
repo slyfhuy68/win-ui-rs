@@ -190,139 +190,6 @@ impl WindowClass {
             None => HBRUSH(NULL_PTR()),
             Some(x) => x.into(),
         };
-        unsafe extern "system" fn window_proc(
-            hWnd: HWND,
-            msg: u32,
-            wParam: WPARAM,
-            lParam: LPARAM,
-        ) -> LRESULT {
-            let mut window = Window { handle: hWnd };
-            let user_callback_ptr = match window.get_prop(PROC_KEY_NAME) {
-                Ok(x) => x as *mut CallBackObj,
-                Err(_) => {
-                    if msg == WM_NCCREATE  {
-                        let mut s = *(lParam.0 as *mut CREATESTRUCTW);
-                        let mm = window.set_prop(PROC_KEY_NAME, s.lpCreateParams as usize);
-                        s.lpCreateParams as *mut CallBackObj
-                    } else {
-                        return DefWindowProcW(hWnd, msg, wParam, lParam)
-                    }
-                    },
-            };
-            if user_callback_ptr.is_null() {
-                return DefWindowProcW(hWnd, msg, wParam, lParam);
-            }
-            let mut user_callback_s = unsafe { Box::from_raw(user_callback_ptr) };
-            // if user_callback_s.0 != PROC_MEMORY_SINGS {
-            //     return DefWindowProcW(hWnd, msg, wParam, lParam);
-            // };
-            let mut c = user_callback_s;
-            pub use MessageReceiverError::*;
-            let result = {
-                let mut w = window;
-                match msg {
-                    //unimplemented!()
-                    //----------------------------------------------------------------------------------
-                    // WM_ACTIVATEAPP => {},
-                    // WM_CANCELMODE => {},
-                    // WM_CHILDACTIVATE => {},
-                    // WM_CLOSE => {
-                    //     mstch user_callback_s {
-                                        //        
-                    //     }
-                    // },
-                    // WM_COMPACTING => {},
-                    WM_CREATE => {
-                        let mut s = *(lParam.0 as *mut CREATESTRUCTW);
-                        let wc = w.get_class();
-                        match c.create(&mut w,
-                                    &s.lpszName.to_string().unwrap_or(String::from("")),
-                                    match wc {Err(_) => WindowClass {name:None,atom:s.lpszClass,handle_instance:None,},Ok(x) => x}, 
-                                    ExecutableFile{name:None,handle:Some(HMODULE(s.hInstance.0))},
-                                    ((s.x,s.y),s.cx,s.cy),
-                                    (
-                                        WINDOW_STYLE(s.style as u32), 
-                                        s.dwExStyle, 
-                                        if s.hMenu.is_invalid() { None } else { Some(s.hMenu) }, 
-                                        if s.hwndParent.is_invalid() { None } else { Some(s.hwndParent) }
-                                    ).into(),
-                                ) {
-                            Ok(x) => match x {
-                                true => 0isize,
-                                false => -1isize,
-                            },
-                            Err(NoProcessed) => DefWindowProcW(hWnd, msg, wParam, lParam).0,
-                            Err(x) => x.code() as isize,
-                        }
-                    },
-                    WM_DESTROY => {
-                        return LRESULT(match c.destroy(&mut w) {
-                            Ok(_) => 0isize, 
-                            Err(NoProcessed) => DefWindowProcW(hWnd, msg, wParam, lParam).0,
-                            Err(x) => x.code() as isize,
-                        });
-                    },
-                    WM_COMMAND if lParam.0 != 0 => {
-                        let lParame = lParam.0;
-                        let wParame = wParam.0;
-                        let mut nmhdr = NMHDR {
-                            hwndFrom: HWND(lParame as *mut c_void), 
-                            idFrom: (wParame & 0xffff) as usize, 
-                            code: ((wParame >> 16) & 0xffff) as u32
-                        };
-                        let nmhdr_ptr: *mut NMHDR = &mut nmhdr;
-                        match c.control_message(&mut w, nmhdr_ptr as usize, nmhdr.idFrom as WindowID) {
-                            Ok(x) => x, 
-                            Err(NoProcessed) => DefWindowProcW(hWnd, msg, wParam, lParam).0,
-                            Err(x) => x.code() as isize,
-                        }
-                    }, 
-                    WM_NOTIFYFORMAT => {
-                        2isize//NFR_UNICODE
-                    }, 
-                    WM_NOTIFY => {
-                        let nmhdr_ptr = lParam.0 as *mut NMHDR;
-                        match c.control_message(&mut w, nmhdr_ptr as usize, (*nmhdr_ptr).idFrom as WindowID) {
-                            Ok(x) => x, 
-                            Err(NoProcessed) => DefWindowProcW(hWnd, msg, wParam, lParam).0,
-                            Err(x) => x.code() as isize,
-                        }
-                    }, 
-                    // WM_DPICHANGED => {},
-                    // WM_ENABLE => {},
-                    // WM_ENTERSIZEMOVE => {},
-                    // WM_EXITSIZEMOVE => {},
-                    // WM_GETICON => {},
-                    // WM_GETMINMAXINFO => {},
-                    // WM_INPUTLANGCHANGE => {},
-                    // WM_INPUTLANGCHANGEREQUEST => {},
-                    // WM_MOVE => {},
-                    // WM_MOVING => {},
-                    // WM_NCACTIVATE => {},
-                    // WM_NCCALCSIZE => {},
-                    // WM_NCCREATE => {},
-                    // WM_NCDESTROY => {},
-                    // WM_NULL => {},
-                    // WM_QUERYDRAGICON => {},
-                    // WM_QUERYOPEN => {},
-                    // WM_SHOWWINDOW => {},
-                    // WM_SIZE => {},
-                    // WM_SIZING => {},
-                    // WM_STYLECHANGED => {},
-                    // WM_STYLECHANGING => {},
-                    // WM_THEMECHANGED => {},
-                    // WM_USERCHANGED => {},
-                    // WM_WINDOWPOSCHANGED => {},
-                    // WM_WINDOWPOSCHANGING => {},
-                    //----------------------------------------------------------------------------------
-                    _ => {
-                        DefWindowProcW(hWnd, msg, wParam, lParam).0
-                        },
-                }
-            };
-            Box::into_raw(c);
-            LRESULT(result)
-        }
         let result = unsafe {
             RegisterClassExW(&WNDCLASSEXW {
                 cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
@@ -332,7 +199,7 @@ impl WindowClass {
                 cbWndExtra: window_extra,
                 hInstance,
                 hIcon: icon.unwrap_or(Icon::invalid()).into(),
-                hCursor: cursor.unwrap_or(Cursor::invalid()).into(),
+                hCursor: cursor.unwrap_or(Cursor::null()).handle,
                 hbrBackground: background_brush,
                 lpszMenuName: default_menu_resource.to_pcwstr(),
                 lpszClassName: class_name,

@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "capdows-controls"
+name = "capdows_controls"
 version = "0.0.1"
 dependencies = [
  "capdows",
