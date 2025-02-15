@@ -51,9 +51,8 @@ pub mod core {
     pub trait IntOrName {
         fn to_pcwstr(self) -> PCWSTR;
     }
-    #[derive(Copy, Clone)]
-    pub struct NullRaw {}
-    pub static NULLn: NullRaw = NullRaw {};
+    pub type NullRaw = ();
+    pub static NULLn: () = ();
     impl IntOrName for NullRaw {
         fn to_pcwstr(self) -> PCWSTR {
             PCWSTR::null()

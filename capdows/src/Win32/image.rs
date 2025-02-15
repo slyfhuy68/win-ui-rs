@@ -98,7 +98,7 @@ impl Cursor {
 }
 #[derive(Clone, PartialEq)]
 pub struct Bitmap {
-    handle: HANDLE,
+    pub handle: HANDLE,
 }
 impl Bitmap {
     pub unsafe fn invalid() -> Self {
