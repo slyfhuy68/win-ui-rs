@@ -1,9 +1,9 @@
 use capdows::Win32::allmods::*;
-use capdows_controls::Button::*;
-pub struct Mycb {}
+use capdows_controls::button::*;
+pub struct Mycb {num:i8}
 use crate::WindowClassP::BrushC;
-const Button1: WindowID = 1u16;
-const Button2: WindowID = 2u16;
+const SPLIT_BUTTON_01: WindowID = 1u16;
+const BUTTON_01: WindowID = 2u16;
 impl MessageReceiver for Mycb {
     fn create(
         &mut self,
@@ -18,19 +18,24 @@ impl MessageReceiver for Mycb {
         eprintln!("hello from create");
         Ok(true)
     }
-    fn control_message(&mut self, window: &mut Window, msg: usize, id:WindowID) -> MessageReceiverResult<isize>{
+    fn control_message(&mut self, _window: &mut Window, msg: usize, id:WindowID) -> MessageReceiverResult<isize>{
         match id {
-            Button1 => {
+            SPLIT_BUTTON_01 => {
                 use SplitButtonMsgType::*;
                 let msg = get_contro_msg::<SplitButton>(msg);
                 if let Some(msg) = msg {
                     match msg.bm_type{
                         Clicked => {
-                            println!("按钮1点了");
+                            println!("分割按钮1点了");
                             Ok(0)
                         }, 
                         DropDown(rect) => {
-                            println!("按钮边边点了！{:#?}", rect);
+                            if self.num == 127 {
+                                self.num = -128
+                            } else {
+                                self.num += 1;
+                            }
+                            println!("分割按钮1边边点了！数字：{}按钮位置：{:?}", self.num, rect);
                             Ok(0)
                         }
                         _ => Err(NoProcessed)
@@ -39,13 +44,13 @@ impl MessageReceiver for Mycb {
                     Err(NoProcessed)
                 }
             }, 
-            Button2 => {
+            BUTTON_01 => {
                 use ButtonMsgType::*;
                 let msg = get_contro_msg::<Button>(msg);
                 if let Some(msg) = msg {
                     match msg.bm_type{
                         Clicked => {
-                            println!("按钮2点了");
+                            println!("按钮1点了");
                             Ok(0)
                         }
                         _ => Err(NoProcessed)
@@ -72,14 +77,14 @@ fn main() -> Result<()> {
     )?;
     //println!("{}", class);
     let mut window =
-        class.create_window("114", Default::default(),None, Box::new(Mycb {}))?;
+        class.create_window("114", Default::default(),None, Box::new(Mycb {num:0}))?;
     window.Fshow(1)?;
     println!("ok");
     let mut style = ChildWindowStyles::null();
     style.visble = true;
     style.tab_stop = false;
-    SplitButton::new(&mut window, "button好", Some(((0, 0), 150, 50)), Button1, Default::default(), style.clone(), Default::default(), true, false);
-    Button::new(&mut window, "button好2", Some(((200, 0), 150, 50)), Button2, Default::default(), style, Default::default(), true, false);
+    let _ = SplitButton::new(&mut window, "分割按钮01", Some(((0, 0), 150, 50)), SPLIT_BUTTON_01, Default::default(), style.clone(), Default::default(), true, false);
+    let _ = Button::new(&mut window, "按钮01", Some(((200, 0), 150, 50)), BUTTON_01, Default::default(), style, Default::default(), true, false);
     capdows::Win32::msg::msg_loop();
     Ok(())
 }

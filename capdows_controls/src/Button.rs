@@ -5,7 +5,6 @@ use windows::Win32::Graphics::Gdi::GetStockObject;
 use windows::Win32::Graphics::Gdi::DEFAULT_GUI_FONT;
 use windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*, UI::Controls::*};
 use std::ffi::c_void;
-use windows::core::*;
 //-----------------------------------按钮-----------------------------------------
 pub struct Button (HWND);//PUSHBUTTON
 #[derive(Default)]
@@ -80,7 +79,7 @@ impl ControlMsg for ButtonMsg{
 		let nmhdr = *(ptr as *mut NMHDR);
 		let code = nmhdr.code;
 		let w = nmhdr.hwndFrom.clone();
-		drop(nmhdr);
+		let _ = nmhdr;
 		use ButtonMsgType::*;
 		let bmtype = match code {
 			BCN_HOTITEMCHANGE => {
@@ -96,7 +95,7 @@ impl ControlMsg for ButtonMsg{
 			BN_CLICKED => {
 				Clicked
 			}, 
-			BN_DBLCLK | BN_DOUBLECLICKED => {
+			BN_DBLCLK => {
 				DoubleClicked
 			}, 
 			BN_KILLFOCUS => {
@@ -162,21 +161,22 @@ impl Button {
 		style_ex: NormalWindowExStyles, 
 		font:bool, no_notify: bool) -> Result<Self> {
 			let mut xx: WINDOW_EX_STYLE = style_ex.into();
-			let (mut yy, mut zz) = style.into();
+			let (mut yy, zz) = style.into();
 			if no_notify {
 				xx |= WS_EX_NOPARENTNOTIFY;
 			};
-			let (control_style_ms, draw) = control_style.into();
+			let (control_style_ms, _draw) = control_style.into();
+			//---------------------draw功能未实现！[todo]
 			yy |= WS_CHILD | control_style_ms;
 			xx |= zz;
 			let id = Some(HMENU(identifier as *mut c_void));
 			let parent = Some(wnd.handle);
-			let (ptr, ptr_raw) = str_to_pcwstr(name);
+			let (ptr, _ptr_raw) = str_to_pcwstr(name);
 			let ((x, y), width, height) = match pos {
 				None => ((CW_USEDEFAULT, CW_USEDEFAULT), CW_USEDEFAULT, CW_USEDEFAULT),
 				Some(x) => x,
 			};
-			let hInstance = HINSTANCE(unsafe { GetWindowLongW(wnd.handle, GWL_HINSTANCE) as *mut c_void});
+			let hinstance = HINSTANCE(unsafe { GetWindowLongW(wnd.handle, GWL_HINSTANCE) as *mut c_void});
 			let hwnd = unsafe {CreateWindowExW(
 				xx, 
 				w!("BUTTON"), 
@@ -188,7 +188,7 @@ impl Button {
 				height,
 				parent, 
 				id, 
-				Some(hInstance),
+				Some(hinstance),
 				None
 			)}?;
 			if font { unsafe {
@@ -251,7 +251,7 @@ impl ControlMsg for SplitButtonMsg{
 		let nmhdr = *(ptr as *mut NMHDR);
 		let code = nmhdr.code;
 		let w = nmhdr.hwndFrom.clone();
-		drop(nmhdr);
+		let _ = nmhdr;
 		use SplitButtonMsgType::*;
 		let bmtype = match code {
 			BCN_HOTITEMCHANGE => {
@@ -267,7 +267,7 @@ impl ControlMsg for SplitButtonMsg{
 			BN_CLICKED => {
 				Clicked
 			}, 
-			BN_DBLCLK | BN_DOUBLECLICKED => {
+			BN_DOUBLECLICKED => {
 				DoubleClicked
 			}, 
 			BN_KILLFOCUS => {
@@ -337,21 +337,22 @@ impl SplitButton {
 		style_ex: NormalWindowExStyles, 
 		font:bool, no_notify: bool) -> Result<Self> {
 			let mut xx: WINDOW_EX_STYLE = style_ex.into();
-			let (mut yy, mut zz) = style.into();
+			let (mut yy, zz) = style.into();
 			if no_notify {
 				xx |= WS_EX_NOPARENTNOTIFY;
 			};
-			let (control_style_ms,draw) = control_style.into();
+			let (control_style_ms,_draw) = control_style.into();
+			//---------------------draw功能未实现！[todo]
 			yy |= WS_CHILD | control_style_ms;
 			xx |= zz;
 			let id = Some(HMENU(identifier as *mut c_void));
 			let parent = Some(wnd.handle);
-			let (ptr, ptr_raw) = str_to_pcwstr(name);
+			let (ptr, _ptr_raw) = str_to_pcwstr(name);
 			let ((x, y), width, height) = match pos {
 				None => ((CW_USEDEFAULT, CW_USEDEFAULT), CW_USEDEFAULT, CW_USEDEFAULT),
 				Some(x) => x,
 			};
-			let hInstance = HINSTANCE(unsafe { GetWindowLongW(wnd.handle, GWL_HINSTANCE) as *mut c_void});
+			let hinstance = HINSTANCE(unsafe { GetWindowLongW(wnd.handle, GWL_HINSTANCE) as *mut c_void});
 			let hwnd = unsafe {CreateWindowExW(
 				xx, 
 				w!("BUTTON"), 
@@ -363,7 +364,7 @@ impl SplitButton {
 				height,
 				parent, 
 				id, 
-				Some(hInstance),
+				Some(hinstance),
 				None
 			)}?;
 			if font { unsafe {
