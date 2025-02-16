@@ -9,6 +9,7 @@ use std::ffi::c_void;
 pub mod button;
 pub mod radio;
 pub mod group_box;
+pub mod check_box;
 pub enum BitmapOrIcon {
 	Bitmap(Bitmap), 
 	Icon(Icon)

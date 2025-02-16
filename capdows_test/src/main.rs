@@ -1,6 +1,7 @@
 use capdows::Win32::allmods::*;
 use capdows_controls::button::*;
 use capdows_controls::radio::*;
+use capdows_controls::check_box::*;
 use capdows::Win32::control::Control;
 use capdows_controls::group_box::*;
 pub struct Mycb {num:i8, a1:Option<RadioButton>, a2:Option<RadioButton>,b1:Option<RadioButton>,b2:Option<RadioButton>,}
@@ -8,10 +9,12 @@ use crate::WindowClassP::BrushC;
 const BUTTON_01: WindowID = 1u16;
 const SPLIT_BUTTON_01: WindowID = 2u16;
 const LINK_BUTTON_01: WindowID = 3u16;
-const RADIO_BUTTON_01_01: WindowID = 1u16;
-const RADIO_BUTTON_01_02: WindowID = 2u16;
-const RADIO_BUTTON_02_01: WindowID = 3u16;
-const RADIO_BUTTON_02_02: WindowID = 4u16;
+const GROUP_BOX_01: WindowID = 4u16;
+    const RADIO_BUTTON_01_01: WindowID = 1u16;
+    const RADIO_BUTTON_01_02: WindowID = 2u16;
+    const RADIO_BUTTON_02_01: WindowID = 3u16;
+    const RADIO_BUTTON_02_02: WindowID = 4u16;
+const CHECK_BOX_01: WindowID = 5u16;
 impl MessageReceiver for Mycb {
     fn create(
         &mut self,
@@ -32,12 +35,12 @@ impl MessageReceiver for Mycb {
             let _ = Button::new(window, "按钮01", Some(((0, 0), 150, 50)), BUTTON_01, Default::default(), style.clone(), Default::default(), true, false)?;
             let _ = SplitButton::new(window, "分割按钮01", Some(((200, 0), 150, 50)), SPLIT_BUTTON_01, Default::default(), style.clone(), Default::default(), true, false)?;
             let _ = LinkButton::new(window, "链接按钮01", Some(((400, 0), 150, 50)), LINK_BUTTON_01, Default::default(), style.clone(), Default::default(), true, false)?.set_note("114514abc中文")?;
-            let mut g_b = GroupBox::new(window, "分组框01", Some(((600, 0), 300, 100)), 0u16, style.clone(), Default::default(), true, false)?.to_window();
+            let mut g_b = GroupBox::new(window, "分组框01", Some(((575, 0), 300, 100)), GROUP_BOX_01, style.clone(), Default::default(), true, false)?.to_window();
             self.a1 = Some(RadioButton::new(&mut g_b, "单选按钮a01", Some(((20, 20), 100, 20)), RADIO_BUTTON_01_01, Default::default(), style_group.clone(), Default::default(), true, false)?);
             self.a2 = Some(RadioButton::new(&mut g_b, "单选按钮a02", Some(((150, 20), 100, 20)), RADIO_BUTTON_01_02, Default::default(), style.clone(), Default::default(), true, false)?);
             self.b1 = Some(RadioButton::new(&mut g_b, "单选按钮b01", Some(((20, 70), 100, 20)), RADIO_BUTTON_02_01, Default::default(), style_group.clone(), Default::default(), true, false)?);
             self.b2 = Some(RadioButton::new(&mut g_b, "单选按钮b02", Some(((150, 70), 100, 20)), RADIO_BUTTON_02_02, Default::default(), style.clone(), Default::default(), true, false)?);
-
+            let _ = CheckBox::new(window, "选择框01", Some(((900, 0), 150, 50)), CHECK_BOX_01, Default::default(), style.clone(), Default::default(), true, false)?;
         Ok(true)
     }
     fn control_message(&mut self, _window: &mut Window, msg: usize, id:WindowID) -> MessageReceiverResult<isize>{
@@ -77,7 +80,7 @@ impl MessageReceiver for Mycb {
                             } else {
                                 self.num += 1;
                             }
-                            println!("分割按钮1边边点了！数字：{}按钮位置：{:?}", self.num, rect);
+                            println!("分割按钮1边点了！数字：{}按钮位置：{:?}", self.num, rect);
                             Ok(0)
                         }
                         _ => Err(NoProcessed)
