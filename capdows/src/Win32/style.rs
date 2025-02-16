@@ -250,6 +250,7 @@ pub struct ChildWindowStyles {
 	pub size_box: bool,        //WS_SIZEBOX 或 WS_THICKFRAME
 	pub tab_stop: bool,        //WS_TABSTOP
 	pub dlg_frame: bool,      //WS_DLGFRAME
+	pub group:bool,//WS_GROUP
 	pub clip_isbling: bool,   //WS_CLIPSIBLINGS
 	pub clip_children: bool, //WS_CLIPCHILDREN
 	pub size_state: WindowSizeState,
@@ -263,6 +264,7 @@ impl ChildWindowStyles {
 			vertical_roll: false,
 			horizontal_roll: false,
 			size_box: false,
+			group: false,
 			tab_stop: false,
 			dlg_frame: false,
 			clip_isbling: false, 
@@ -275,6 +277,7 @@ impl ChildWindowStyles {
 impl Default for ChildWindowStyles {
     fn default() -> Self {
     	Self {
+			group: false,
 			visble: true,
 			disabled: false,
 			vertical_roll: false,
@@ -302,6 +305,7 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for ChildWindowStyles {
 			dlg_frame: ms_style.contains(WS_DLGFRAME),
 			clip_isbling: ms_style.contains(WS_CLIPSIBLINGS),
 			clip_children: ms_style.contains(WS_CLIPCHILDREN),
+			group: ms_style.contains(WS_GROUP),
 			size_state: ms_style.into(),
 			border_type: (ms_style, ex).into(),
 		}
@@ -317,6 +321,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for ChildWindowStyles {
 		if self.size_box {ms_style |= WS_THICKFRAME;};
 		if self.tab_stop {ms_style |= WS_TABSTOP;};
 		if self.dlg_frame {ms_style |= WS_DLGFRAME;};
+		if self.group {ms_style |= WS_GROUP;};
 		if self.clip_isbling {ms_style |= WS_CLIPSIBLINGS;};
 		if self.clip_children {ms_style |= WS_CLIPCHILDREN;};
 		ms_style |= self.size_state.into();

@@ -3,9 +3,11 @@ use capdows::Win32::*;
 use capdows::Win32::control::*;
 use windows::Win32::Graphics::Gdi::GetStockObject;
 use windows::Win32::Graphics::Gdi::DEFAULT_GUI_FONT;
+use windows::core::*;
 use windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*, UI::Controls::*};
 use std::ffi::c_void;
 pub mod button;
+pub mod radio;
 pub mod group_box;
 pub enum BitmapOrIcon {
 	Bitmap(Bitmap), 

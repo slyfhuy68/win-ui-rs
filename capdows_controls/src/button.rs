@@ -417,6 +417,12 @@ impl Into<(WINDOW_STYLE, Option<BitmapOrIcon>)> for LinkButtonDrawType {
 // 	}
 // }
 impl LinkButton {
+	fn is_link_button(&self) -> bool {
+        let style = WINDOW_STYLE(unsafe {
+            GetWindowLongW(self.0, GWL_STYLE) as u32
+        });
+        style.contains(WINDOW_STYLE(BS_COMMANDLINK as u32)) | style.contains(WINDOW_STYLE(BS_DEFCOMMANDLINK as u32))
+	}
 	pub fn new(wnd:&mut Window,name:&str, 
 		pos: Option<RectangleWH>, 
 		identifier: WindowID, 
@@ -428,4 +434,32 @@ impl LinkButton {
 			let hwnd = new_button(wnd, name, pos, identifier, style, style_ex, control_style_ms, font, no_notify, draw)?;
 			Ok(LinkButton(hwnd))
 		}
+	pub fn get_note(&self) -> Result<String> {
+		let length = unsafe {
+			SendMessageW(self.0, BCM_GETNOTELENGTH, Some(WPARAM(0)), Some(LPARAM(0))).0
+		} as usize;
+		if length == 0 {
+			if self.is_link_button() {
+				return Ok(String::new());
+			} else {
+				return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+			};
+		};
+		let mut buffer: Vec<u16> = vec![0; length + 1];
+		unsafe {
+			SendMessageW(self.0, BCM_GETNOTE, Some(WPARAM(length)), Some(LPARAM(buffer.as_mut_ptr() as isize))).0;
+		}
+		Ok(String::from_utf16_lossy(&buffer[..length]))
+	}
+	pub fn set_note(&mut self,note:&str) -> Result<()> {
+		if !self.is_link_button() {
+			return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+		} ;
+		let (note_ptr, _note_u16) = str_to_pcwstr(note);
+		
+		if unsafe {SendMessageW(self.0, BCM_SETNOTE, Some(WPARAM(0)), Some(LPARAM(note_ptr.0 as isize)))}.0 == 0 {
+			return Err(Error::from_win32());
+		}
+		Ok(())
+	}
 }
