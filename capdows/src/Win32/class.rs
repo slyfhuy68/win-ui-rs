@@ -168,7 +168,7 @@ impl Drop for WindowClass {
         }
     }
 }
-///如果窗口类名长度大于255或小于2（以字节为单位，而不是字符或字素）将失败并返回ERROR_SECRET_TOO_LONG
+///如果窗口类名长度大于255或小于4（以字节为单位，而不是字符或字素）将失败并返回ERROR_SECRET_TOO_LONG
 ///如果class_extra和window_extra的值大于4，将失败并返回ERROR_NOT_ENOUGH_MEMORY
 impl WindowClass {
     pub fn register(
@@ -182,7 +182,7 @@ impl WindowClass {
         class_extra: u8,
         window_extra: u8,
     ) -> Result<Self> {
-        if class_name.len() + 1 <= 3 || class_name.len() + 1 >= 256 {
+        if class_name.len() < 4 || class_name.len() > 255 {
             return Err(Error::new(ERROR_SECRET_TOO_LONG.into(), ""));
         }
         if class_extra > 4 || window_extra > 4 {
