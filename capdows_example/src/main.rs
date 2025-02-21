@@ -110,7 +110,7 @@ impl MessageReceiver for Mycb {
 }
 fn main() -> Result<()> {
     let class = WindowClass::register(
-        "LibraryTest",
+        "LibraryTest 中文👅öé English",//日常使用时不建议使用非ANSI字符
         Default::default(),
         None,
         None,
@@ -122,7 +122,7 @@ fn main() -> Result<()> {
     )?;
     //println!("{}", class);
     let mut window =
-        class.create_window("114", Default::default(),None, Box::new(Mycb {num:0, a1:None, a2:None, b1:None, b2:None}))?;
+        class.create_window("中文😝öé English", Default::default(),None, Box::new(Mycb {num:0, a1:None, a2:None, b1:None, b2:None}))?;
     window.Fshow(1)?;
     println!("ok");
     capdows::Win32::msg::msg_loop();
