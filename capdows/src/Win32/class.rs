@@ -168,21 +168,25 @@ impl Drop for WindowClass {
         }
     }
 }
+///如果窗口类名长度大于255或小于2（以字节为单位，而不是字符或字素）将失败并返回ERROR_SECRET_TOO_LONG
+///如果class_extra和window_extra的值大于4，将失败并返回ERROR_NOT_ENOUGH_MEMORY
 impl WindowClass {
     pub fn register(
         class_name: &str,
-        //fn_window_proc: impl ,创建窗口时传
         style: WindowClassStyle,
-        default_menu_resource: impl IntOrName,
+        default_menu_resource: Option<Either<&str, usize>>,
         icon: Option<Icon>,
         icon_small: Option<Icon>,
         cursor: Option<Cursor>,
         background_brush: Option<WindowClassP::BrushC>,
-        class_extra: i32,
-        window_extra: i32,
+        class_extra: u8,
+        window_extra: u8,
     ) -> Result<Self> {
-        if class_name.len() + 1 <= 5 || class_name.len() + 1 >= 256 {
+        if class_name.len() + 1 <= 3 || class_name.len() + 1 >= 256 {
             return Err(Error::new(ERROR_SECRET_TOO_LONG.into(), ""));
+        }
+        if class_extra > 4 || window_extra > 4 {
+            return Err(Error::new(ERROR_NOT_ENOUGH_MEMORY.into(), ""));
         }
         let (class_name, classddd) = str_to_pcwstr(class_name);
         let hInstance = unsafe { GetModuleHandleW(PCWSTR::null()) }?.into();
@@ -190,28 +194,29 @@ impl WindowClass {
             None => HBRUSH(NULL_PTR()),
             Some(x) => x.into(),
         };
+        let (dmr, dmr_ptr) = _po_to_pcwstr(default_menu_resource);
         let result = unsafe {
             RegisterClassExW(&WNDCLASSEXW {
                 cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
                 style: style.into(),
                 lpfnWndProc: Some(window_proc),
-                cbClsExtra: class_extra,
-                cbWndExtra: window_extra,
+                cbClsExtra: class_extra as i32 * 8,
+                cbWndExtra: window_extra as i32 * 8,
                 hInstance,
                 hIcon: icon.unwrap_or(Icon::invalid()).into(),
                 hCursor: cursor.unwrap_or(Cursor::null()).handle,
                 hbrBackground: background_brush,
-                lpszMenuName: default_menu_resource.to_pcwstr(),
+                lpszMenuName: dmr,
                 lpszClassName: class_name,
                 hIconSm: icon_small.unwrap_or(Icon::invalid()).into(),
             })
         };
         if result == 0 {
-            get_last_error()?;
+            return Err(Error::from_win32());
         };
         Ok(Self {
             name: Some((class_name, classddd)),
-            atom: result.to_pcwstr(),
+            atom:  PCWSTR(result as *mut u16),
             handle_instance: Some(hInstance),
         })
     }
@@ -262,7 +267,6 @@ impl WindowClass {
                 )?
             },
         };
-        //result.set_prop(PROC_KEY_NAME, ptr);
         Ok(result)
     }
 }

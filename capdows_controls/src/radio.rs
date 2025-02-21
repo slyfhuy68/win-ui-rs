@@ -101,8 +101,8 @@ impl Default for RadioButtonDrawType {
 		Self::AutoDraw(ButtonAutoDrawType::TextOnly(false), Default::default())
 	} 
 }
-impl Into<(WINDOW_STYLE, Option<BitmapOrIcon>)> for RadioButtonDrawType {
-	fn into(self) -> (WINDOW_STYLE, Option<BitmapOrIcon>) {
+impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for RadioButtonDrawType {
+	fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
 		match self {
 			RadioButtonDrawType::ParentDraw => (WINDOW_STYLE(BS_OWNERDRAW as u32), None), 
 			RadioButtonDrawType::AutoDraw(dtype, bstyle) => {

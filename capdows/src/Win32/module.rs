@@ -31,7 +31,4 @@ impl ExecutableFile {
             },
         }
     }
-    pub fn load_menu(&self, menu: impl IntOrName) {
-        todo!() //LoadMenuW
-    }
 }

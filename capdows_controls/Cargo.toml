@@ -2,8 +2,11 @@
 name = "capdows_controls"
 version = "0.0.1"
 edition = "2021"
+[features]
+WindowFinder = []
 
 [dependencies]
+either = "1.13.0"
 
 [dependencies.windows]
 version = "0.59.0"

@@ -112,7 +112,7 @@ fn main() -> Result<()> {
     let class = WindowClass::register(
         "LibraryTest",
         Default::default(),
-        NULLn,
+        None,
         None,
         None,
         Some(Cursor::from_system(32512)?),

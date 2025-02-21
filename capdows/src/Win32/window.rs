@@ -124,7 +124,7 @@ impl Window {
         let result1 = PCWSTR(array1.as_ptr());
         Ok(WindowClass {
             name: Some((result1, array1)),
-            atom: unsafe { GetClassLongPtrW(self.handle, GCW_ATOM) }.to_pcwstr(),
+            atom: PCWSTR(unsafe { GetClassLongPtrW(self.handle, GCW_ATOM) } as *mut u16), 
             handle_instance: None,
         })
     }

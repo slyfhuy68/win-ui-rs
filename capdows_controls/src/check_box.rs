@@ -115,8 +115,8 @@ impl Default for CheckBoxDrawType {
 		Self::AutoDraw(ButtonAutoDrawType::TextOnly(false), Default::default())
 	} 
 }
-impl Into<(WINDOW_STYLE, Option<BitmapOrIcon>)> for CheckBoxDrawType {
-	fn into(self) -> (WINDOW_STYLE, Option<BitmapOrIcon>) {
+impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for CheckBoxDrawType {
+	fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
 		match self {
 			CheckBoxDrawType::ParentDraw => (WINDOW_STYLE(BS_OWNERDRAW as u32), None), 
 			CheckBoxDrawType::AutoDraw(dtype, bstyle) => {

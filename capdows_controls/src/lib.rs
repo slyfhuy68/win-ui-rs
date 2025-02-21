@@ -10,10 +10,6 @@ pub mod button;
 pub mod radio;
 pub mod group_box;
 pub mod check_box;
-pub enum BitmapOrIcon {
-	Bitmap(Bitmap), 
-	Icon(Icon)
-}
 fn new_control(wnd:&mut Window, 
 		control_name:&'static str, 
 		name:&str, 
@@ -70,13 +66,13 @@ fn new_button(wnd:&mut Window,
 		style_ex: NormalWindowExStyles, 
 		control_style_ms:WINDOW_STYLE, 
 		font:bool, no_notify: bool, 
-		draw:Option<BitmapOrIcon>
+		draw:Option<Either<Bitmap, Icon>>
 		) -> Result<HWND> {
 	let hwnd = new_control(wnd, "BUTTON", name, pos, id, style, style_ex, control_style_ms, font, no_notify)?;
 	match draw {
 		Some(x) => unsafe {let _ = match x {
-			BitmapOrIcon::Bitmap(b) => PostMessageW(Some(hwnd), BM_SETIMAGE, WPARAM(IMAGE_BITMAP.0 as usize) , LPARAM(b.handle as isize)), 
-			BitmapOrIcon::Icon(c) => PostMessageW(Some(hwnd), BM_SETIMAGE, WPARAM(IMAGE_ICON.0 as usize), LPARAM(c.handle as isize)), 
+			Left(b) => PostMessageW(Some(hwnd), BM_SETIMAGE, WPARAM(IMAGE_BITMAP.0 as usize) , LPARAM(b.handle as isize)), 
+			Right(c) => PostMessageW(Some(hwnd), BM_SETIMAGE, WPARAM(IMAGE_ICON.0 as usize), LPARAM(c.handle as isize)), 
 		};}, 
 		None => {}
 	};

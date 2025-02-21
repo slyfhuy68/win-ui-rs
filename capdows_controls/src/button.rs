@@ -37,9 +37,9 @@ impl Default for ButtonStyle {
 	} 
 }
 pub enum ButtonAutoDrawType {
-	IconOnly(BitmapOrIcon), //BS_ICON
+	IconOnly(Either<Bitmap, Icon>), //BS_ICON
 	TextOnly(bool), //bool:multiple_lines BS_TEXT
-	IconAndText(BitmapOrIcon, bool)//bool:BS_MULTILINE, BS_TEXT BS_ICON
+	IconAndText(Either<Bitmap, Icon>, bool)//bool:BS_MULTILINE, BS_TEXT BS_ICON
 }
 pub enum ButtonMsgType {
 	MouseEntering, 
@@ -117,8 +117,8 @@ impl Default for ButtonDrawType {
 		Self::AutoDraw(ButtonAutoDrawType::TextOnly(false), Default::default())
 	} 
 }
-impl Into<(WINDOW_STYLE, Option<BitmapOrIcon>)> for ButtonDrawType {
-	fn into(self) -> (WINDOW_STYLE, Option<BitmapOrIcon>) {
+impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for ButtonDrawType {
+	fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
 		match self {
 			ButtonDrawType::ParentDraw => (WINDOW_STYLE(BS_OWNERDRAW as u32), None), 
 			ButtonDrawType::AutoDraw(dtype, bstyle) => {
@@ -261,8 +261,8 @@ impl Default for SplitButtonDrawType {
 		Self::AutoDraw(ButtonAutoDrawType::TextOnly(false), Default::default())
 	} 
 }
-impl Into<(WINDOW_STYLE, Option<BitmapOrIcon>)> for SplitButtonDrawType {
-	fn into(self) -> (WINDOW_STYLE, Option<BitmapOrIcon>) {
+impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for SplitButtonDrawType {
+	fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
 		match self {
 			SplitButtonDrawType::ParentDraw => (WINDOW_STYLE(BS_OWNERDRAW as u32), None), 
 			SplitButtonDrawType::AutoDraw(dtype, bstyle) => {
@@ -391,8 +391,8 @@ impl Default for LinkButtonDrawType {
 		Self::AutoDraw(ButtonAutoDrawType::TextOnly(false), Default::default())
 	} 
 }
-impl Into<(WINDOW_STYLE, Option<BitmapOrIcon>)> for LinkButtonDrawType {
-	fn into(self) -> (WINDOW_STYLE, Option<BitmapOrIcon>) {
+impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for LinkButtonDrawType {
+	fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
 		match self {
 			LinkButtonDrawType::ParentDraw => (WINDOW_STYLE(BS_OWNERDRAW as u32), None), 
 			LinkButtonDrawType::AutoDraw(dtype, bstyle) => {

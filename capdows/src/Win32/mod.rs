@@ -44,51 +44,9 @@ use timer::*;
 pub mod window;
 use window::*;
 pub mod core {
-    use super::*;
     pub type Point = (i32, i32);
     pub type Rectangle = (Point, Point);
     pub type RectangleWH = (Point, i32, i32); 
-    pub trait IntOrName {
-        fn to_pcwstr(self) -> PCWSTR;
-    }
-    pub type NullRaw = ();
-    pub static NULLn: () = ();
-    impl IntOrName for NullRaw {
-        fn to_pcwstr(self) -> PCWSTR {
-            PCWSTR::null()
-        }
-    }
-    impl<T: IntOrName> IntOrName for Option<T> {
-        fn to_pcwstr(self) -> PCWSTR {
-            match self {
-                None => PCWSTR::null(),
-                Some(x) => x.to_pcwstr(),
-            }
-        }
-    }
-    impl IntOrName for usize {
-        fn to_pcwstr(self) -> PCWSTR {
-            make_int_resource(self)
-        }
-    }
-    impl IntOrName for u16 {
-        fn to_pcwstr(self) -> PCWSTR {
-            make_int_resource(self as usize)
-        }
-    }
-    impl IntOrName for u8 {
-        fn to_pcwstr(self) -> PCWSTR {
-            make_int_resource(self as usize)
-        }
-    }
-    impl IntOrName for String {
-        //#[deprecated(note = "临时方案")]
-        fn to_pcwstr(self) -> PCWSTR {
-            let (strp, stri) = str_to_pcwstr(&self);
-            std::mem::forget(stri); //[todo] 临时方案
-            strp
-        }
-    }
 }
 use self::core::*;
 pub mod allmods {
@@ -109,6 +67,7 @@ pub mod allmods {
 }
 //----------------------------------------------------------------------------------
 pub use windows::core::{Result, w};
+pub use either::*;
 //----------------------------------------------------------------------------------
 use std::ffi::c_void;
 use std::{os::windows::raw::HANDLE, ptr::null_mut as NULL_PTR, string::*};
@@ -120,8 +79,20 @@ use windows::Win32::{Foundation::*, Graphics::Gdi::*, UI::Shell::*, UI::WindowsA
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 //                              工具函数
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-pub fn get_last_error<T>() -> Result<T> {
-    Err(Error::from(unsafe { GetLastError() }))
+fn _po_to_pcwstr(sels: Option<Either<&str, usize>>) -> (PCWSTR, Option<Vec<u16>>){
+    match sels {
+        None => (PCWSTR::null(), None), 
+        Some(x) => _p_to_pcwstr(x)
+    }
+}
+fn _p_to_pcwstr(sels: Either<&str, usize>) -> (PCWSTR, Option<Vec<u16>>){
+    match sels {
+        Right(x) => (make_int_resource(x), None), 
+        Left(y) => {
+            let (pcw, pwc) = str_to_pcwstr(y);
+            (pcw, Some(pwc))
+        }, 
+    }
 }
 pub fn make_int_resource(i: usize) -> PCWSTR {
     PCWSTR(i as *mut u16)
@@ -150,9 +121,6 @@ pub fn str_to_vecu16(s: &str) -> Vec<u16> {
         .chain(std::iter::once(0))
         .collect();
 }
-// fn str_to_usizeptr(line: &str) -> usize {
-//     return str_to_vecu16(&line).as_ptr() as usize;
-// }
 pub fn result_to_win_result<T, E>(ierror: std::result::Result<T, E>) -> Result<T> {
     match ierror {
         std::result::Result::Ok(x) => Ok(x),

@@ -6,12 +6,12 @@ pub unsafe extern "system" fn window_proc(
 	lParam: LPARAM,
 ) -> LRESULT {
 	let mut window = Window { handle: hWnd };
-	let user_callback_ptr = match window.get_prop(PROC_KEY_NAME) {
-		Ok(x) => x as *mut CallBackObj,
+	let user_callback_ptr = match get_proc(&window) {
+		Ok(x) => x,
 		Err(_) => {
 			if msg == WM_NCCREATE  {
 				let mut s = *(lParam.0 as *mut CREATESTRUCTW);
-				let mm = window.set_prop(PROC_KEY_NAME, s.lpCreateParams as usize);
+				let mm = set_proc(&mut window, s.lpCreateParams as *mut CallBackObj);
 				s.lpCreateParams as *mut CallBackObj
 			} else {
 				return DefWindowProcW(hWnd, msg, wParam, lParam)
@@ -65,6 +65,7 @@ pub unsafe extern "system" fn window_proc(
 				}
 			},
 			WM_DESTROY => {
+				//这里的return不要删，作用是防止回调对象被变成原始指针，销毁窗口时，应该销毁回调对象
 				return LRESULT(match c.destroy(&mut w) {
 					Ok(_) => 0isize, 
 					Err(NoProcessed) => DefWindowProcW(hWnd, msg, wParam, lParam).0,
@@ -131,4 +132,13 @@ pub unsafe extern "system" fn window_proc(
 	};
 	Box::into_raw(c);
 	LRESULT(result)
+}
+fn set_proc(wnd:&mut Window, ptr:*mut CallBackObj ) -> Result<()>{
+	wnd.set_prop(PROC_KEY_NAME, ptr as usize)
+}
+fn get_proc(wnd:&Window) -> Result<*mut CallBackObj>{
+	match wnd.get_prop(PROC_KEY_NAME) {
+		Ok(x) => Ok(x as *mut CallBackObj), 
+		Err(x) => Err(x)
+	}
 }

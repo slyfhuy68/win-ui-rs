@@ -10,9 +10,9 @@ impl Icon {
     pub fn is_invalid(&self) -> bool {
         self.handle == NULL_PTR()
     }
-    pub fn load_from_module<T: IntOrName>(
+    pub fn load_from_module(
         module: ExecutableFile,
-        id: T,
+        id: Either<&str, usize>,
         width: i32,
         hight: i32,
         black: bool,
@@ -108,9 +108,9 @@ impl Bitmap {
         self.handle == NULL_PTR()
     } //width或hight为0使用实际资源大小，如果资源包含多个图像，则使用第一个图像的大小。
       // width或hight为负使用系统指标值指定的宽度或高度。
-    pub fn load_from_module<T: IntOrName>(
+    pub fn load_from_module(
         module: ExecutableFile,
-        id: T,
+        id: Either<&str, usize>,
         width: i32,
         hight: i32,
         black: bool,

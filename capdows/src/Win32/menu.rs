@@ -187,7 +187,7 @@ impl Menu {
         }
         Ok(result_menu)
     }
-    pub fn load_from(ef: ExecutableFile, menu: impl IntOrName) -> Result<Self> {
+    pub fn load_from(ef: ExecutableFile, menu: Either<&str, usize>) -> Result<Self> {
         todo!() //LoadMenuW
     }
     pub fn append(&mut self, new_item: MenuItem) -> Result<()> {
@@ -315,8 +315,8 @@ impl Menu {
     }
     pub fn count(&self) -> Result<u16> {
         match { unsafe { GetMenuItemCount(Some(self.handle)) } } {
-            -1 => get_last_error()?,
-            x => return Ok(x.try_into()?),
+            -1 => Err(Error::from_win32()),
+            x => Ok(x.try_into()?),
         }
     }
     pub fn get_items_clone(&self) -> Result<Vec<MenuItem>> {
