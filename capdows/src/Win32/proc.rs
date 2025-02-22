@@ -5,6 +5,7 @@ pub unsafe extern "system" fn window_proc(
 	wParam: WPARAM,
 	lParam: LPARAM,
 ) -> LRESULT {
+	
 	let mut window = Window { handle: hWnd };
 	let user_callback_ptr = match get_proc(&window) {
 		Ok(x) => x,
@@ -126,6 +127,7 @@ pub unsafe extern "system" fn window_proc(
 			// WM_WINDOWPOSCHANGING => {},
 			//----------------------------------------------------------------------------------
 			_ => {
+				//println!("msg:{}", msg);
 				DefWindowProcW(hWnd, msg, wParam, lParam).0
 				},
 		}

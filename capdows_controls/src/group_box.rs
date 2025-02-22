@@ -9,6 +9,20 @@ impl Control for GroupBox{
 	fn to_window(self) -> Window {
 		Window{handle:self.0}
 	}
+	unsafe fn is_self(wnd:HWND) -> Result<bool>{
+	 	if !is_button_window(wnd)? {
+			return Ok(false);
+		}
+		let style = unsafe {GetWindowLongW(wnd, GWL_STYLE)};
+	 	if  (style & BS_3STATE)==0 			&& (style & BS_AUTO3STATE)==0	 && (style & BS_AUTOCHECKBOX)==0	&& 
+			(style & BS_AUTORADIOBUTTON)==0	&& (style & BS_DEFCOMMANDLINK)==0&& (style & BS_COMMANDLINK)==0		&& 
+			(style & BS_SPLITBUTTON)==0 	&& (style & BS_DEFSPLITBUTTON)==0&& (style & BS_DEFPUSHBUTTON)==0 	&&
+			(style & BS_OWNERDRAW)==0		&& //(style & BS_GROUPBOX)==0  	 && //(style & BS_PUSHBUTTON)==0 	&& 
+			(style & BS_RADIOBUTTON)==0 	&& (style & BS_CHECKBOX)==0		{
+			return Ok(true);
+		}
+		Ok(false)
+	 }
 }
 impl ControlMsg for GroupBoxMsg{ 
 	type ControlType = GroupBox;

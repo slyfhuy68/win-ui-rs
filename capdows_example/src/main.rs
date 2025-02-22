@@ -4,7 +4,15 @@ use capdows_controls::radio::*;
 use capdows_controls::check_box::*;
 use capdows::Win32::control::Control;
 use capdows_controls::group_box::*;
-pub struct Mycb {num:i8, a1:Option<RadioButton>, a2:Option<RadioButton>,b1:Option<RadioButton>,b2:Option<RadioButton>,}
+pub struct Mycb {
+    num:i8, 
+    a1:Option<RadioButton>, 
+    a2:Option<RadioButton>,
+    b1:Option<RadioButton>,
+    b2:Option<RadioButton>,
+    boxed1: Option<CheckBox>, 
+    boxed2: Option<CheckBox>
+}
 use crate::WindowClassP::BrushC;
 const BUTTON_01: WindowID = 1u16;
 const SPLIT_BUTTON_01: WindowID = 2u16;
@@ -40,14 +48,15 @@ impl MessageReceiver for Mycb {
             self.a2 = Some(RadioButton::new(&mut g_b, "单选按钮a02", Some(((150, 20), 100, 20)), RADIO_BUTTON_01_02, Default::default(), style.clone(), Default::default(), true, false)?);
             self.b1 = Some(RadioButton::new(&mut g_b, "单选按钮b01", Some(((20, 70), 100, 20)), RADIO_BUTTON_02_01, Default::default(), style_group.clone(), Default::default(), true, false)?);
             self.b2 = Some(RadioButton::new(&mut g_b, "单选按钮b02", Some(((150, 70), 100, 20)), RADIO_BUTTON_02_02, Default::default(), style.clone(), Default::default(), true, false)?);
-            let _ = CheckBox::new(window, "选择框01", Some(((900, 0), 150, 50)), CHECK_BOX_01, Default::default(), style.clone(), Default::default(), true, false)?;
+            self.boxed1 = Some(CheckBox::new(window, "选择框01", Some(((900, 0), 150, 50)), CHECK_BOX_01, Default::default(), style.clone(), Default::default(), true, false)?);
+            self.boxed2 = Some(CheckBox::new(window, "选择框02", Some(((900, 50), 150, 50)), CHECK_BOX_01, CheckBoxDrawType(ButtonAutoDrawType::TextOnly(false), {let mut state:CheckBoxStyle = Default::default();state.three_state=true;state}), style.clone(), Default::default(), true, false)?);
         Ok(true)
     }
     fn control_message(&mut self, _window: &mut Window, msg: usize, id:WindowID) -> MessageReceiverResult<isize>{
         match id {
             BUTTON_01 => {
                 use ButtonMsgType::*;
-                let msg = get_contro_msg::<Button>(msg);
+                let msg = get_control_msg::<Button>(msg);
                 if let Some(msg) = msg {
                     match msg.bm_type{
                         Clicked => {
@@ -67,11 +76,15 @@ impl MessageReceiver for Mycb {
             }, 
             SPLIT_BUTTON_01 => {
                 use SplitButtonMsgType::*;
-                let msg = get_contro_msg::<SplitButton>(msg);
+                let msg = get_control_msg::<SplitButton>(msg);
                 if let Some(msg) = msg {
                     match msg.bm_type{
                         Clicked => {
-                            println!("分割按钮1点了");
+                            println!(
+                                "分割按钮1点了box1:{} box2:{}", 
+                                &self.boxed1.clone().expect("REASON").is_checked()?, 
+                                &self.boxed2.clone().expect("REASON").is_checked()?, 
+                            );
                             Ok(0)
                         }, 
                         DropDown(rect) => {
@@ -91,7 +104,7 @@ impl MessageReceiver for Mycb {
             }, 
             LINK_BUTTON_01 => {
                 use ButtonMsgType::*;
-                let msg = get_contro_msg::<LinkButton>(msg);
+                let msg = get_control_msg::<LinkButton>(msg);
                 if let Some(msg) = msg {
                     match msg.bm_type{
                         Clicked => {
@@ -122,7 +135,7 @@ fn main() -> Result<()> {
     )?;
     //println!("{}", class);
     let mut window =
-        class.create_window("中文😝öé English", Default::default(),None, Box::new(Mycb {num:0, a1:None, a2:None, b1:None, b2:None}))?;
+        class.create_window("中文😝öé English", Default::default(),None, Box::new(Mycb {num:0, a1:None, a2:None, b1:None, b2:None, boxed1:None, boxed2:None}))?;
     window.Fshow(1)?;
     println!("ok");
     capdows::Win32::msg::msg_loop();

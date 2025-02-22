@@ -78,3 +78,12 @@ fn new_button(wnd:&mut Window,
 	};
 	Ok(hwnd)
 }
+fn is_button_window(wnd:HWND) -> Result<bool> {
+	    let mut array1 = vec![0u16; 8];
+        if unsafe { GetClassNameW(wnd, &mut array1[..]) } == 0 {
+            return Err(Error::from_win32());
+        }
+        let meunasfe = unsafe{PCWSTR(array1.as_ptr()).to_string()?};
+        //println!("{}", meunasfe);
+        return Ok( meunasfe == "Button".to_string());
+}

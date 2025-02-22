@@ -4,7 +4,7 @@ pub struct Icon {
     pub handle: HANDLE,
 }
 impl Icon {
-    pub unsafe fn invalid() -> Self {
+    pub const unsafe fn null() -> Self {
         Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
@@ -39,7 +39,7 @@ pub struct Cursor {
     pub handle: HCURSOR,
 }
 impl Cursor {
-    pub unsafe fn null() -> Self {
+    pub const unsafe fn null() -> Self {
         Self { handle: HCURSOR(NULL_PTR()) }
     }
     pub fn is_invalid(&self) -> bool {
@@ -101,7 +101,7 @@ pub struct Bitmap {
     pub handle: HANDLE,
 }
 impl Bitmap {
-    pub unsafe fn invalid() -> Self {
+    pub const unsafe fn null() -> Self {
         Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {

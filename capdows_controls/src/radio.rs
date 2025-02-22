@@ -46,6 +46,16 @@ impl Control for RadioButton{
 	fn to_window(self) -> Window {
 		Window{handle:self.0}
 	}
+	unsafe fn is_self(wnd:HWND) -> Result<bool>{
+	 	if !is_button_window(wnd)? {
+			return Ok(false);
+		}
+		let style = unsafe {GetWindowLongW(wnd, GWL_STYLE)};
+		if  (style & BS_RADIOBUTTON)!=0 || (style & BS_AUTORADIOBUTTON)!=0 {
+			return Ok(true);
+		}
+		Ok(false)
+	 }
 }
 impl ControlMsg for RadioButtonMsg{ 
 	type ControlType = RadioButton;
@@ -92,33 +102,26 @@ impl ControlMsg for RadioButtonMsg{
 		RadioButton(self.hwnd)
 	}
 }
-pub enum RadioButtonDrawType {
-	ParentDraw, //BS_OWNERDRAW
-	AutoDraw(ButtonAutoDrawType, RadioButtonStyle), //NULL
-}
+pub struct RadioButtonDrawType(pub ButtonAutoDrawType, pub RadioButtonStyle);
 impl Default for RadioButtonDrawType {
 	fn default() -> Self {
-		Self::AutoDraw(ButtonAutoDrawType::TextOnly(false), Default::default())
+		Self(ButtonAutoDrawType::TextOnly(false), Default::default())
 	} 
 }
 impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for RadioButtonDrawType {
 	fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
-		match self {
-			RadioButtonDrawType::ParentDraw => (WINDOW_STYLE(BS_OWNERDRAW as u32), None), 
-			RadioButtonDrawType::AutoDraw(dtype, bstyle) => {
-				let mut wstyle = WINDOW_STYLE(0);
-				let ditype = match dtype {
-					ButtonAutoDrawType::IconOnly(boi) => Some(boi), 
-					ButtonAutoDrawType::TextOnly(a) => {if a {wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);}; None}, 
-					ButtonAutoDrawType::IconAndText(boi, a) => {
-						if a {wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)};
-						Some(boi)
-					}
-				};
-				wstyle |= bstyle.into();
-				(wstyle, ditype)
+		let RadioButtonDrawType(dtype, bstyle) = self;
+		let mut wstyle = WINDOW_STYLE(0);
+		let ditype = match dtype {
+			ButtonAutoDrawType::IconOnly(boi) => Some(boi), 
+			ButtonAutoDrawType::TextOnly(a) => {if a {wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);}; None}, 
+			ButtonAutoDrawType::IconAndText(boi, a) => {
+				if a {wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)};
+				Some(boi)
 			}
-		}
+		};
+		wstyle |= bstyle.into();
+		(wstyle, ditype)
 	}
 }
 // impl From(WINDOW_STYLE, Option<BitmapOrIcon>) for RadioButtonDrawType {
@@ -127,12 +130,6 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for RadioButtonDrawType 
 // 	}
 // }
 impl RadioButton {
-	fn is_radio_button(&self) -> bool {
-        let style = WINDOW_STYLE(unsafe {
-            GetWindowLongW(self.0, GWL_STYLE) as u32
-        });
-        style.contains(WINDOW_STYLE(BS_AUTORADIOBUTTON as u32)) | style.contains(WINDOW_STYLE(BS_RADIOBUTTON as u32))
-	}
 	pub fn new(wnd:&mut Window,name:&str, 
 		pos: Option<RectangleWH>, 
 		identifier: WindowID, 
@@ -145,7 +142,7 @@ impl RadioButton {
 			Ok(RadioButton(hwnd))
 		}
 	pub fn is_checked(&self) -> Result<bool> {
-		if !self.is_radio_button() {
+		if ! unsafe {Self::is_self(self.0)}? {
 			return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
 		}
 		let result = unsafe {

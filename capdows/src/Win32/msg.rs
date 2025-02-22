@@ -57,8 +57,14 @@ pub enum SizingMsgType {
     TopLeft,     //WMSZ_TOPLEFT
     TopRight,    //WMSZ_TOPRIGHT
 }
-pub fn get_contro_msg<T:Control>(arg: usize) -> Option<Box<T::MsgType>>{
-   unsafe {T::MsgType::from_msg(arg)}
+/// #Panics
+///当T与实际消息类型不符时会发生Panic
+pub fn get_control_msg<T: Control>(arg: usize) -> Option<Box<T::MsgType>>{
+    match unsafe {T::is_self((*(arg as *mut NMHDR)).hwndFrom)} {
+        Ok(false) => panic!("The type provided does not match the actual message!"), 
+        Ok(true) => unsafe {T::MsgType::from_msg(arg)}, 
+        Err(_) => None
+    }
 }
 pub trait MessageReceiver {
     fn control_message(&mut self, window: &mut Window, msg: usize, id:WindowID) -> MessageReceiverResult<isize>{
@@ -74,12 +80,7 @@ pub trait MessageReceiver {
         Err(NoProcessed)
     }
     fn close(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        window.destroy()?;
-        match window.get_prop(PROC_KEY_NAME) {
-            Ok(x) => unsafe { drop(Box::from_raw(x as *mut Box<(u32, CallBackObj)>)) },
-            Err(_) => {}
-        };
-        Ok(())
+        Err(NoProcessed)
     }
     fn insufficient_memory(
         &mut self,

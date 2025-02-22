@@ -203,12 +203,12 @@ impl WindowClass {
                 cbClsExtra: class_extra as i32 * 8,
                 cbWndExtra: window_extra as i32 * 8,
                 hInstance,
-                hIcon: icon.unwrap_or(Icon::invalid()).into(),
+                hIcon: icon.unwrap_or(Icon::null()).into(),
                 hCursor: cursor.unwrap_or(Cursor::null()).handle,
                 hbrBackground: background_brush,
                 lpszMenuName: dmr,
                 lpszClassName: class_name,
-                hIconSm: icon_small.unwrap_or(Icon::invalid()).into(),
+                hIconSm: icon_small.unwrap_or(Icon::null()).into(),
             })
         };
         if result == 0 {

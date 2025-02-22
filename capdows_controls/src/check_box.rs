@@ -60,6 +60,19 @@ impl Control for CheckBox{
 	fn to_window(self) -> Window {
 		Window{handle:self.0}
 	}
+	unsafe fn is_self(wnd:HWND) -> Result<bool>{
+	 	if !is_button_window(wnd)? {
+			return Ok(false);
+		}
+		let style = unsafe {GetWindowLongW(wnd, GWL_STYLE)};
+		if  (style & BS_CHECKBOX)!=0 || (style & BS_AUTOCHECKBOX)!=0 {
+			return Ok(true);
+		}
+		if  (style & BS_3STATE)!=0 || (style & BS_AUTO3STATE)!=0 {
+			return Ok(true);
+		}
+		Ok(false)
+	 }
 }
 impl ControlMsg for CheckBoxMsg{ 
 	type ControlType = CheckBox;
@@ -106,33 +119,26 @@ impl ControlMsg for CheckBoxMsg{
 		CheckBox(self.hwnd)
 	}
 }
-pub enum CheckBoxDrawType {
-	ParentDraw, //BS_OWNERDRAW
-	AutoDraw(ButtonAutoDrawType, CheckBoxStyle), //NULL
-}
+pub struct CheckBoxDrawType (pub ButtonAutoDrawType, pub CheckBoxStyle);
 impl Default for CheckBoxDrawType {
 	fn default() -> Self {
-		Self::AutoDraw(ButtonAutoDrawType::TextOnly(false), Default::default())
+		Self(ButtonAutoDrawType::TextOnly(false), Default::default())
 	} 
 }
 impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for CheckBoxDrawType {
 	fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
-		match self {
-			CheckBoxDrawType::ParentDraw => (WINDOW_STYLE(BS_OWNERDRAW as u32), None), 
-			CheckBoxDrawType::AutoDraw(dtype, bstyle) => {
-				let mut wstyle = WINDOW_STYLE(0);
-				let ditype = match dtype {
-					ButtonAutoDrawType::IconOnly(boi) => Some(boi), 
-					ButtonAutoDrawType::TextOnly(a) => {if a {wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);}; None}, 
-					ButtonAutoDrawType::IconAndText(boi, a) => {
-						if a {wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)};
-						Some(boi)
-					}
-				};
-				wstyle |= bstyle.into();
-				(wstyle, ditype)
+		let CheckBoxDrawType(dtype, bstyle) = self;
+		let mut wstyle = WINDOW_STYLE(0);
+		let ditype = match dtype {
+			ButtonAutoDrawType::IconOnly(boi) => Some(boi), 
+			ButtonAutoDrawType::TextOnly(a) => {if a {wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);}; None}, 
+			ButtonAutoDrawType::IconAndText(boi, a) => {
+				if a {wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)};
+				Some(boi)
 			}
-		}
+		};
+		wstyle |= bstyle.into();
+		(wstyle, ditype)
 	}
 }
 // impl From(WINDOW_STYLE, Option<BitmapOrIcon>) for CheckBoxDrawType {
@@ -140,28 +146,38 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for CheckBoxDrawType {
 // 		
 // 	}
 // }
+#[derive(Debug)]
 pub enum CheckBoxState {
 	Checked,
 	Indeterminate,
 	UnChecked,
 }
+impl std::fmt::Display for CheckBoxState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            CheckBoxState::Checked => write!(f, "Checked"),
+            CheckBoxState::Indeterminate => write!(f, "Indeterminate"),
+            CheckBoxState::UnChecked => write!(f, "UnChecked"),
+        }
+    }
+}
 pub use CheckBoxState::*;
 impl CheckBox {
-	fn is_check_box(&self) -> bool {
-		self.is_sure_check_box() | self.is_3state()
-	}
-	fn is_sure_check_box(&self) -> bool {
-        let style = WINDOW_STYLE(unsafe {
-            GetWindowLongW(self.0, GWL_STYLE) as u32
-        });
-        style.contains(WINDOW_STYLE(BS_AUTOCHECKBOX as u32)) | style.contains(WINDOW_STYLE(BS_CHECKBOX as u32))
-	}
-	fn is_3state(&self) -> bool {
-        let style = WINDOW_STYLE(unsafe {
-            GetWindowLongW(self.0, GWL_STYLE) as u32
-        });
-        style.contains(WINDOW_STYLE(BS_AUTO3STATE as u32)) | style.contains(WINDOW_STYLE(BS_3STATE as u32))
-	}
+	// fn is_check_box(&self) -> bool {
+	// 	self.is_sure_check_box() | self.is_3state()
+	// }
+	// fn is_sure_check_box(&self) -> bool {
+    //     let style = WINDOW_STYLE(unsafe {
+    //         GetWindowLongW(self.0, GWL_STYLE) as u32
+    //     });
+    //     style.contains(WINDOW_STYLE(BS_AUTOCHECKBOX as u32)) | style.contains(WINDOW_STYLE(BS_CHECKBOX as u32))
+	// }
+	// fn is_3state(&self) -> bool {
+    //     let style = WINDOW_STYLE(unsafe {
+    //         GetWindowLongW(self.0, GWL_STYLE) as u32
+    //     });
+    //     style.contains(WINDOW_STYLE(BS_AUTO3STATE as u32)) | style.contains(WINDOW_STYLE(BS_3STATE as u32))
+	// }
 	pub fn new(wnd:&mut Window,name:&str, 
 		pos: Option<RectangleWH>, 
 		identifier: WindowID, 
@@ -174,7 +190,7 @@ impl CheckBox {
 			Ok(CheckBox(hwnd))
 		}
 	pub fn is_checked(&self) -> Result<CheckBoxState> {
-		if !self.is_check_box() {
+		if ! unsafe {Self::is_self(self.0)}? {
 			return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
 		}
 		let result = unsafe {
