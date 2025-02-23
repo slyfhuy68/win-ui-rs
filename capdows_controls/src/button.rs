@@ -1,5 +1,7 @@
 use super::*;
 pub struct ManuallyDrawButton (HWND);
+unsafe impl Send for ManuallyDrawButton {}
+unsafe impl Sync for ManuallyDrawButton {}
 pub struct ManuallyDrawButtonMsg{
 	hwnd:HWND, 
 	pub bm_type:ManuallyDrawButtonMsgType, 
@@ -80,6 +82,8 @@ impl ControlMsg for ManuallyDrawButtonMsg{
 }
 //-----------------------------------按钮-----------------------------------------
 pub struct Button (HWND);//PUSHBUTTON
+unsafe impl Send for Button {}
+unsafe impl Sync for Button {}
 #[derive(Default)]
 pub enum BottonContentPos {
 	#[default] Center, //BS_CENTER | BS_VCENTER
@@ -244,6 +248,8 @@ impl Button {
 }
 //------------------------------------------分隔按钮----------------------------------
 pub struct SplitButton (HWND);//SPLITBUTTON
+unsafe impl Send for SplitButton {}
+unsafe impl Sync for SplitButton {}
 pub struct SplitButtonStyle{
 	pub extra_msg:bool, //BS_NOTIFY
 	pub light:bool, //if light BS_DEFSPLITBUTTON else BS_SPLITBUTTON
@@ -391,6 +397,8 @@ impl SplitButton {
 }
 //------------------------------------------链接按钮----------------------------------
 pub struct LinkButton (HWND);//COMMANDLINK
+unsafe impl Send for LinkButton {}
+unsafe impl Sync for LinkButton {}
 pub struct LinkButtonStyle{
 	pub extra_msg:bool, //BS_NOTIFY
 	pub light:bool, //if light BS_DEFCOMMANDLINK else BS_COMMANDLINK

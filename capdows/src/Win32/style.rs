@@ -1,3 +1,4 @@
+//本文件几乎都是AI生成的
 use super::*;
 #[derive(Clone, PartialEq, Default)]
 pub struct WindowClassStyle {

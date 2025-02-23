@@ -1,5 +1,7 @@
 use super::*;
 pub struct GroupBox(HWND);
+unsafe impl Send for GroupBox {}
+unsafe impl Sync for GroupBox {}
 pub struct GroupBoxMsg(pub usize, HWND);
 impl Control for GroupBox{
 	type MsgType = GroupBoxMsg;

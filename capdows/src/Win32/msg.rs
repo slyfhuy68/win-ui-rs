@@ -59,11 +59,11 @@ pub enum SizingMsgType {
 }
 /// #Panics
 ///当T与实际消息类型不符时会发生Panic
-pub fn get_control_msg<T: Control>(arg: usize) -> Option<Box<T::MsgType>>{
+pub fn get_control_msg<T: Control>(arg: usize) -> MessageReceiverResult<Box<T::MsgType>>{
     match unsafe {T::is_self((*(arg as *mut NMHDR)).hwndFrom)} {
         Ok(false) => panic!("The type provided does not match the actual message!"), 
-        Ok(true) => unsafe {T::MsgType::from_msg(arg)}, 
-        Err(_) => None
+        Ok(true) => if let Some(x) = unsafe {T::MsgType::from_msg(arg)} {Ok(x)} else {Err(NoProcessed)}, 
+        Err(_) => Err(NoProcessed), 
     }
 }
 pub trait MessageReceiver {

@@ -8,6 +8,7 @@ use windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*, UI::Controls::*}
 use std::ffi::c_void;
 pub mod button;
 pub mod radio;
+pub mod text_view;
 pub mod group_box;
 pub mod check_box;
 fn new_control(wnd:&mut Window, 
@@ -25,7 +26,6 @@ fn new_control(wnd:&mut Window,
 	if no_notify {
 		xx |= WS_EX_NOPARENTNOTIFY;
 	};
-	//---------------------draw功能未实现！[todo]
 	yy |= WS_CHILD | control_style_ms;
 	xx |= zz;
 	let ex_style = xx;
