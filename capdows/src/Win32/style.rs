@@ -434,12 +434,12 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>)> for Wind
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>) {
         use WindowType::*;
         match self {
-            Overlapped{style: x, syle_ex: mut syle_exx, menu: z, onwer: w, is_layered: b} => {
-            	let mut xx: WINDOW_EX_STYLE = syle_exx.into();
+            Overlapped{style: x, syle_ex: syle_exx, menu: z, onwer: w, is_layered: b} => {
+            	let xx: WINDOW_EX_STYLE = syle_exx.into();
             	let (yy, zz) = x.into();
 				(yy, xx | zz, match z {Some(x) => Some(x.handle), None => None, }, match w {Some(x) => Some(x.handle), None => None, })
             }, 
-            Popup{style: x, syle_ex: mut ms_style, menu: z, onwer: w, is_layered: b} => {
+            Popup{style: x, syle_ex: ms_style, menu: z, onwer: w, is_layered: b} => {
             	let mut xx: WINDOW_EX_STYLE = ms_style.into();
             	let (yy, zz) = x.into();
 				if b {
@@ -447,7 +447,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>)> for Wind
 				};
 				(yy| WS_POPUP, xx | zz, match z {Some(x) => Some(x.handle), None => None, }, match w {Some(x) => Some(x.handle), None => None, })
             },
-            Child{style: x, syle_ex: mut ms_style, identifier: z, parent: w, is_layered: b, no_send_notify_to_parent:c} => {
+            Child{style: x, syle_ex: ms_style, identifier: z, parent: w, is_layered: b, no_send_notify_to_parent:c} => {
 				let mut xx: WINDOW_EX_STYLE = ms_style.into();
             	let (yy, zz) = x.into();
 				if b {

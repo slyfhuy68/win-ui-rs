@@ -34,7 +34,7 @@ pub mod WindowClassP {
     }
     impl Into<HBRUSH> for BrushC {
         fn into(self) -> HBRUSH {
-            let mut result = match self {
+            let result = match self {
                 BrushC::Brush(ush) => ush.into(),
                 //ai写的，ai写重复代码真好用
                 BrushC::ActiveBorder => HBRUSH(COLOR_ACTIVEBORDER.0 as *mut c_void),
@@ -249,7 +249,7 @@ impl WindowClass {
         };
         let hInstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as usize;
-        let mut result = Window {
+        let result = Window {
             handle: unsafe {
                 CreateWindowExW(
                     ex_style,

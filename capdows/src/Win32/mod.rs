@@ -4,14 +4,14 @@
 //    | (_| | | |_| | | |_  | | | | | (_) | | |     _  \__ \ | | | |_| | |  _| | | | | | |_| | | |_| | | (_) | | (_) | | | (_| | | (_| | | | | |_  | | | | | |_| | | |_) |
 //     \____|  \____|  \__| |_| |_|  \___/  |_|    (_) |___/ |_|  \____| |_|   |_| |_|  \____|  \____|  \___/   \___/   \ \____|  \____| |_|  \__| |_| |_|  \____| |____/
 //                                                                |___/                         |___/                    \____/   |___/
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_mut)]
-#![allow(unused_imports)]
-#![allow(non_upper_case_globals)]
-#![allow(unused_unsafe)]
-#![allow(non_snake_case)]
-#![allow(unused_must_use)]
+// #![allow(dead_code)]
+// #![allow(unused_variables)]
+// #![allow(unused_mut)]
+// #![allow(unused_imports)]
+// #![allow(non_upper_case_globals)]
+// #![allow(unused_unsafe)]
+// #![allow(non_snake_case)]
+// #![allow(unused_must_use)]
 // author:slyfhuy68@github
 pub const PROC_KEY_NAME: &'static str = "MalibUserCallback";
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -34,13 +34,10 @@ use msg::*;
 mod proc;
 use proc::*;
 pub mod prop;
-use prop::*;
 pub mod style;
 use style::*;
 pub mod sys_prop;
-use sys_prop::*;
 pub mod timer;
-use timer::*;
 pub mod window;
 use window::*;
 pub mod core {
@@ -61,8 +58,8 @@ pub mod allmods {
     pub use super::prop::*;
     pub use super::window::*;
     pub use super::style::*;
-    pub use super::sys_prop::*;
-    pub use super::timer::*;
+    
+    
     pub use super::Result;
 }
 //----------------------------------------------------------------------------------

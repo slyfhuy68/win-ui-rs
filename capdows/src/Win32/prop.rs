@@ -35,7 +35,7 @@ impl Window {
                 pcwstr: PCWSTR,
                 handle: wHANDLE,
                 ptr: usize,
-            ) -> BOOL {
+            ) -> BOOL { unsafe {
                 let box_data = Box::from_raw(
                     ptr as *mut (
                         Receiver<bool>,
@@ -59,7 +59,7 @@ impl Window {
                         return BOOL(0);
                     }
                 }
-            }
+            }}
             match unsafe {
                 EnumPropsExW(
                     HWND(self_handle as *mut c_void),

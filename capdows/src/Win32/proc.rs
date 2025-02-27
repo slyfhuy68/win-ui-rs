@@ -4,14 +4,14 @@ pub unsafe extern "system" fn window_proc(
 	msg: u32,
 	wParam: WPARAM,
 	lParam: LPARAM,
-) -> LRESULT {
+) -> LRESULT { unsafe {
 	
 	let mut window = Window { handle: hWnd };
 	let user_callback_ptr = match get_proc(&window) {
 		Ok(x) => x,
 		Err(_) => {
 			if msg == WM_NCCREATE  {
-				let mut s = *(lParam.0 as *mut CREATESTRUCTW);
+				let s = *(lParam.0 as *mut CREATESTRUCTW);
 				let mm = set_proc(&mut window, s.lpCreateParams as *mut CallBackObj);
 				s.lpCreateParams as *mut CallBackObj
 			} else {
@@ -22,7 +22,7 @@ pub unsafe extern "system" fn window_proc(
 	if user_callback_ptr.is_null() {
 		return DefWindowProcW(hWnd, msg, wParam, lParam);
 	}
-	let mut user_callback_s = unsafe { Box::from_raw(user_callback_ptr) };
+	let user_callback_s = unsafe { Box::from_raw(user_callback_ptr) };
 	// if user_callback_s.0 != PROC_MEMORY_SINGS {
 	//     return DefWindowProcW(hWnd, msg, wParam, lParam);
 	// };
@@ -43,7 +43,7 @@ pub unsafe extern "system" fn window_proc(
 			// },
 			// WM_COMPACTING => {},
 			WM_CREATE => {
-				let mut s = *(lParam.0 as *mut CREATESTRUCTW);
+				let s = *(lParam.0 as *mut CREATESTRUCTW);
 				let wc = w.get_class();
 				match c.create(&mut w,
 							&s.lpszName.to_string().unwrap_or(String::from("")),
@@ -134,7 +134,7 @@ pub unsafe extern "system" fn window_proc(
 	};
 	Box::into_raw(c);
 	LRESULT(result)
-}
+}}
 fn set_proc(wnd:&mut Window, ptr:*mut CallBackObj ) -> Result<()>{
 	wnd.set_prop(PROC_KEY_NAME, ptr as usize)
 }
