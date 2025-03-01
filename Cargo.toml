@@ -1,0 +1,12 @@
+[workspace]
+resolver = "3"
+members = [
+    "capdows",
+    "controls",
+    "example"
+]
+[workspace.package]
+authors = ["slyfhuy68(github.com)"]
+version = "0.0.1"
+license = "MIT"
+edition = "2024"

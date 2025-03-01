@@ -1,7 +1,9 @@
 [package]
 name = "capdows_example"
-version = "0.0.1"
-edition = "2024"
+authors.workspace = true
+version.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
 either = "1.14.0"
@@ -10,7 +12,7 @@ either = "1.14.0"
 path = "../capdows"
 
 [dependencies.capdows_controls]
-path = "../capdows_controls"
+path = "../controls"
 
 [build-dependencies]
 embed-resource = "3.0.1"
