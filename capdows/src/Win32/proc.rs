@@ -172,6 +172,6 @@ fn get_proc(wnd: &Window) -> Result<*mut CallBackObj> {
     }
 }
 fn callback_error(err:MessageReceiverError) -> isize {
-    println!("{:?}", err);
+    //println!("{:?}", err);
     err.code() as isize
 }

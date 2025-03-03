@@ -7,6 +7,7 @@ use windows::Win32::Graphics::Gdi::GetStockObject;
 use windows::Win32::{Foundation::*, UI::Controls::*, UI::WindowsAndMessaging::*};
 use windows::core::*;
 pub mod button;
+pub mod edit;
 pub mod check_box;
 pub mod group_box;
 pub mod radio;
