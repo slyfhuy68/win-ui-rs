@@ -1,12 +1,9 @@
 [package]
-name = "capdows_controls"
+name = "capdows_resource"
 authors.workspace = true
 version.workspace = true
 license.workspace = true
 edition.workspace = true
-
-[features]
-WindowFinder = []
 
 [dependencies]
 either = "1.14.0"
@@ -14,7 +11,7 @@ either = "1.14.0"
 [dependencies.windows]
 version = "0.60.0"
 features = [
-    "Win32_System_SystemServices",
+    "Win32_Storage_FileSystem",
     "Win32_UI_Shell",
     "Win32_Foundation",
     "Win32_Graphics_Gdi",

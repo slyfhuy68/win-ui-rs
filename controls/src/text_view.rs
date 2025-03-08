@@ -2,27 +2,7 @@ use super::*;
 pub struct TextView(HWND); //PUSH1234567890
 unsafe impl Send for TextView {}
 unsafe impl Sync for TextView {}
-//------------------------------------------------------------AI生成
-const SS_ETCHEDHORZ: i32 = 0x00000010;
-const SS_ETCHEDVERT: i32 = 0x00000020;
-const SS_BLACKFRAME: i32 = 0x00000040;
-const SS_BLACKRECT: i32 = 0x00000080;
-const SS_GRAYFRAME: i32 = 0x00000100;
-const SS_GRAYRECT: i32 = 0x00000200;
-const SS_NOTIFY: i32 = 0x00000400; // 示例值，请根据实际API文档调整
-const SS_WHITEFRAME: i32 = 0x00000400;
-const SS_WHITERECT: i32 = 0x00000800;
-const SS_SUNKEN: i32 = 0x00001000;
-const SS_CENTER: i32 = 0x00000004;
-const SS_EDITCONTROL: i32 = 0x00002000;
-const SS_NOPREFIX: i32 = 0x00000800; // 示例值，请根据实际API文档调整
-const SS_SIMPLE: i32 = 0x00000001;
-const SS_LEFTNOWORDWRAP: i32 = 0x00000002;
-const SS_ENDELLIPSIS: i32 = 0x00000040;
-const SS_PATHELLIPSIS: i32 = 0x00000080;
-const SS_WORDELLIPSIS: i32 = 0x00000100;
-const SS_RIGHT: i32 = 0x00000002;
-//-------------------------------------------------------
+use windows::Win32::System::SystemServices::*;
 pub enum EllipsisType {
     Smiple,       //SS_SIMPLE
     NoEllipsis,   //SS_LEFTNOWORDWRAP
@@ -59,55 +39,55 @@ impl Into<WINDOW_STYLE> for TextViewStyle {
         let mut style = WINDOW_STYLE(0);
 
         if self.etched_horz {
-            style |= WINDOW_STYLE(SS_ETCHEDHORZ as u32);
+            style |= WINDOW_STYLE(SS_ETCHEDHORZ.0 as u32);
         };
         if self.etched_vert {
-            style |= WINDOW_STYLE(SS_ETCHEDVERT as u32);
+            style |= WINDOW_STYLE(SS_ETCHEDVERT.0 as u32);
         };
         if self.black_frame {
-            style |= WINDOW_STYLE(SS_BLACKFRAME as u32);
+            style |= WINDOW_STYLE(SS_BLACKFRAME.0 as u32);
         };
         if self.black_rect {
-            style |= WINDOW_STYLE(SS_BLACKRECT as u32);
+            style |= WINDOW_STYLE(SS_BLACKRECT.0 as u32);
         };
         if self.gray_fame {
-            style |= WINDOW_STYLE(SS_GRAYFRAME as u32);
+            style |= WINDOW_STYLE(SS_GRAYFRAME.0 as u32);
         };
         if self.gray_rect {
-            style |= WINDOW_STYLE(SS_GRAYRECT as u32);
+            style |= WINDOW_STYLE(SS_GRAYRECT.0 as u32);
         };
         if self.white_fame {
-            style |= WINDOW_STYLE(SS_WHITEFRAME as u32);
+            style |= WINDOW_STYLE(SS_WHITEFRAME.0 as u32);
         };
         if self.white_rect {
-            style |= WINDOW_STYLE(SS_WHITERECT as u32);
+            style |= WINDOW_STYLE(SS_WHITERECT.0 as u32);
         };
         if self.sun_ken {
-            style |= WINDOW_STYLE(SS_SUNKEN as u32);
+            style |= WINDOW_STYLE(SS_SUNKEN.0 as u32);
         };
         if self.like_edit {
-            style |= WINDOW_STYLE(SS_EDITCONTROL as u32);
+            style |= WINDOW_STYLE(SS_EDITCONTROL.0 as u32);
         };
 
         match self.text_pos {
-            TextPos::Center => style |= WINDOW_STYLE(SS_CENTER as u32),
+            TextPos::Center => style |= WINDOW_STYLE(SS_CENTER.0 as u32),
             TextPos::Left => {} // 默认值，无需设置
-            TextPos::Right => style |= WINDOW_STYLE(SS_RIGHT as u32),
+            TextPos::Right => style |= WINDOW_STYLE(SS_RIGHT.0 as u32),
         };
 
         if let Some(single_line) = self.single_line {
             match single_line {
-                EllipsisType::Smiple => style |= WINDOW_STYLE(SS_SIMPLE as u32),
-                EllipsisType::NoEllipsis => style |= WINDOW_STYLE(SS_LEFTNOWORDWRAP as u32),
-                EllipsisType::EndEllipsis => style |= WINDOW_STYLE(SS_ENDELLIPSIS as u32),
-                EllipsisType::PathEllipsis => style |= WINDOW_STYLE(SS_PATHELLIPSIS as u32),
-                EllipsisType::WordEllipsis => style |= WINDOW_STYLE(SS_WORDELLIPSIS as u32),
+                EllipsisType::Smiple => style |= WINDOW_STYLE(SS_SIMPLE.0 as u32),
+                EllipsisType::NoEllipsis => style |= WINDOW_STYLE(SS_LEFTNOWORDWRAP.0 as u32),
+                EllipsisType::EndEllipsis => style |= WINDOW_STYLE(SS_ENDELLIPSIS.0 as u32),
+                EllipsisType::PathEllipsis => style |= WINDOW_STYLE(SS_PATHELLIPSIS.0 as u32),
+                EllipsisType::WordEllipsis => style |= WINDOW_STYLE(SS_WORDELLIPSIS.0 as u32),
             }
         };
 
         if !self.prefix {
             //根据你的描述调整了 prefix 字段的处理逻辑
-            style |= WINDOW_STYLE(SS_NOPREFIX as u32);
+            style |= WINDOW_STYLE(SS_NOPREFIX.0 as u32);
         };
 
         style
@@ -186,7 +166,7 @@ impl TextView {
     ) -> Result<Self> {
         let mut x = control_style.into();
         if !no_notify {
-            x |= WINDOW_STYLE(SS_NOTIFY as u32);
+            x |= WINDOW_STYLE(SS_NOTIFY.0 as u32);
         }
         let hwnd = new_control(
             wnd, "STATIC", name, pos, identifier, style, style_ex, x, font, no_notify,

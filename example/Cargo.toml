@@ -17,3 +17,6 @@ path = "../controls"
 [build-dependencies]
 embed-resource = "3.0.1"
 
+[build-dependencies.capdows_resource]
+path = "../res"
+

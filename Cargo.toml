@@ -3,7 +3,8 @@ resolver = "3"
 members = [
     "capdows",
     "controls",
-    "example"
+    "example",
+    "res"
 ]
 [workspace.package]
 authors = ["slyfhuy68(github.com)"]

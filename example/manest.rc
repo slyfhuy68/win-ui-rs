@@ -1,0 +1,99 @@
+#include<Windows.h>
+1 VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK//固定
+FILEFLAGS fileflags//非必须
+// VS_FF_DEBUG	文件包含调试信息，或者使用启用调试功能进行编译。
+// VS_FF_PATCHED	文件已修改，与同一版本号的原始发货文件不同。
+// VS_FF_PRERELEASE	文件是开发版本，而不是商业发布的产品。
+// VS_FF_PRIVATEBUILD	文件不是使用标准发布过程生成的。 如果给定此值， 则 StringFileInfo 块 必须包含 PrivateBuild 字符串。
+// VS_FF_SPECIALBUILD	文件由原始公司使用标准发布过程生成，但是同一版本号的标准文件的变体。 如果给定此值， 则 StringFileInfo 块 块必须包含 SpecialBuild 字符串。
+FILEOS 0x40004
+// VOS_UNKNOWN	为该文件设计的操作系统未知。
+// VOS_DOS	文件是为 MS-DOS 设计的。
+// VOS_NT	文件专为 32 位 Windows 设计。
+// VOS__WINDOWS16	文件专为 16 位 Windows 设计。
+// VOS__WINDOWS32	文件专为 32 位 Windows 设计。
+// VOS_DOS_WINDOWS16	文件专为使用 MS-DOS 运行的 16 位 Windows 而设计。
+// VOS_DOS_WINDOWS32	文件专为使用 MS-DOS 运行的 32 位 Windows 而设计。
+// VOS_NT_WINDOWS32	文件专为 32 位 Windows 设计。
+// 保留值 0x00002L、0x00003L、0x20000L 和 0x30000L。
+FILETYPE 0x1
+//VFT_UNKNOWN	文件类型未知。
+// VFT_APP	文件包含应用程序。
+// VFT_DLL	文件包含动态链接库 (DLL) 。
+// VFT_DRV	文件包含设备驱动程序。 如果 filetypeVFT_DRV， 则子类型 包含驱动程序的更具体说明。
+// VFT_FONT	文件包含字体。 如果 filetype VFT_FONT， 则子类型 包含字体的更具体说明。
+// VFT_VXD	文件包含虚拟设备。
+// VFT_STATIC_LIB	文件包含静态链接库。
+// 所有其他值都保留供 Microsoft 使用。
+FILESUBTYPE 子类型
+// 如果 filetype 指定 VFT_DRV，则此参数可以是以下值之一。
+//
+// 值	说明
+// VFT2_UNKNOWN	驱动程序类型未知。
+// VFT2_DRV_COMM	文件包含通信驱动程序。
+// VFT2_DRV_PRINTER	文件包含打印机驱动程序。
+// VFT2_DRV_KEYBOARD	文件包含键盘驱动程序。
+// VFT2_DRV_LANGUAGE	文件包含语言驱动程序。
+// VFT2_DRV_DISPLAY	文件包含显示驱动程序。
+// VFT2_DRV_MOUSE	文件包含鼠标驱动程序。
+// VFT2_DRV_NETWORK	文件包含网络驱动程序。
+// VFT2_DRV_SYSTEM	文件包含系统驱动程序。
+// VFT2_DRV_INSTALLABLE	文件包含可安装的驱动程序。
+// VFT2_DRV_SOUND	文件包含声音驱动程序。
+// VFT2_DRV_VERSIONED_PRINTER	文件包含版本控制打印机驱动程序。
+//  
+//
+// 如果 filetype 指定 VFT_FONT，则此参数可以是以下值之一。
+//
+// 值	说明
+// VFT2_UNKNOWN	字体类型未知。
+// VFT2_FONT_RASTER	文件包含光栅字体。
+// VFT2_FONT_VECTOR	文件包含矢量字体。
+// VFT2_FONT_TRUETYPE	文件包含 TrueType 字体。
+//  
+//
+// 如果 filetype 指定VFT_VXD，则此参数必须是虚拟设备控制块中包含的虚拟设备标识符。
+//
+// 此处未列出的所有 子类型 值都保留供 Microsoft 使用。
+{
+BLOCK "StringFileInfo"{
+	//XXXX：LangID：：to_hex_string
+	// 可以多个
+	BLOCK "XXXX04B0"{
+		///公司/作者名称				必须
+		VALUE "CompanyName", "Description of my application"
+		///文件描述						必须
+		VALUE "FileDescription", "myfile.exe"
+		///文件版本						必须
+		VALUE "FileVersion", "myfile.exe"
+		///文件的内部名称				必须
+		///例如，如果文件是动态链接库，则为模块名称。 如果文件没有内部名称，则此字符串应为原始文件名，不带扩展名。
+		VALUE "InternalName", "My Company"
+		///版权声明 					非必须
+		VALUE "LegalCopyright", "My Company. All rights reserved."
+		///文件商标和注册商标			非必须
+		///这应包括所有声明的完整文本、合法符号、商标号等。 
+		VALUE "ProductName", "My App"
+		///原始名称						选择性必须（自动填写）
+		VALUE "OriginalFilename", "1.0.0.0"
+		///有关文件的专用版本的信息		特殊规则（指定VS_FF_PRIVATEBUILD）
+		///例如“在 \ TESTBED 上由 TESTER1 生成”。 
+		VALUE "PrivateBuild", "1.0.0.0"
+		///产品名称						必须
+		VALUE "ProductName", "1.0.0.0"
+		///产品版本						选择性必须（自动与文件版本相同）
+		VALUE "ProductVersion", "1.0.0.0"
+		///指定此文件与标准版本的不同	特殊规则（指定VS_FF_SPECIALBUILD）
+		///例如，“用于解决 M250 和 M250E 计算机上的鼠标问题的 TESTER1 的专用版本”。
+		VALUE "SpecialBuild", "1.0.0.0"
+	}
+
+
+	BLOCK "VarFileInfo"{
+		///可以多个，与BLOCK "XXXX04B0"数量相同
+		VALUE "Translation", 0xXXXX/*与BLOCK "XXXX04B0"的XXXX相同*/ 0x04B0
+	}
+}}

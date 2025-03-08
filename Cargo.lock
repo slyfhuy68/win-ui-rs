@@ -25,8 +25,18 @@ version = "0.0.1"
 dependencies = [
  "capdows",
  "capdows_controls",
+ "capdows_resource",
  "either",
  "embed-resource",
+]
+
+[[package]]
+name = "capdows_resource"
+version = "0.0.1"
+dependencies = [
+ "capdows",
+ "either",
+ "windows",
 ]
 
 [[package]]
