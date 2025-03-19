@@ -128,15 +128,15 @@ impl WindowClass {
         &self,
         name: &str,
         wtype: WindowType,
-        pos: Option<RectangleWH>,
+        pos: Option<Rectangle>,
         msgr: CallBackObj,
     ) -> Result<Window> {
         let (style, ex_style, menu, parent) = wtype.into();
         let (wname, _wnameptr) = str_to_pcwstr(name);
         let cname = self.get();
-        let ((x, y), width, height) = match pos {
-            None => ((CW_USEDEFAULT, CW_USEDEFAULT), CW_USEDEFAULT, CW_USEDEFAULT),
-            Some(x) => x,
+        let (Point(x, y), Size(width, height)) = match pos {
+            None => (Point(CW_USEDEFAULT, CW_USEDEFAULT), Size(CW_USEDEFAULT, CW_USEDEFAULT)),
+            Some(x) => x.get_size(),
         };
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as usize;

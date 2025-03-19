@@ -16,7 +16,7 @@ fn new_control(
     wnd: &mut Window,
     control_name: &'static str,
     name: &str,
-    pos: Option<RectangleWH>,
+    pos: Option<Rectangle>,
     id: u16,
     style: ChildWindowStyles,
     style_ex: NormalWindowExStyles,
@@ -37,9 +37,9 @@ fn new_control(
     let parent = Some(wnd.handle);
     let (ptr, _ptr_raw) = str_to_pcwstr(name);
     let (cptr, _cptr_raw) = str_to_pcwstr(control_name);
-    let ((x, y), width, height) = match pos {
-        None => ((CW_USEDEFAULT, CW_USEDEFAULT), CW_USEDEFAULT, CW_USEDEFAULT),
-        Some(x) => x,
+    let (Point(x, y), Size(width, height)) = match pos {
+        None => (Point(CW_USEDEFAULT, CW_USEDEFAULT), Size(CW_USEDEFAULT, CW_USEDEFAULT)),
+        Some(x) => x.get_size(),
     };
     let hinstance = HINSTANCE(unsafe { GetWindowLongW(wnd.handle, GWL_HINSTANCE) as *mut c_void });
     let hwnd = unsafe {
@@ -73,7 +73,7 @@ fn new_control(
 fn new_button(
     wnd: &mut Window,
     name: &str,
-    pos: Option<RectangleWH>,
+    pos: Option<Rectangle>,
     id: u16,
     style: ChildWindowStyles,
     style_ex: NormalWindowExStyles,
@@ -124,3 +124,16 @@ fn is_button_window(wnd: &HWND) -> Result<bool> {
     //println!("{}", meunasfe);
     return Ok(meunasfe == "Button".to_string());
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

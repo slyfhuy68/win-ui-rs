@@ -3,7 +3,7 @@ pub struct Edit(HWND);
 pub enum EditType {
 	Normal, 
 	MultiLine, 
-	Password, 
+	Password(char), 
 	//Rich, 
 }
 pub struct EditStyle {
@@ -23,11 +23,11 @@ pub struct EditStyle {
     pub want_return: bool,   // ES_WANTRETURN
 }
 
-impl Into<WINDOW_STYLE> for EditStyle {
+impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
 	//AI
     fn into(self) -> WINDOW_STYLE {
         let mut edit_style = WINDOW_STYLE(0u32);
-        
+        let mut pass:Option<char>=None;
         if self.auto_hscroll {
             edit_style |= WINDOW_STYLE(ES_AUTOHSCROLL as u32);
         }
@@ -74,9 +74,9 @@ impl Into<WINDOW_STYLE> for EditStyle {
 		match self.etype {     //不是AI
 			Normal => (), 
 			MultiLine => {edit_style |= WINDOW_STYLE(ES_MULTILINE as u32);}, 
-			Password => {edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);}, 
+			Password(c) => {edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);pass = Some(c)}, 
 		}
-        edit_style
+        (edit_style, pass)
     }
 }
 pub struct EditMsg {
@@ -191,7 +191,7 @@ impl Edit {
     pub fn new(
         wnd: &mut Window,
         name: &str,
-        pos: Option<RectangleWH>,
+        pos: Option<Rectangle>,
         identifier: WindowID,
         control_style: EditStyle,
         style: ChildWindowStyles,
@@ -199,7 +199,7 @@ impl Edit {
         font: bool,
         no_notify: bool,
     ) -> Result<Self> {
-        let control_style_ms = control_style.into();
+        let (control_style_ms,password) = control_style.into();
         let hwnd = new_control(
 			wnd,
 			"EDIT",
@@ -212,7 +212,12 @@ impl Edit {
 			font,
 			no_notify,
 		)?;
-        Ok(Edit(hwnd))
+		let mut result = Edit(hwnd);
+		match password {
+		    None => (), //不要直接传给set_passwrd_char，表达的含义不一样
+		    Some(s) => result.set_passwrd_char(Some(s)) 
+		};
+        Ok(result)
     }
     // fn can_undo(&self) -> Result<bool>{
     //     if !unsafe { Self::is_self(&self.0) }? {
@@ -221,4 +226,80 @@ impl Edit {
     //     unsafe { SendMessageW(self.0, EM_CANUNDO, Some(WPARAM(0)), Some(LPARAM(0))).0 }
     //             as usize != 0
     // }
+    ///使用AsciiChar::Null禁用密码
+    pub fn set_passwrd_char(&mut self, pw_char: Option<char>) -> Result<()>{
+
+       let num = match pw_char {
+            Some(x) => {
+                if !x.is_ascii() {
+                    return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+                }
+                let mut b = [0; 4];
+                x.encode_utf8(&mut b);  
+                b[0] as usize
+            }
+            None => 0usize
+        };
+
+        if !unsafe { Self::is_self(&self.0) }? {
+            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+        };
+        unsafe { SendMessageW(self.0, EM_SETPASSWORDCHAR, Some(WPARAM(num)), Some(LPARAM(0))).0 };
+        Ok(())
+    }
+    pub fn get_passwrd_char(&mut self, pw_char: Option<char>) -> Result<char>{
+        if !unsafe { Self::is_self(&self.0) }? {
+            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+        };
+        match char::from_u32(unsafe { SendMessageW(self.0, EM_GETPASSWORDCHAR, Some(WPARAM(0)), Some(LPARAM(0))).0 } as u32) {
+            Some(x) => Ok(x), 
+            None => Err(Error::new(ERROR_NO_UNICODE_TRANSLATION.to_hresult(), ""))
+        }
+    }
+    pub fn get_text(&self) -> Result<String> {
+        let length =
+            unsafe { SendMessageW(self.0, WM_GETTEXTLENGTH, Some(WPARAM(0)), Some(LPARAM(0))).0 }
+                as usize;
+        if length == 0 {
+            if !unsafe { Self::is_self(&self.0) }? {
+                return Ok(String::new());
+            } else {
+                return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+            };
+        };
+        let mut buffer: Vec<u16> = vec![0; length + 1];
+        unsafe {
+            SendMessageW(
+                self.0,
+                WM_GETTEXT,
+                Some(WPARAM(length)),
+                Some(LPARAM(buffer.as_mut_ptr() as isize)),
+            )
+            .0;
+        }
+        Ok(String::from_utf16_lossy(&buffer[..length]))
+    }
+    pub fn set_text(&mut self, text: &str) -> Result<()> {
+        if !unsafe { Self::is_self(&self.0) }? {
+            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+        };
+        let (text_ptr, _text_u16) = str_to_pcwstr(text);
+
+        if unsafe {
+            SendMessageW(
+                self.0,
+                WM_SETTEXT,
+                Some(WPARAM(0)),
+                Some(LPARAM(text_ptr.0 as isize)),
+            )
+        }
+        .0 == 0
+        {
+            return Err(Error::from_win32());
+        }
+        Ok(())
+    }
+
+
+
 }

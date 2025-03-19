@@ -41,9 +41,52 @@ pub mod timer;
 pub mod window;
 use window::*;
 pub mod core {
-    pub type Point = (i32, i32);
-    pub type Rectangle = (Point, Point);
-    pub type RectangleWH = (Point, i32, i32);
+    #[derive(Debug, Clone)]
+    pub struct Point(pub i32, pub i32);
+    impl Copy for Point {}
+    #[derive(Debug, Clone)]
+    pub struct Size(pub i32, pub i32);
+    impl Copy for Size {}
+    #[derive(Debug, Clone)]
+    pub enum Rectangle {
+        ///通过对角线两点定义矩形
+        Points(Point, Point), 
+        ///通过左上角一点和宽高定义矩形
+        PointSize(Point, Size)
+    }
+    impl Copy for Rectangle {}
+    impl Rectangle {
+        pub fn is_points(&self) -> bool {
+            matches!(self, Rectangle::Points(_, _))
+        }
+        pub fn is_size(&self) -> bool {
+            matches!(self, Rectangle::PointSize(_, _))
+        }
+        pub fn to_size(self) -> Self{
+            match self {
+                Rectangle::Points(w, Point(x, y)) => Rectangle::PointSize(w, Size(x - w.0, y - w.1)), 
+                x => x
+            }
+        }
+        pub fn to_point(self) -> Self {
+            match self {
+                Rectangle::PointSize(w, Size(x, y)) => Rectangle::Points(w, Point(w.0 + x, w.1 + y)), 
+                x => x, 
+            }
+        }
+        pub fn get_points(self) -> (Point, Point) {
+            match self {
+                Rectangle::PointSize(w, Size(x, y)) => (w, Point(w.0 + x, w.1 + y)), 
+                Rectangle::Points(x, y) => (x, y), 
+            }
+        }
+        pub fn get_size(self) -> (Point, Size) {
+            match self {
+                Rectangle::Points(w, Point(x, y)) => (w, Size(x - w.0, y - w.1)), 
+                Rectangle::PointSize(x,y) => (x, y)
+            }
+        }
+    }
 }
 use self::core::*;
 pub mod allmods {
@@ -59,11 +102,11 @@ pub mod allmods {
     pub use super::style::*;
     pub use super::window::*;
 
-    pub use super::Result;
+    pub use super::{Result, Error};
 }
 //----------------------------------------------------------------------------------
 pub use either::*;
-pub use windows::core::{Result, w};
+pub use windows::core::{Result, w, Error};
 //----------------------------------------------------------------------------------
 use std::ffi::c_void;
 use std::{os::windows::raw::HANDLE, ptr::null_mut as NULL_PTR, string::*};

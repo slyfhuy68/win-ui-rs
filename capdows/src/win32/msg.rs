@@ -2,10 +2,10 @@ use super::*;
 pub type CallBackObj = Box<dyn MessageReceiver + std::marker::Send + std::marker::Sync + 'static>;
 #[derive(Clone, Eq, PartialEq)]
 pub struct WindowSizeCalcType {
-    top_align: Option<bool>,  //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
-    left_align: Option<bool>, //None NULL true WVR_ALIGNLEFT false WVR_ALIGNRIGHT
-    her_draw: bool,
-    ver_draw: bool,
+    pub top_align: Option<bool>,  //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
+    pub left_align: Option<bool>, //None NULL true WVR_ALIGNLEFT false WVR_ALIGNRIGHT
+    pub her_draw: bool,
+    pub ver_draw: bool,
 }
 #[derive(Clone, Eq, PartialEq)]
 pub enum ShowStateChangeState {
@@ -41,9 +41,9 @@ impl MessageReceiverError {
     }
 }
 // impl Into<Error> for MessageReceiverError {
-// 	fn from(self) -> Self {
-// 		panic!()
-// 	}
+//      fn from(self) -> Self {
+//              panic!()
+//      }
 // }
 pub use MessageReceiverError::*;
 pub type MessageReceiverResult<T> = std::result::Result<T, MessageReceiverError>;
@@ -57,26 +57,11 @@ pub enum SizingMsgType {
     TopLeft,     //WMSZ_TOPLEFT
     TopRight,    //WMSZ_TOPRIGHT
 }
-/// #Panics
-///当T与实际消息类型不符时会发生Panic
-pub fn get_control_msg<T: Control>(arg: usize) -> MessageReceiverResult<Box<T::MsgType>> {
-    match unsafe { T::is_self(&(*(arg as *mut NMHDR)).hwndFrom) } {
-        Ok(false) => panic!("The type provided does not match the actual message!"),
-        Ok(true) => {
-            if let Some(x) = unsafe { T::MsgType::from_msg(arg) } {
-                Ok(x)
-            } else {
-                Err(NoProcessed)
-            }
-        }
-        Err(_) => Err(NoProcessed),
-    }
-}
 pub trait MessageReceiver {
     fn control_message(
         &mut self,
         window: &mut Window,
-        msg: usize,
+        msg: RawMassage,
         id: WindowID,
     ) -> MessageReceiverResult<isize> {
         Err(NoProcessed)
@@ -106,7 +91,7 @@ pub trait MessageReceiver {
         name: &str,
         class: WindowClass,
         file: ExecutableFile,
-        pos: RectangleWH,
+        pos: Rectangle,
         itype: WindowType,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
@@ -252,43 +237,84 @@ pub trait MessageReceiver {
     fn pos_changed(
         &mut self,
         window: &mut Window,
-        z_pos: WindowZpos,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        ptype: WindowPosType,
+        z_pos: Option<WindowZpos>,
+        xy:Option<Point>,
+        wh:Option<Size>,
+        ptype: WindowPosType
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     fn pos_changing(
         &mut self,
         window: &mut Window,
-        z_pos: WindowZpos,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        ptype: WindowPosType,
+        z_pos: Option<WindowZpos>,
+        xy:Option<Point>,
+        wh:Option<Size>,
+        ptype: WindowPosType
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
-    // fn private_window_classes_messages(&mut self,window: &mut Window,) -> MessageReceiverResult<isize>{
-    //     Err(NoProcessed)
-    // }
-    // fn applications_messages() -> MessageReceiverResult<isize>{
-    //     Err(NoProcessed)
-    // }
-    // fn str_messages() -> MessageReceiverResult<isize>{
-    //     Err(NoProcessed)
-    // }
+    fn class_messages(&mut self,window: &mut Window, id:u16, msg: RawMassage) -> MessageReceiverResult<isize>{
+        Err(NoProcessed)
+    }
+    fn applications_messages(&mut self,window: &mut Window, id:u16, msg: RawMassage) -> MessageReceiverResult<isize>{
+        Err(NoProcessed)
+    }
+    fn share_messages(&mut self,window: &mut Window, id:&str, msg: RawMassage) -> MessageReceiverResult<isize>{
+        Err(NoProcessed)
+    }
 }
 pub fn msg_loop() -> () {
     let mut msg = MSG::default();
     unsafe {
-        while GetMessageW(&mut msg, Some(HWND(0 as *mut c_void)), 0, 0).into() {
+        while GetMessageW(&mut msg, None, 0, 0).into() {
             let _ = TranslateMessage(&msg);
             let _ = DispatchMessageW(&msg);
         }
     }
+}
+pub struct RawMassage(usize);
+impl RawMassage {
+    pub unsafe fn new(ptr:usize) -> Self {
+        Self(ptr)
+    }
+    pub unsafe fn as_ptr(self) -> usize {
+        let RawMassage(result) = self;
+        result
+    }
+    pub fn get_msg<T:CustomMessage>(self) -> MessageReceiverResult<T> {
+        match unsafe { T::is_self(self.0) } {
+            Ok(false) => panic!("The type provided does not match the actual message!"),
+            Ok(true) => {
+                if let Some(x) = unsafe { T::from_msg(self.0) } {
+                    Ok(*x)
+                } else {
+                    Err(NoProcessed)
+                }
+            }
+            Err(_) => Err(NoProcessed),
+        }
+    }
+    pub fn get_control_msg<C:Control>(self) -> MessageReceiverResult<C::MsgType> {
+        self.get_msg::<C::MsgType>()
+    }
+
+}
+#[repr(C)]
+pub struct CustomMessageHead {
+        id:u32
+}
+pub trait CustomMessage {
+    ///给你一个指针，判断是否为自身类型消息
+    unsafe fn is_self(ptr: usize) -> Result<bool>;
+    ///给你一个原始指针（lParam）返回一个自身实例(***不检查***)
+    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>>;
+    ///转换成原始指针, 原始指针推荐指向以CustomMessageHead作为第一个成员的指针
+    unsafe fn into_raw(&mut self) -> usize;
+}
+pub trait ShareMessage: CustomMessage {
+    fn get_string(&self) -> &str;
+}
+pub trait ClassMessage: CustomMessage {
+    fn get_class(&self) -> WindowClass;
 }

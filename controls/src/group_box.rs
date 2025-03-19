@@ -64,7 +64,7 @@ impl GroupBox {
     pub fn new(
         wnd: &mut Window,
         name: &str,
-        pos: Option<RectangleWH>,
+        pos: Option<Rectangle>,
         identifier: WindowID,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,

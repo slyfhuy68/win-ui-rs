@@ -156,7 +156,7 @@ impl TextView {
     pub fn new(
         wnd: &mut Window,
         name: &str,
-        pos: Option<RectangleWH>,
+        pos: Option<Rectangle>,
         identifier: WindowID,
         control_style: TextViewStyle,
         style: ChildWindowStyles,

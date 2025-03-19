@@ -18,7 +18,7 @@ impl ManuallyDrawButton {
     pub fn new(
         wnd: &mut Window,
         name: &str,
-        pos: Option<RectangleWH>,
+        pos: Option<Rectangle>,
         identifier: WindowID,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,
@@ -275,7 +275,7 @@ impl Button {
     pub fn new(
         wnd: &mut Window,
         name: &str,
-        pos: Option<RectangleWH>,
+        pos: Option<Rectangle>,
         identifier: WindowID,
         control_style: ButtonDrawType,
         style: ChildWindowStyles,
@@ -402,7 +402,7 @@ impl ControlMsg for SplitButtonMsg {
                 BN_SETFOCUS => GetKeyboardFocus,
                 BCN_DROPDOWN => {
                     let data = (*(ptr as *mut NMBCDROPDOWN)).rcButton;
-                    DropDown(((data.left, data.top), (data.right, data.bottom)))
+                    DropDown(Rectangle::Points(Point(data.left, data.top), Point(data.right, data.bottom)))
                 }
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return None,
@@ -455,7 +455,7 @@ impl SplitButton {
     pub fn new(
         wnd: &mut Window,
         name: &str,
-        pos: Option<RectangleWH>,
+        pos: Option<Rectangle>,
         identifier: WindowID,
         control_style: SplitButtonDrawType,
         style: ChildWindowStyles,
@@ -621,7 +621,7 @@ impl LinkButton {
     pub fn new(
         wnd: &mut Window,
         name: &str,
-        pos: Option<RectangleWH>,
+        pos: Option<Rectangle>,
         identifier: WindowID,
         control_style: LinkButtonDrawType,
         style: ChildWindowStyles,
