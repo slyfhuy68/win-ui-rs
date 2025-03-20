@@ -106,13 +106,7 @@ pub unsafe extern "system" fn window_proc(
                 WM_COMMAND if param2.0 != 0 => {
                     let param2e = param2.0;
                     let param1e = param1.0;
-                    let mut nmhdr = NMHDR {
-                        hwndFrom: HWND(param2e as *mut c_void),
-                        idFrom: (param1e & 0xffff) as usize,
-                        code: ((param1e >> 16) & 0xffff) as u32,
-                    };
-                    let nmhdr_ptr: *mut NMHDR = &mut nmhdr;
-                    match c.control_message(&mut w, RawMassage::new(nmhdr_ptr as usize), nmhdr.idFrom as WindowID) {
+                    match c.control_message(&mut w, RawMassage(WM_COMMAND, param1e, param2e), (param1e & 0xffff) as WindowID) {
                         Ok(x) => x,
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
                         Err(x) => callback_error(x),
@@ -125,7 +119,7 @@ pub unsafe extern "system" fn window_proc(
                     let nmhdr_ptr = param2.0 as *mut NMHDR;
                     match c.control_message(
                         &mut w,
-                        RawMassage::new(nmhdr_ptr as usize),
+                        RawMassage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                         (*nmhdr_ptr).idFrom as WindowID,
                     ) {
                         Ok(x) => x,
@@ -143,7 +137,7 @@ pub unsafe extern "system" fn window_proc(
                         DC: param1.0 as *mut c_void
                     };
                     let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
-                    match c.control_message(&mut w, RawMassage::new(nmhdr_ptr as usize), nmhdr.nmhdr.idFrom as WindowID) {
+                    match c.control_message(&mut w, RawMassage(WM_NOTIFY, 0, nmhdr_ptr as isize), nmhdr.nmhdr.idFrom as WindowID) {
                         Ok(x) => x,
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
                         Err(x) => callback_error(x),

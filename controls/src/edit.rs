@@ -25,7 +25,7 @@ pub struct EditStyle {
 
 impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
 	//AI
-    fn into(self) -> WINDOW_STYLE {
+    fn into(self) -> (WINDOW_STYLE, Option<char>) {
         let mut edit_style = WINDOW_STYLE(0u32);
         let mut pass:Option<char>=None;
         if self.auto_hscroll {
@@ -215,7 +215,7 @@ impl Edit {
 		let mut result = Edit(hwnd);
 		match password {
 		    None => (), //不要直接传给set_passwrd_char，表达的含义不一样
-		    Some(s) => result.set_passwrd_char(Some(s)) 
+		    Some(s) => result.set_passwrd_char(Some(s))?
 		};
         Ok(result)
     }
@@ -247,7 +247,7 @@ impl Edit {
         unsafe { SendMessageW(self.0, EM_SETPASSWORDCHAR, Some(WPARAM(num)), Some(LPARAM(0))).0 };
         Ok(())
     }
-    pub fn get_passwrd_char(&mut self, pw_char: Option<char>) -> Result<char>{
+    pub fn get_passwrd_char(&mut self) -> Result<char>{
         if !unsafe { Self::is_self(&self.0) }? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         };
@@ -292,9 +292,7 @@ impl Edit {
                 Some(WPARAM(0)),
                 Some(LPARAM(text_ptr.0 as isize)),
             )
-        }
-        .0 == 0
-        {
+        }.0 == 0{
             return Err(Error::from_win32());
         }
         Ok(())

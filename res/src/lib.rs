@@ -1,6 +1,6 @@
 use std::env;
 use capdows::win32::allmods::*;
-use windows::core::*;
+//use windows::core::*;
 use windows::Win32::Foundation::*;
 use windows::Win32::Storage::FileSystem::*;
 use std::collections::HashMap;
@@ -252,7 +252,7 @@ impl Version{
         if debug {flag |= VS_FF_DEBUG};
         if self.pre_release {flag |= VS_FF_PRERELEASE};
         if self.pached {flag |= VS_FF_PATCHED};
-        use ProductVariant::*;
+        //use ProductVariant::*;
         // let e_str = match self.variant {
         //     Standard => None, 
         //     Variant(s) => {

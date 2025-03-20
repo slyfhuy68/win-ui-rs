@@ -273,44 +273,34 @@ pub fn msg_loop() -> () {
         }
     }
 }
-pub struct RawMassage(usize);
+#[derive(Copy, Clone)]
+pub struct RawMassage(pub u32, pub usize, pub isize);
 impl RawMassage {
-    pub unsafe fn new(ptr:usize) -> Self {
-        Self(ptr)
-    }
-    pub unsafe fn as_ptr(self) -> usize {
-        let RawMassage(result) = self;
-        result
-    }
-    pub fn get_msg<T:CustomMessage>(self) -> MessageReceiverResult<T> {
-        match unsafe { T::is_self(self.0) } {
-            Ok(false) => panic!("The type provided does not match the actual message!"),
-            Ok(true) => {
-                if let Some(x) = unsafe { T::from_msg(self.0) } {
-                    Ok(*x)
-                } else {
-                    Err(NoProcessed)
-                }
-            }
-            Err(_) => Err(NoProcessed),
-        }
-    }
-    pub fn get_control_msg<C:Control>(self) -> MessageReceiverResult<C::MsgType> {
-        self.get_msg::<C::MsgType>()
-    }
+    // pub fn get_msg<T:CustomMessage>(self) -> MessageReceiverResult<T> {
+    //     match unsafe { T::is_self(self.0) } {
+    //         Ok(false) => panic!("The type provided does not match the actual message!"),
+    //         Ok(true) => {
+    //             if let Some(x) = unsafe { T::from_msg(self.0) } {
+    //                 Ok(*x)
+    //             } else {
+    //                 Err(NoProcessed)
+    //             }
+    //         }
+    //         Err(_) => Err(NoProcessed),
+    //     }
+    // }
+    // pub fn get_control_msg<C:Control>(self) -> MessageReceiverResult<C::MsgType> {
+    //     self.get_msg::<C::MsgType>()
+    // }
 
 }
-#[repr(C)]
-pub struct CustomMessageHead {
-        id:u32
-}
 pub trait CustomMessage {
-    ///给你一个指针，判断是否为自身类型消息
-    unsafe fn is_self(ptr: usize) -> Result<bool>;
-    ///给你一个原始指针（lParam）返回一个自身实例(***不检查***)
-    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>>;
-    ///转换成原始指针, 原始指针推荐指向以CustomMessageHead作为第一个成员的指针
-    unsafe fn into_raw(&mut self) -> usize;
+    ///给你一个RawMassage, 判断是否为自身类型消息
+    unsafe fn is_self(ptr: RawMassage) -> Result<bool>;
+    ///给你一个RawMassage,返回一个自身实例(***不检查***)
+    unsafe fn from_raw_msg(ptr: RawMassage) -> Option<Box<Self>>;
+    ///转换成RawMassage
+    unsafe fn into_raw_msg(&mut self) -> RawMassage;
 }
 pub trait ShareMessage: CustomMessage {
     fn get_string(&self) -> &str;

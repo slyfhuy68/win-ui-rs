@@ -11,7 +11,7 @@ pub mod edit;
 pub mod check_box;
 pub mod group_box;
 pub mod radio;
-pub mod text_view;
+pub mod view;
 fn new_control(
     wnd: &mut Window,
     control_name: &'static str,
@@ -101,7 +101,7 @@ fn new_button(
                     Some(hwnd),
                     BM_SETIMAGE,
                     WPARAM(IMAGE_BITMAP.0 as usize),
-                    LPARAM(b.handle as isize),
+                    LPARAM(b.handle.0 as isize),
                 ),
                 Right(c) => PostMessageW(
                     Some(hwnd),
@@ -124,16 +124,3 @@ fn is_button_window(wnd: &HWND) -> Result<bool> {
     //println!("{}", meunasfe);
     return Ok(meunasfe == "Button".to_string());
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
