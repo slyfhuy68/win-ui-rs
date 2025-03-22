@@ -276,7 +276,7 @@ impl ImageTextView {
                     None
                 ).0 as *mut c_void;
                 if !hbitmap.is_null() {
-                    return Ok(ViewContent::Bitmap(HBITMAP(hbitmap).into()));
+                    return Ok(ViewContent::Bitmap(windows::Win32::Graphics::Gdi::HBITMAP(hbitmap).into()));
                 }
             }
             else if style.contains(WINDOW_STYLE(SS_ICON.0)) {
@@ -298,19 +298,19 @@ impl ImageTextView {
                     None
                 ).0 as *mut c_void;
                 if !henh.is_null() {
-                    return Ok(ViewContent::EnhMetaFile(HENHMETAFILE(henh).into()));
+                    return Ok(ViewContent::EnhMetaFile(windows::Win32::Graphics::Gdi::HENHMETAFILE(henh).into()));
                 }
             }
             else {
                 let text = {
                     let length = 
-                        unsafe { SendMessageW(hwnd, WM_GETTEXTLENGTH, None, None).0 }
+                        SendMessageW(hwnd, WM_GETTEXTLENGTH, None, None).0
                             as usize;
                     if length == 0{
                         String::new() 
                     } else {
                         let mut buffer: Vec<u16> = vec![0; length + 1];
-                        unsafe {
+                        
                             SendMessageW(
                                 hwnd,
                                 WM_GETTEXT,
@@ -318,7 +318,7 @@ impl ImageTextView {
                                 Some(LPARAM(buffer.as_mut_ptr() as isize)),
                             )
                             .0;
-                        }
+                        
                         String::from_utf16_lossy(&buffer[..length])
                     }
                 };
@@ -337,14 +337,12 @@ impl ImageTextView {
                     style &= !(SS_BITMAP.0 as i32 | SS_ICON.0 as i32 | SS_ENHMETAFILE.0 as i32);
                     SetWindowLongW(hwnd, GWL_STYLE, style);
                     let (note_ptr, _note_u16) = str_to_pcwstr(&text);
-                    if unsafe {
-                        SendMessageW(
+                    if SendMessageW(
                             self.0,
                             BCM_SETNOTE,
                             Some(WPARAM(0)),
                             Some(LPARAM(note_ptr.0 as isize)),
-                        )
-                    }.0 == 0{
+                        ).0 == 0{
                         return Err(Error::from_win32());
                     }
                     return Ok(());
@@ -356,10 +354,10 @@ impl ImageTextView {
                     (SS_ICON.0 as i32, STM_SETICON, Some(WPARAM(<Cursor as Into<HCURSOR>>::into(cursor).0 as usize)), None)
                 },
                 ViewContent::Bitmap(bitmap) => {
-                    (SS_BITMAP.0 as i32, STM_SETIMAGE, Some(WPARAM(IMAGE_BITMAP.0 as usize)), Some(LPARAM(<Bitmap as Into<HBITMAP>>::into(bitmap).0 as isize)))
+                    (SS_BITMAP.0 as i32, STM_SETIMAGE, Some(WPARAM(IMAGE_BITMAP.0 as usize)), Some(LPARAM(<Bitmap as Into<windows::Win32::Graphics::Gdi::HBITMAP>>::into(bitmap).0 as isize)))
                 },
                 ViewContent::EnhMetaFile(enh) => {
-                    (SS_ENHMETAFILE.0 as i32, STM_SETIMAGE, Some(WPARAM(IMAGE_ENHMETAFILE as usize)), Some(LPARAM(<EnhMetaFile as Into<HENHMETAFILE>>::into(enh).0 as isize)))
+                    (SS_ENHMETAFILE.0 as i32, STM_SETIMAGE, Some(WPARAM(IMAGE_ENHMETAFILE as usize)), Some(LPARAM(<EnhMetaFile as Into<windows::Win32::Graphics::Gdi::HENHMETAFILE>>::into(enh).0 as isize)))
                 },
             };
             let mut style = GetWindowLongW(hwnd, GWL_STYLE);

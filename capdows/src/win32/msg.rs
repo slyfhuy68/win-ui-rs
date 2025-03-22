@@ -308,3 +308,49 @@ pub trait ShareMessage: CustomMessage {
 pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
+impl<T: ControlMsg> CustomMessage for T {
+    unsafe fn into_raw_msg(&mut self) -> RawMassage {
+        unsafe {
+        let ptr = self.into_raw();
+        match ptr {
+            Left(l) => RawMassage(WM_COMMAND, l.0, self.get_control().to_window().handle.0 as isize), 
+            Right(r) => RawMassage(WM_NOTIFY, 0, r as isize)
+        }
+        }
+    }
+    unsafe fn is_self(ptr: RawMassage) -> Result<bool> {
+        unsafe {
+        let RawMassage(msg, wparam, lparam) = ptr;
+        match msg {
+            WM_COMMAND => {
+                let param2e = HWND(lparam as *mut c_void);
+                T::ControlType::is_self(&param2e)
+            }, 
+            WM_NOTIFY => {
+                let ptr = (*(lparam as *mut NMHDR)).hwndFrom;
+                T::ControlType::is_self(&ptr)
+            }, 
+            _ => Ok(false)
+        }
+        }
+    }
+    unsafe fn from_raw_msg(ptr: RawMassage) -> Option<Box<Self>> {
+        unsafe {
+        let RawMassage(msg, wparam, lparam) = ptr;
+        match msg {
+            WM_COMMAND => {
+                let mut nmhdr = NMHDR {
+                    hwndFrom: HWND(lparam as *mut c_void),
+                    idFrom: (wparam & 0xffff) as usize,
+                    code: ((wparam >> 16) & 0xffff) as u32,
+                };
+                Self::from_msg(&mut nmhdr as *mut _ as usize)
+            }, 
+            WM_NOTIFY => {
+                Self::from_msg(lparam as usize)
+            }, 
+            _ => None
+        }
+        }
+    }
+}
