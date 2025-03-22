@@ -296,29 +296,31 @@ impl RawMassage {
 }
 pub trait CustomMessage {
     ///给你一个RawMassage, 判断是否为自身类型消息
-    unsafe fn is_self(ptr: RawMassage) -> Result<bool>;
+    unsafe fn is_self_msg(ptr: RawMassage) -> Result<bool>;
     ///给你一个RawMassage,返回一个自身实例(***不检查***)
-    unsafe fn from_raw_msg(ptr: RawMassage) -> Option<Box<Self>>;
+    unsafe fn from_raw_msg(ptr: RawMassage) -> Result<Box<Self>>;
     ///转换成RawMassage
-    unsafe fn into_raw_msg(&mut self) -> RawMassage;
+    unsafe fn into_raw_msg(&mut self) -> Result<RawMassage>;
 }
 pub trait ShareMessage: CustomMessage {
-    fn get_string(&self) -> &str;
+    ///同一个结构体/枚举表示同一个字符串，注意，最多同时存在16384（0xFFFF-0xC000+1）个不同的字符串，超出时RegisterWindowMessage将返回0（Windows10 1809 10.0.17763.7009测试）
+    fn get_string(&self) -> String;
 }
+
 pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
 impl<T: ControlMsg> CustomMessage for T {
-    unsafe fn into_raw_msg(&mut self) -> RawMassage {
+    unsafe fn into_raw_msg(&mut self) -> Result<RawMassage> {
         unsafe {
-        let ptr = self.into_raw();
-        match ptr {
+        let ptr = self.into_raw()?;
+        Ok(match ptr {
             Left(l) => RawMassage(WM_COMMAND, l.0, self.get_control().to_window().handle.0 as isize), 
             Right(r) => RawMassage(WM_NOTIFY, 0, r as isize)
-        }
+        })
         }
     }
-    unsafe fn is_self(ptr: RawMassage) -> Result<bool> {
+    unsafe fn is_self_msg(ptr: RawMassage) -> Result<bool> {
         unsafe {
         let RawMassage(msg, wparam, lparam) = ptr;
         match msg {
@@ -334,7 +336,7 @@ impl<T: ControlMsg> CustomMessage for T {
         }
         }
     }
-    unsafe fn from_raw_msg(ptr: RawMassage) -> Option<Box<Self>> {
+    unsafe fn from_raw_msg(ptr: RawMassage) -> Result<Box<Self>> {
         unsafe {
         let RawMassage(msg, wparam, lparam) = ptr;
         match msg {
@@ -349,7 +351,7 @@ impl<T: ControlMsg> CustomMessage for T {
             WM_NOTIFY => {
                 Self::from_msg(lparam as usize)
             }, 
-            _ => None
+            _ => Err(Error::new(ERROR_INVALID_DATA.into(), ""))
         }
         }
     }
