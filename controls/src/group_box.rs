@@ -29,11 +29,11 @@ impl Control for GroupBox {
                 .contains(WINDOW_STYLE(BS_GROUPBOX as u32)),
         )
         // let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
-        // if (style & BS_3STATE)==0 			&& (style & BS_AUTO3STATE)==0	 && (style & BS_AUTOCHECKBOX)==0	&& 
-		// 	(style & BS_AUTORADIOBUTTON)==0	&& (style & BS_DEFCOMMANDLINK)==0&& (style & BS_COMMANDLINK)==0		&& 
-		// 	(style & BS_SPLITBUTTON)==0 	&& (style & BS_DEFSPLITBUTTON)==0&& (style & BS_DEFPUSHBUTTON)==0 	&&
-		// 	(style & BS_OWNERDRAW)==0		&& //(style & BS_GROUPBOX)==0  	 && //(style & BS_PUSHBUTTON)==0 	&& 
-		// 	(style & BS_RADIOBUTTON)==0 	&& (style & BS_CHECKBOX)==0
+        // if (style & BS_3STATE)==0 			&& (style & BS_AUTO3STATE)==0	 && (style & BS_AUTOCHECKBOX)==0	&&
+        // 	(style & BS_AUTORADIOBUTTON)==0	&& (style & BS_DEFCOMMANDLINK)==0&& (style & BS_COMMANDLINK)==0		&&
+        // 	(style & BS_SPLITBUTTON)==0 	&& (style & BS_DEFSPLITBUTTON)==0&& (style & BS_DEFPUSHBUTTON)==0 	&&
+        // 	(style & BS_OWNERDRAW)==0		&& //(style & BS_GROUPBOX)==0  	 && //(style & BS_PUSHBUTTON)==0 	&&
+        // 	(style & BS_RADIOBUTTON)==0 	&& (style & BS_CHECKBOX)==0
         // {
         //     return Ok(true);
         // }
@@ -43,7 +43,7 @@ impl Control for GroupBox {
 }
 impl ControlMsg for GroupBoxMsg {
     type ControlType = GroupBox;
-    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -51,13 +51,16 @@ impl ControlMsg for GroupBoxMsg {
             let _ = nmhdr;
             let bmtype = match code {
                 NM_CUSTOMDRAW => ptr,
-                _ => return None,
+                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Some(Box::new(Self(bmtype, w)))
+            Ok(Box::new(Self(bmtype, w)))
         }
     }
     fn get_control(&self) -> Self::ControlType {
         GroupBox(self.1)
+    }
+    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+        todo!()
     }
 }
 impl GroupBox {

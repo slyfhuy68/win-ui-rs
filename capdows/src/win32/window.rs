@@ -27,7 +27,7 @@ pub struct WindowPosType {
     pub no_copy_bytes: bool, //SWP_NOCOPYBITS
     //pub no_move:bool,
     //pub no_owner_z_order: bool, //SWP_ NOOWNERZORDER / SWP_NOREPOSITION
-    pub no_redraw: bool,        //SWP_NOREDRAW
+    pub no_redraw: bool,                //SWP_NOREDRAW
     pub no_send_changing_message: bool, //SWP_NOSENDCHANGING
     //pub no_sizing:bool,
     pub show_window: bool, //SWP_SHOWWINDOW
@@ -35,14 +35,30 @@ pub struct WindowPosType {
 impl From<WindowPosType> for SET_WINDOW_POS_FLAGS {
     fn from(wpt: WindowPosType) -> Self {
         let mut flags = SET_WINDOW_POS_FLAGS(0);
-        if wpt.draw_frame { flags.0 |= SWP_DRAWFRAME.0; }
-        if wpt.frame_changed { flags.0 |= SWP_FRAMECHANGED.0; }
-        if wpt.hide { flags.0 |= SWP_HIDEWINDOW.0; }
-        if wpt.no_active { flags.0 |= SWP_NOACTIVATE.0; }
-        if wpt.no_copy_bytes { flags.0 |= SWP_NOCOPYBITS.0; }
-        if wpt.no_redraw { flags.0 |= SWP_NOREDRAW.0; }
-        if wpt.no_send_changing_message { flags.0 |= SWP_NOSENDCHANGING.0; }
-        if wpt.show_window { flags.0 |= SWP_SHOWWINDOW.0; }
+        if wpt.draw_frame {
+            flags.0 |= SWP_DRAWFRAME.0;
+        }
+        if wpt.frame_changed {
+            flags.0 |= SWP_FRAMECHANGED.0;
+        }
+        if wpt.hide {
+            flags.0 |= SWP_HIDEWINDOW.0;
+        }
+        if wpt.no_active {
+            flags.0 |= SWP_NOACTIVATE.0;
+        }
+        if wpt.no_copy_bytes {
+            flags.0 |= SWP_NOCOPYBITS.0;
+        }
+        if wpt.no_redraw {
+            flags.0 |= SWP_NOREDRAW.0;
+        }
+        if wpt.no_send_changing_message {
+            flags.0 |= SWP_NOSENDCHANGING.0;
+        }
+        if wpt.show_window {
+            flags.0 |= SWP_SHOWWINDOW.0;
+        }
         flags
     }
 }
@@ -147,14 +163,13 @@ impl From<WindowZpos> for HWND {
     fn from(zpos: WindowZpos) -> Self {
         match zpos {
             WindowZpos::TopMost => HWND((-1isize) as *mut c_void), // (HWND)-1
-            WindowZpos::Top => HWND(0isize as *mut c_void), // (HWND)0
+            WindowZpos::Top => HWND(0isize as *mut c_void),        // (HWND)0
             WindowZpos::NoTopMost => HWND((-2isize) as *mut c_void), // (HWND)-2
-            WindowZpos::Bottom => HWND(1isize as *mut c_void), // (HWND)1
-            WindowZpos::PriorWindow(hwnd) => hwnd.into(), 
+            WindowZpos::Bottom => HWND(1isize as *mut c_void),     // (HWND)1
+            WindowZpos::PriorWindow(hwnd) => hwnd.into(),
         }
     }
 }
-
 
 impl From<HWND> for WindowZpos {
     fn from(hwnd: HWND) -> Self {
@@ -164,7 +179,7 @@ impl From<HWND> for WindowZpos {
             0 => WindowZpos::Top,
             -2 => WindowZpos::NoTopMost,
             1 => WindowZpos::Bottom,
-            _ => WindowZpos::PriorWindow(hwnd.into()), 
+            _ => WindowZpos::PriorWindow(hwnd.into()),
         }
     }
 }
@@ -314,7 +329,15 @@ impl Window {
     //pub fn find_window(&mut self,class:Option<WindowClass>,title: Option<&str>){}
     pub fn force_redraw(&mut self) -> Result<()> {
         unsafe {
-            SetWindowPos(self.handle, None, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER)
+            SetWindowPos(
+                self.handle,
+                None,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER,
+            )
         }
     }
 }
@@ -332,9 +355,9 @@ pub fn have_any_popup_window() -> bool {
     unsafe { AnyPopup() }.as_bool()
 }
 // pub struct SetWindowsPosCallbackResult(pub HDWP);
-// pub fn set_windows_pos<F>(mut cb:F, mut num:u16) -> Result<()>//BeginDeferWindowPos/DeferWindowPos/EndDeferWindowPos 
+// pub fn set_windows_pos<F>(mut cb:F, mut num:u16) -> Result<()>//BeginDeferWindowPos/DeferWindowPos/EndDeferWindowPos
 //     where
-//         F: FnMut(Box<dyn FnOnce(Window, Option<WindowZpos>, Option<Point>, Option<Size>, WindowPosType) -> Result<SetWindowsPosCallbackResult>>) -> Result<SetWindowsPosCallbackResult> 
+//         F: FnMut(Box<dyn FnOnce(Window, Option<WindowZpos>, Option<Point>, Option<Size>, WindowPosType) -> Result<SetWindowsPosCallbackResult>>) -> Result<SetWindowsPosCallbackResult>
 // {
 //     let mut dp1 = unsafe {
 //         BeginDeferWindowPos(num as i32)?
@@ -345,10 +368,10 @@ pub fn have_any_popup_window() -> bool {
 //                 let Point(x, y) = if let Some(z) = xy {z} else {flag|= SWP_NOREPOSITION;Point(0, 0)};
 //                 let Size(w, h) = if let Some(z) = wh {z} else {flag|= SWP_NOSIZE;Size(0, 0)};
 //                 unsafe{
-//                     Ok(SetWindowsPosCallbackResult(DeferWindowPos(dp1, 
-//                         wnd.into(), 
-//                         Some(if let Some(x) = p {x.into()} else {flag|= SWP_NOZORDER;HWND(0isize as *mut c_void)}), 
-//                         x, y, w, h, 
+//                     Ok(SetWindowsPosCallbackResult(DeferWindowPos(dp1,
+//                         wnd.into(),
+//                         Some(if let Some(x) = p {x.into()} else {flag|= SWP_NOZORDER;HWND(0isize as *mut c_void)}),
+//                         x, y, w, h,
 //                         flag)?))
 //                 }
 //             };
@@ -357,15 +380,15 @@ pub fn have_any_popup_window() -> bool {
 //         }
 //         unsafe {
 //         EndDeferWindowPos(dp1)}
-//     
+//
 // }
 //
-// pub fn set_windows_pos<F>(mut cb:F, mut num:u16) -> Result<()> 
+// pub fn set_windows_pos<F>(mut cb:F, mut num:u16) -> Result<()>
 // where
 //     F: FnMut(HDWP, Box<dyn FnOnce(Window, Option<WindowZpos>, Option<Point>, Option<Size>, WindowPosType) -> Result<SetWindowsPosCallbackResult>>) -> Result<SetWindowsPosCallbackResult>
 // {
 //     let mut dp1 = unsafe { BeginDeferWindowPos(num as i32)? };
-//     
+//
 //     while num > 0 {
 //         // 创建一个闭包，该闭包接收 dp1 并在内部使用它。
 //         let defer = move |wnd:Window, p:Option<WindowZpos>, xy:Option<Point>, wh:Option<Size>, t:WindowPosType| -> Result<SetWindowsPosCallbackResult> {
@@ -373,19 +396,19 @@ pub fn have_any_popup_window() -> bool {
 //             let Point(x, y) = if let Some(z) = xy {z} else {flag|= SWP_NOREPOSITION;Point(0, 0)};
 //             let Size(w, h) = if let Some(z) = wh {z} else {flag|= SWP_NOSIZE;Size(0, 0)};
 //             unsafe {
-//                 Ok(SetWindowsPosCallbackResult(DeferWindowPos(dp1, 
-//                     wnd.into(), 
-//                     Some(if let Some(x) = p {x.into()} else {flag|= SWP_NOZORDER;HWND(0isize as *mut c_void)}), 
-//                     x, y, w, h, 
+//                 Ok(SetWindowsPosCallbackResult(DeferWindowPos(dp1,
+//                     wnd.into(),
+//                     Some(if let Some(x) = p {x.into()} else {flag|= SWP_NOZORDER;HWND(0isize as *mut c_void)}),
+//                     x, y, w, h,
 //                     flag)?))
 //             }
 //         };
-//         
+//
 //         // 更新 dp1 为 cb 返回的新 HDWP 值
 //         let SetWindowsPosCallbackResult(dp1) = cb(dp1, Box::new(defer))?;
 //         num -= 1;
 //     }
-//     
+//
 //     unsafe {
 //         EndDeferWindowPos(dp1)
 //     }

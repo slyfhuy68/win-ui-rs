@@ -2,7 +2,7 @@ use super::*;
 pub type CallBackObj = Box<dyn MessageReceiver + std::marker::Send + std::marker::Sync + 'static>;
 #[derive(Clone, Eq, PartialEq)]
 pub struct WindowSizeCalcType {
-    pub top_align: Option<bool>,  //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
+    pub top_align: Option<bool>, //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
     pub left_align: Option<bool>, //None NULL true WVR_ALIGNLEFT false WVR_ALIGNRIGHT
     pub her_draw: bool,
     pub ver_draw: bool,
@@ -238,9 +238,9 @@ pub trait MessageReceiver {
         &mut self,
         window: &mut Window,
         z_pos: Option<WindowZpos>,
-        xy:Option<Point>,
-        wh:Option<Size>,
-        ptype: WindowPosType
+        xy: Option<Point>,
+        wh: Option<Size>,
+        ptype: WindowPosType,
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
@@ -248,23 +248,43 @@ pub trait MessageReceiver {
         &mut self,
         window: &mut Window,
         z_pos: Option<WindowZpos>,
-        xy:Option<Point>,
-        wh:Option<Size>,
-        ptype: WindowPosType
+        xy: Option<Point>,
+        wh: Option<Size>,
+        ptype: WindowPosType,
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
-    fn class_messages(&mut self, window: &mut Window, code:u16, msg: RawMassage) -> MessageReceiverResult<usize>{
-        Err(NoProcessed)//code = raw_code(WM_USER 到 0x7FFF) - WM_USER + 1, WM_USER = 0x0400
+    fn class_messages(
+        &mut self,
+        window: &mut Window,
+        code: u16,
+        msg: RawMassage,
+    ) -> MessageReceiverResult<usize> {
+        Err(NoProcessed) //code = raw_code(WM_USER 到 0x7FFF) - WM_USER + 1,WM_USER = 0x0400
     }
-    fn applications_messages(&mut self, window: &mut Window, code:u16, msg: RawMassage) -> MessageReceiverResult<usize>{
-        Err(NoProcessed)//code = raw_code(WM_APP 到 0xBFFF) - WM_APP + 1, WM_APP = 0x8000
+    fn applications_messages(
+        &mut self,
+        window: &mut Window,
+        code: u16,
+        msg: RawMassage,
+    ) -> MessageReceiverResult<usize> {
+        Err(NoProcessed) //code = raw_code(WM_APP 到 0xBFFF) - WM_APP + 1,WM_APP = 0x8000
     }
-    fn share_messages(&mut self, window: &mut Window, code:&str, msg: RawMassage) -> MessageReceiverResult<usize>{
-        Err(NoProcessed)//code = raw_code(0xC000到0xFFFF) - 0xC000 + 1, 字符串消息
+    fn share_messages(
+        &mut self,
+        window: &mut Window,
+        code: &str,
+        msg: RawMassage,
+    ) -> MessageReceiverResult<usize> {
+        Err(NoProcessed) //code = raw_code(0xC000到0xFFFF) - 0xC000 + 1,字符串消息
     }
-    fn system_reserved_messages(&mut self, window: &mut Window, code:u32, msg: RawMassage) -> MessageReceiverResult<usize>{
-        Err(NoProcessed)//code = raw_code(大于 0xFFFF) - 0xFFFF，由系统保留
+    fn system_reserved_messages(
+        &mut self,
+        window: &mut Window,
+        code: u32,
+        msg: RawMassage,
+    ) -> MessageReceiverResult<usize> {
+        Err(NoProcessed) //code = raw_code(大于 0xFFFF) - 0xFFFF，由系统保留
     }
 }
 pub fn msg_loop() -> () {
@@ -279,13 +299,12 @@ pub fn msg_loop() -> () {
 #[derive(Copy, Clone)]
 pub struct RawMassage(pub u32, pub usize, pub isize);
 
-
 pub trait CustomMessage {
-    ///给你一个RawMassage, 判断是否为自身类型消息
+    ///给你一个RawMassage,判断是否为自身类型消息
     unsafe fn is_self_msg(ptr: RawMassage) -> Result<bool>;
     ///给你一个RawMassage,返回一个自身实例(***不检查***)
     unsafe fn from_raw_msg(ptr: RawMassage) -> Result<Box<Self>>;
-    ///转换成RawMassage, self如果存在则RawMassage里的指针（如有）指向的内容一定存在，self被Drop时，应释放指针内容避免内存泄漏
+    ///转换成RawMassage,self如果存在则RawMassage里的指针（如有）指向的内容一定存在，self被Drop时，应释放指针内容避免内存泄漏
     unsafe fn into_raw_msg(&mut self) -> Result<RawMassage>;
 }
 pub trait ShareMessage: CustomMessage {
@@ -299,53 +318,55 @@ pub trait ClassMessage: CustomMessage {
 impl<T: ControlMsg> CustomMessage for T {
     unsafe fn into_raw_msg(&mut self) -> Result<RawMassage> {
         unsafe {
-        let ptr = self.into_raw()?;
-        Ok(match ptr {
-            Left(l) => {
-                let handle = self.get_control().to_window().handle;
-                let id: WindowID = match GetDlgCtrlID(handle){
-                    0 => 0, 
-                    a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."), 
+            let ptr = self.into_raw()?;
+            Ok(match ptr {
+                Left(l) => {
+                    let handle = self.get_control().to_window().handle;
+                    let id: WindowID = match GetDlgCtrlID(handle){
+                    0 => 0,
+                    a => a.try_into().expect("The control ID exceeds the WindowID::MAX,the GetDlgCtrlID returned an invalid value."),
                 };
-                RawMassage(WM_COMMAND, ((l as usize) << 16) | (id as usize), handle.0 as isize)
-            }, 
-            Right(r) => RawMassage(WM_NOTIFY, 0, r as isize)
-        })
+                    RawMassage(
+                        WM_COMMAND,
+                        ((l as usize) << 16) | (id as usize),
+                        handle.0 as isize,
+                    )
+                }
+                Right(r) => RawMassage(WM_NOTIFY, 0, r as isize),
+            })
         }
     }
     unsafe fn is_self_msg(ptr: RawMassage) -> Result<bool> {
         unsafe {
-        let RawMassage(msg, wparam, lparam) = ptr;
-        match msg {
-            WM_COMMAND => {
-                let param2e = HWND(lparam as *mut c_void);
-                T::ControlType::is_self(&param2e)
-            }, 
-            WM_NOTIFY => {
-                let ptr = (*(lparam as *mut NMHDR)).hwndFrom;
-                T::ControlType::is_self(&ptr)
-            }, 
-            _ => Ok(false)
-        }
+            let RawMassage(msg, wparam, lparam) = ptr;
+            match msg {
+                WM_COMMAND => {
+                    let param2e = HWND(lparam as *mut c_void);
+                    T::ControlType::is_self(&param2e)
+                }
+                WM_NOTIFY => {
+                    let ptr = (*(lparam as *mut NMHDR)).hwndFrom;
+                    T::ControlType::is_self(&ptr)
+                }
+                _ => Ok(false),
+            }
         }
     }
     unsafe fn from_raw_msg(ptr: RawMassage) -> Result<Box<Self>> {
         unsafe {
-        let RawMassage(msg, wparam, lparam) = ptr;
-        match msg {
-            WM_COMMAND => {
-                let mut nmhdr = NMHDR {
-                    hwndFrom: HWND(lparam as *mut c_void),
-                    idFrom: (wparam & 0xffff) as usize,
-                    code: ((wparam >> 16) & 0xffff) as u32,
-                };
-                Self::from_msg(&mut nmhdr as *mut _ as usize)
-            }, 
-            WM_NOTIFY => {
-                Self::from_msg(lparam as usize)
-            }, 
-            _ => Err(Error::new(ERROR_INVALID_DATA.into(), ""))
-        }
+            let RawMassage(msg, wparam, lparam) = ptr;
+            match msg {
+                WM_COMMAND => {
+                    let mut nmhdr = NMHDR {
+                        hwndFrom: HWND(lparam as *mut c_void),
+                        idFrom: (wparam & 0xffff) as usize,
+                        code: ((wparam >> 16) & 0xffff) as u32,
+                    };
+                    Self::from_msg(&mut nmhdr as *mut _ as usize)
+                }
+                WM_NOTIFY => Self::from_msg(lparam as usize),
+                _ => Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+            }
         }
     }
 }

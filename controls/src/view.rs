@@ -3,12 +3,12 @@ pub struct ImageTextView(HWND); //PUSH1234567890
 unsafe impl Send for ImageTextView {}
 unsafe impl Sync for ImageTextView {}
 use windows::Win32::System::SystemServices::*;
-pub enum ViewContent{
-    Text(String), 
-    Icon(Icon), 
-    Cursor(Cursor), 
-    Bitmap(Bitmap), 
-    EnhMetaFile(EnhMetaFile), 
+pub enum ViewContent {
+    Text(String),
+    Icon(Icon),
+    Cursor(Cursor),
+    Bitmap(Bitmap),
+    EnhMetaFile(EnhMetaFile),
 }
 //样式部分为AI生成
 pub enum Alignment {
@@ -34,55 +34,78 @@ pub enum ViewType {
     },
     Bitmap {
         image: Bitmap,
-        reasize_image: bool,    // SS_REALSIZEIMAGE
-        right_just: bool,       // SS_RIGHTJUST
-        center_image: bool,     // SS_CENTERIMAGE
+        reasize_image: bool, // SS_REALSIZEIMAGE
+        right_just: bool,    // SS_RIGHTJUST
+        center_image: bool,  // SS_CENTERIMAGE
     },
     Icon {
         icon: Icon,
-        reasize_control: bool,  // SS_REALSIZECONTROL
-        right_just: bool,       // SS_RIGHTJUST
+        reasize_control: bool, // SS_REALSIZECONTROL
+        right_just: bool,      // SS_RIGHTJUST
     },
     Cursor {
         cursor: Cursor,
-        reasize_control: bool,  // SS_REALSIZECONTROL
-        right_just: bool,       // SS_RIGHTJUST
+        reasize_control: bool, // SS_REALSIZECONTROL
+        right_just: bool,      // SS_RIGHTJUST
     },
-    EnhMetaFile(EnhMetaFile),   // SS_ENHMETAFILE
+    EnhMetaFile(EnhMetaFile), // SS_ENHMETAFILE
 }
 impl Into<ViewContent> for ViewType {
     fn into(self) -> ViewContent {
         use ViewType::*;
         match self {
-            Text {text: s,align: _,ellipsis: _,no_prefix: _} => ViewContent::Text(s), 
-            Bitmap {image: b, reasize_image: _,right_just: _,center_image: _,} => ViewContent::Bitmap(b), 
-            Icon {icon: c,reasize_control: _,right_just: _,} => ViewContent::Icon(c),
-            Cursor {cursor: s,reasize_control: _,right_just: _,} => ViewContent::Cursor(s), 
-            EnhMetaFile(e) => ViewContent::EnhMetaFile(e)
+            Text {
+                text: s,
+                align: _,
+                ellipsis: _,
+                no_prefix: _,
+            } => ViewContent::Text(s),
+            Bitmap {
+                image: b,
+                reasize_image: _,
+                right_just: _,
+                center_image: _,
+            } => ViewContent::Bitmap(b),
+            Icon {
+                icon: c,
+                reasize_control: _,
+                right_just: _,
+            } => ViewContent::Icon(c),
+            Cursor {
+                cursor: s,
+                reasize_control: _,
+                right_just: _,
+            } => ViewContent::Cursor(s),
+            EnhMetaFile(e) => ViewContent::EnhMetaFile(e),
         }
     }
 }
 pub struct ImageTextViewStyle {
-    pub stype: ViewType, 
+    pub stype: ViewType,
 
-    pub black_frame: bool,      // SS_BLACKFRAME
-    pub black_rect: bool,       // SS_BLACKRECT
-    pub etched_frame: bool,     // SS_ETCHEDFRAME
-    pub etched_horz: bool,      // SS_ETCHEDHORZ
-    pub etched_vert: bool,      // SS_ETCHEDVERT
-    pub gray_frame: bool,       // SS_GRAYFRAME
-    pub gray_rect: bool,        // SS_GRAYRECT
-    pub white_frame: bool,      // SS_WHITEFRAME
-    pub white_rect: bool,       // SS_WHITERECT
-    pub sunken: bool,           // SS_SUNKEN
-    pub extra_notify: bool,     // SS_NOTIFY
+    pub black_frame: bool,  // SS_BLACKFRAME
+    pub black_rect: bool,   // SS_BLACKRECT
+    pub etched_frame: bool, // SS_ETCHEDFRAME
+    pub etched_horz: bool,  // SS_ETCHEDHORZ
+    pub etched_vert: bool,  // SS_ETCHEDVERT
+    pub gray_frame: bool,   // SS_GRAYFRAME
+    pub gray_rect: bool,    // SS_GRAYRECT
+    pub white_frame: bool,  // SS_WHITEFRAME
+    pub white_rect: bool,   // SS_WHITERECT
+    pub sunken: bool,       // SS_SUNKEN
+    pub extra_notify: bool, // SS_NOTIFY
 }
 
 impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
     fn into(self) -> (WINDOW_STYLE, ViewContent) {
         let mut window_style = WINDOW_STYLE(0);
         let content_data = match self.stype {
-            ViewType::Text { text, align, ellipsis, no_prefix } => {
+            ViewType::Text {
+                text,
+                align,
+                ellipsis,
+                no_prefix,
+            } => {
                 window_style.0 |= SS_LEFT.0;
                 match align {
                     Alignment::Center => window_style.0 |= SS_CENTER.0,
@@ -91,7 +114,7 @@ impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
                     Alignment::LeftNoWrap => window_style.0 |= SS_LEFTNOWORDWRAP.0,
                     Alignment::Simple => window_style.0 |= SS_SIMPLE.0,
                 }
-                
+
                 match ellipsis {
                     EllipsisType::End => window_style.0 |= SS_ENDELLIPSIS.0,
                     EllipsisType::Path => window_style.0 |= SS_PATHELLIPSIS.0,
@@ -106,7 +129,12 @@ impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
                 ViewContent::Text(text)
             }
 
-            ViewType::Bitmap { image, reasize_image, right_just, center_image } => {
+            ViewType::Bitmap {
+                image,
+                reasize_image,
+                right_just,
+                center_image,
+            } => {
                 window_style.0 |= SS_BITMAP.0;
                 if reasize_image {
                     window_style.0 |= SS_REALSIZEIMAGE.0;
@@ -118,10 +146,14 @@ impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
                     window_style.0 |= SS_CENTERIMAGE.0;
                 }
 
-                ViewContent::Bitmap(image) 
+                ViewContent::Bitmap(image)
             }
 
-            ViewType::Icon { icon, reasize_control, right_just } => {
+            ViewType::Icon {
+                icon,
+                reasize_control,
+                right_just,
+            } => {
                 window_style.0 |= SS_ICON.0;
                 if reasize_control {
                     window_style.0 |= SS_REALSIZECONTROL.0;
@@ -133,7 +165,11 @@ impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
                 ViewContent::Icon(icon)
             }
 
-            ViewType::Cursor { cursor, reasize_control, right_just } => {
+            ViewType::Cursor {
+                cursor,
+                reasize_control,
+                right_just,
+            } => {
                 window_style.0 |= SS_ICON.0;
                 if reasize_control {
                     window_style.0 |= SS_REALSIZECONTROL.0;
@@ -151,59 +187,61 @@ impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
             }
         };
 
-        window_style.0 |= 
-            (self.black_frame as u32)   * SS_BLACKFRAME.0 +
-            (self.black_rect as u32)    * SS_BLACKRECT .0 +
-            (self.etched_frame as u32)  * SS_ETCHEDFRAME.0+
-            (self.etched_horz as u32)   * SS_ETCHEDHORZ.0 +
-            (self.etched_vert as u32)   * SS_ETCHEDVERT.0 +
-            (self.gray_frame as u32)    * SS_GRAYFRAME .0 +
-            (self.gray_rect as u32)     * SS_GRAYRECT  .0 +
-            (self.white_frame as u32)   * SS_WHITEFRAME.0 +
-            (self.white_rect as u32)    * SS_WHITERECT .0 +
-            (self.sunken as u32)        * SS_SUNKEN    .0 +
-            (self.extra_notify as u32)  * SS_NOTIFY    .0 ;
+        window_style.0 |= (self.black_frame as u32) * SS_BLACKFRAME.0
+            + (self.black_rect as u32) * SS_BLACKRECT.0
+            + (self.etched_frame as u32) * SS_ETCHEDFRAME.0
+            + (self.etched_horz as u32) * SS_ETCHEDHORZ.0
+            + (self.etched_vert as u32) * SS_ETCHEDVERT.0
+            + (self.gray_frame as u32) * SS_GRAYFRAME.0
+            + (self.gray_rect as u32) * SS_GRAYRECT.0
+            + (self.white_frame as u32) * SS_WHITEFRAME.0
+            + (self.white_rect as u32) * SS_WHITERECT.0
+            + (self.sunken as u32) * SS_SUNKEN.0
+            + (self.extra_notify as u32) * SS_NOTIFY.0;
 
         (window_style, content_data)
     }
 }
 #[repr(C)]
+#[allow(non_snake_case)]
 struct NMHDRSTATIC {
-	nmhdr:NMHDR, 
-	DC:HANDLE, 
+    #[allow(non_snake_case)]
+    nmhdr: NMHDR,
+    #[allow(non_snake_case)]
+    DC: HANDLE,
 }
 pub enum ImageTextViewMsgType {
-    Clicked,    //WM_COMMAND
-    DoubleClicked,//WM_COMMAND
-    Disable,//WM_COMMAND
-    Enable,//WM_COMMAND
-    Colour(HANDLE)//WM_CTLCOLORSTATIC
+    Clicked,        //WM_COMMAND
+    DoubleClicked,  //WM_COMMAND
+    Disable,        //WM_COMMAND
+    Enable,         //WM_COMMAND
+    Colour(HANDLE), //WM_CTLCOLORSTATIC
 }
 pub struct ImageTextViewMsg {
     hwnd: HWND,
     bm_type: ImageTextViewMsgType,
-    ptr:usize, 
+    ptr: usize,
 }
 impl Drop for ImageTextViewMsg {
     fn drop(&mut self) {
-        unsafe{
-        if self.ptr != 0 {
-            if let ImageTextViewMsgType::Colour(_) = self.bm_type {
-                drop(Box::from_raw(self.ptr));
+        unsafe {
+            if self.ptr != 0 {
+                if let ImageTextViewMsgType::Colour(_) = self.bm_type {
+                    drop(Box::from_raw(self.ptr as *mut NMHDRSTATIC));
+                }
             }
-        }
         }
     }
 }
 impl ImageTextViewMsg {
-    pub fn get_data(&self) -> &ImageTextViewMsgType{
-        self.bm_data
+    pub fn get_data(&self) -> &ImageTextViewMsgType {
+        &self.bm_type
     }
-    pub fn new(wnd:Window, bm_type: ImageTextViewMsgType){
-        Self{
-            hwnd: Window.handle,
+    pub fn new(wnd: Window, bm_type: ImageTextViewMsgType) -> ImageTextViewMsg {
+        Self {
+            hwnd: wnd.handle,
             bm_type,
-            ptr:0, 
+            ptr: 0,
         }
     }
 }
@@ -249,36 +287,37 @@ impl ControlMsg for ImageTextViewMsg {
                 }
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Some(Box::new(Self {
+            Ok(Box::new(Self {
                 hwnd: w,
                 bm_type: bmtype,
-                ptr: 0, 
+                ptr: 0,
             }))
         }
     }
     fn get_control(&self) -> Self::ControlType {
         ImageTextView(self.hwnd)
     }
-    unsafe fn into_raw(&mut self) -> Result<Either<WPARAM, *mut NMHDR>>{
-        unsafe{
-        Ok(match self.bm_type {
-            Clicked => Left(STN_CLICKED), 
-            DoubleClicked => Left(STN_DBLCLK), 
-            Disable => Left(STN_DISABLE), 
-            Enable => Left(STN_ENABLE), 
-            Colour(h) => {
-                let stk = Box::new(NMHDRSTATIC {
+    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+        unsafe {
+            use ImageTextViewMsgType::*;
+            Ok(match self.bm_type {
+                Clicked => Left(STN_CLICKED as u16),
+                DoubleClicked => Left(STN_DBLCLK as u16),
+                Disable => Left(STN_DISABLE as u16),
+                Enable => Left(STN_ENABLE as u16),
+                Colour(h) => {
+                    let stk = Box::new(NMHDRSTATIC {
                     nmhdr:NMHDR {
-                        hwndFrom: self.hwnd, 
-                        idFrom: match GetDlgCtrlID(handle){0 => 0, a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value.");}, 
-                        code: WM_CTLCOLORSTATIC, 
-                    }, 
-                    DC:h, 
-                });//[todo]内存泄漏
-                self.ptr = Box::into_raw(stk) as usize;
-                Left(self.ptr as *mut NMHDR)
-            }
-        })
+                        hwndFrom: self.hwnd,
+                        idFrom: match GetDlgCtrlID(self.hwnd){0 => 0,a => a.try_into().expect("The control ID exceeds the WindowID::MAX,the GetDlgCtrlID returned an invalid value.")},
+                        code: WM_CTLCOLORSTATIC,
+                    },
+                    DC:h,
+                });
+                    self.ptr = Box::into_raw(stk) as usize;
+                    Right(self.ptr as *mut NMHDR)
+                }
+            })
         }
     }
 }
@@ -294,19 +333,32 @@ impl ImageTextView {
         font: bool,
         no_notify: bool,
     ) -> Result<Self> {
-        let (mut x,y) = control_style.into();
+        let (mut x, y) = control_style.into();
         if !no_notify {
             x |= WINDOW_STYLE(SS_NOTIFY.0 as u32);
         }
         let hwnd = match y {
-            ViewContent::Text(z) => ImageTextView(new_control(wnd, "STATIC", &z, pos, identifier, style, style_ex, x, font, no_notify)?), 
+            ViewContent::Text(z) => ImageTextView(new_control(
+                wnd, "STATIC", &z, pos, identifier, style, style_ex, x, font, no_notify,
+            )?),
             v => {
-                let mut ra = ImageTextView(new_control(wnd, "STATIC", &("id:".to_owned() + &identifier.to_string()), pos, identifier, style, style_ex, x, font, no_notify)?), 
+                let mut ra = ImageTextView(new_control(
+                    wnd,
+                    "STATIC",
+                    &("id:".to_owned() + &identifier.to_string()),
+                    pos,
+                    identifier,
+                    style,
+                    style_ex,
+                    x,
+                    font,
+                    no_notify,
+                )?);
                 ra.change_content(v)?;
                 ra
-            },
+            }
         };
-        
+
         Ok(hwnd)
     }
     //get_content\change_content ai+修改
@@ -319,52 +371,48 @@ impl ImageTextView {
                     hwnd,
                     STM_GETIMAGE,
                     Some(WPARAM(IMAGE_BITMAP.0 as usize)),
-                    None
-                ).0 as *mut c_void;
-                if !hbitmap.is_null() {
-                    return Ok(ViewContent::Bitmap(windows::Win32::Graphics::Gdi::HBITMAP(hbitmap).into()));
-                }
-            }
-            else if style.contains(WINDOW_STYLE(SS_ICON.0)) {
-                let hicon = SendMessageW(
-                    hwnd,
-                    STM_GETICON,
                     None,
-                    None
-                ).0 as *mut c_void;
+                )
+                .0 as *mut c_void;
+                if !hbitmap.is_null() {
+                    return Ok(ViewContent::Bitmap(
+                        windows::Win32::Graphics::Gdi::HBITMAP(hbitmap).into(),
+                    ));
+                }
+            } else if style.contains(WINDOW_STYLE(SS_ICON.0)) {
+                let hicon = SendMessageW(hwnd, STM_GETICON, None, None).0 as *mut c_void;
                 if !hicon.is_null() {
                     return Ok(ViewContent::Icon(HICON(hicon).into()));
                 }
-            }
-            else if style.contains(WINDOW_STYLE(SS_ENHMETAFILE.0)) {
+            } else if style.contains(WINDOW_STYLE(SS_ENHMETAFILE.0)) {
                 let henh = SendMessageW(
                     hwnd,
                     STM_GETIMAGE,
                     Some(WPARAM(IMAGE_ENHMETAFILE as usize)),
-                    None
-                ).0 as *mut c_void;
+                    None,
+                )
+                .0 as *mut c_void;
                 if !henh.is_null() {
-                    return Ok(ViewContent::EnhMetaFile(windows::Win32::Graphics::Gdi::HENHMETAFILE(henh).into()));
+                    return Ok(ViewContent::EnhMetaFile(
+                        windows::Win32::Graphics::Gdi::HENHMETAFILE(henh).into(),
+                    ));
                 }
-            }
-            else {
+            } else {
                 let text = {
-                    let length = 
-                        SendMessageW(hwnd, WM_GETTEXTLENGTH, None, None).0
-                            as usize;
-                    if length == 0{
-                        String::new() 
+                    let length = SendMessageW(hwnd, WM_GETTEXTLENGTH, None, None).0 as usize;
+                    if length == 0 {
+                        String::new()
                     } else {
                         let mut buffer: Vec<u16> = vec![0; length + 1];
-                        
-                            SendMessageW(
-                                hwnd,
-                                WM_GETTEXT,
-                                Some(WPARAM(length)),
-                                Some(LPARAM(buffer.as_mut_ptr() as isize)),
-                            )
-                            .0;
-                        
+
+                        SendMessageW(
+                            hwnd,
+                            WM_GETTEXT,
+                            Some(WPARAM(length)),
+                            Some(LPARAM(buffer.as_mut_ptr() as isize)),
+                        )
+                        .0;
+
                         String::from_utf16_lossy(&buffer[..length])
                     }
                 };
@@ -384,39 +432,60 @@ impl ImageTextView {
                     SetWindowLongW(hwnd, GWL_STYLE, style);
                     let (note_ptr, _note_u16) = str_to_pcwstr(&text);
                     if SendMessageW(
-                            self.0,
-                            BCM_SETNOTE,
-                            Some(WPARAM(0)),
-                            Some(LPARAM(note_ptr.0 as isize)),
-                        ).0 == 0{
+                        self.0,
+                        BCM_SETNOTE,
+                        Some(WPARAM(0)),
+                        Some(LPARAM(note_ptr.0 as isize)),
+                    )
+                    .0 == 0
+                    {
                         return Err(Error::from_win32());
                     }
                     return Ok(());
-                },
-                ViewContent::Icon(icon) => {
-                    (SS_ICON.0 as i32, STM_SETICON, Some(WPARAM(<Icon as Into<HICON>>::into(icon).0 as usize)), None)
-                },
-                ViewContent::Cursor(cursor) => {
-                    (SS_ICON.0 as i32, STM_SETICON, Some(WPARAM(<Cursor as Into<HCURSOR>>::into(cursor).0 as usize)), None)
-                },
-                ViewContent::Bitmap(bitmap) => {
-                    (SS_BITMAP.0 as i32, STM_SETIMAGE, Some(WPARAM(IMAGE_BITMAP.0 as usize)), Some(LPARAM(<Bitmap as Into<windows::Win32::Graphics::Gdi::HBITMAP>>::into(bitmap).0 as isize)))
-                },
-                ViewContent::EnhMetaFile(enh) => {
-                    (SS_ENHMETAFILE.0 as i32, STM_SETIMAGE, Some(WPARAM(IMAGE_ENHMETAFILE as usize)), Some(LPARAM(<EnhMetaFile as Into<windows::Win32::Graphics::Gdi::HENHMETAFILE>>::into(enh).0 as isize)))
-                },
+                }
+                ViewContent::Icon(icon) => (
+                    SS_ICON.0 as i32,
+                    STM_SETICON,
+                    Some(WPARAM(<Icon as Into<HICON>>::into(icon).0 as usize)),
+                    None,
+                ),
+                ViewContent::Cursor(cursor) => (
+                    SS_ICON.0 as i32,
+                    STM_SETICON,
+                    Some(WPARAM(<Cursor as Into<HCURSOR>>::into(cursor).0 as usize)),
+                    None,
+                ),
+                ViewContent::Bitmap(bitmap) => (
+                    SS_BITMAP.0 as i32,
+                    STM_SETIMAGE,
+                    Some(WPARAM(IMAGE_BITMAP.0 as usize)),
+                    Some(LPARAM(
+                        <Bitmap as Into<windows::Win32::Graphics::Gdi::HBITMAP>>::into(bitmap).0
+                            as isize,
+                    )),
+                ),
+                ViewContent::EnhMetaFile(enh) => (
+                    SS_ENHMETAFILE.0 as i32,
+                    STM_SETIMAGE,
+                    Some(WPARAM(IMAGE_ENHMETAFILE as usize)),
+                    Some(LPARAM(
+                        <EnhMetaFile as Into<windows::Win32::Graphics::Gdi::HENHMETAFILE>>::into(
+                            enh,
+                        )
+                        .0 as isize,
+                    )),
+                ),
             };
             let mut style = GetWindowLongW(hwnd, GWL_STYLE);
             style &= !(SS_BITMAP.0 as i32 | SS_ICON.0 as i32 | SS_ENHMETAFILE.0 as i32);
             style |= new_style;
-            if SetWindowLongW(hwnd, GWL_STYLE, style) == 0{
+            if SetWindowLongW(hwnd, GWL_STYLE, style) == 0 {
                 return Err(Error::from_win32());
             };
-            if SendMessageW(hwnd,msg,wparam,lparam).0 == 0{
+            if SendMessageW(hwnd, msg, wparam, lparam).0 == 0 {
                 return Err(Error::from_win32());
             };
             Ok(())
         }
     }
 }
-

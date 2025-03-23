@@ -93,7 +93,7 @@ impl Control for CheckBox {
 }
 impl ControlMsg for CheckBoxMsg {
     type ControlType = CheckBox;
-    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -108,7 +108,7 @@ impl ControlMsg for CheckBoxMsg {
                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                         MouseLaveing
                     } else {
-                        return None;
+                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
                     }
                 }
                 BN_CLICKED => Clicked,
@@ -116,9 +116,9 @@ impl ControlMsg for CheckBoxMsg {
                 BN_KILLFOCUS => LoseKeyboardFocus,
                 BN_SETFOCUS => GetKeyboardFocus,
                 NM_CUSTOMDRAW => Draw(ptr),
-                _ => return None,
+                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Some(Box::new(Self {
+            Ok(Box::new(Self {
                 hwnd: w,
                 bm_type: bmtype,
             }))
@@ -126,6 +126,9 @@ impl ControlMsg for CheckBoxMsg {
     }
     fn get_control(&self) -> Self::ControlType {
         CheckBox(self.hwnd)
+    }
+    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+        todo!()
     }
 }
 pub struct CheckBoxDrawType(pub ButtonAutoDrawType, pub CheckBoxStyle);

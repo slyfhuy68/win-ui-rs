@@ -90,7 +90,7 @@ impl ControlMsg for ManuallyDrawButtonMsg {
                 BN_SETFOCUS => ManuallyDrawButtonMsgType::GetKeyboardFocus,
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Some(Box::new(Self {
+            Ok(Box::new(Self {
                 hwnd: w,
                 bm_type: bmtype,
             }))
@@ -98,6 +98,9 @@ impl ControlMsg for ManuallyDrawButtonMsg {
     }
     fn get_control(&self) -> Self::ControlType {
         ManuallyDrawButton(self.hwnd)
+    }
+    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+        todo!()
     }
 }
 //-----------------------------------按钮-----------------------------------------
@@ -188,11 +191,11 @@ impl Control for Button {
             return Ok(false);
         }
         let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
-        if (style & BS_3STATE)==0 			&& (style & BS_AUTO3STATE)==0 		&& (style & BS_AUTOCHECKBOX)==0		&& 
-			(style & BS_AUTORADIOBUTTON)==0	&& (style & BS_CHECKBOX)==0 		&& (style & BS_COMMANDLINK)==0		&& 
-			(style & BS_DEFCOMMANDLINK)==0 	&& (style & BS_DEFSPLITBUTTON)==0 	&& //(style & BS_DEFPUSHBUTTON)==0 	&&
-			(style & BS_GROUPBOX)==0 		&& (style & BS_OWNERDRAW)==0 		&& //(style & BS_PUSHBUTTON)==0 	&& 
-			(style & BS_RADIOBUTTON)==0 	&& (style & BS_SPLITBUTTON)==0
+        if (style & BS_3STATE)==0 && (style & BS_AUTO3STATE)==0 && (style & BS_AUTOCHECKBOX)==0 &&
+        (style & BS_AUTORADIOBUTTON)==0 && (style & BS_CHECKBOX)==0 && (style & BS_COMMANDLINK)==0 &&
+        (style & BS_DEFCOMMANDLINK)==0 && (style & BS_DEFSPLITBUTTON)==0 && //(style & BS_DEFPUSHBUTTON)==0 &&
+        (style & BS_GROUPBOX)==0 && (style & BS_OWNERDRAW)==0 && //(style & BS_PUSHBUTTON)==0 &&
+        (style & BS_RADIOBUTTON)==0 && (style & BS_SPLITBUTTON)==0
         {
             return Ok(true);
         }
@@ -226,7 +229,7 @@ impl ControlMsg for ButtonMsg {
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Some(Box::new(Self {
+            Ok(Box::new(Self {
                 hwnd: w,
                 bm_type: bmtype,
             }))
@@ -234,6 +237,9 @@ impl ControlMsg for ButtonMsg {
     }
     fn get_control(&self) -> Self::ControlType {
         Button(self.hwnd)
+    }
+    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+        todo!()
     }
 }
 pub struct ButtonDrawType(pub ButtonAutoDrawType, pub ButtonStyle);
@@ -402,12 +408,15 @@ impl ControlMsg for SplitButtonMsg {
                 BN_SETFOCUS => GetKeyboardFocus,
                 BCN_DROPDOWN => {
                     let data = (*(ptr as *mut NMBCDROPDOWN)).rcButton;
-                    DropDown(Rectangle::Points(Point(data.left, data.top), Point(data.right, data.bottom)))
+                    DropDown(Rectangle::Points(
+                        Point(data.left, data.top),
+                        Point(data.right, data.bottom),
+                    ))
                 }
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Some(Box::new(Self {
+            Ok(Box::new(Self {
                 hwnd: w,
                 bm_type: bmtype,
             }))
@@ -415,6 +424,9 @@ impl ControlMsg for SplitButtonMsg {
     }
     fn get_control(&self) -> Self::ControlType {
         SplitButton(self.hwnd)
+    }
+    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+        todo!()
     }
 }
 pub struct SplitButtonDrawType(pub ButtonAutoDrawType, pub SplitButtonStyle);
@@ -573,7 +585,7 @@ impl ControlMsg for LinkButtonMsg {
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Some(Box::new(Self {
+            Ok(Box::new(Self {
                 hwnd: w,
                 bm_type: bmtype,
             }))
@@ -581,6 +593,9 @@ impl ControlMsg for LinkButtonMsg {
     }
     fn get_control(&self) -> Self::ControlType {
         LinkButton(self.hwnd)
+    }
+    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+        todo!()
     }
 }
 pub struct LinkButtonDrawType(pub ButtonAutoDrawType, pub LinkButtonStyle);

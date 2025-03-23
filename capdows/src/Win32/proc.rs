@@ -3,9 +3,9 @@ use super::*;
 #[allow(non_snake_case)]
 struct NMHDRSTATIC {
     #[allow(non_snake_case)]
-        nmhdr:NMHDR,
-        #[allow(non_snake_case)]
-        DC:HANDLE,
+    nmhdr: NMHDR,
+    #[allow(non_snake_case)]
+    DC: HANDLE,
 }
 pub unsafe extern "system" fn window_proc(
     window_handle: HWND,
@@ -106,7 +106,11 @@ pub unsafe extern "system" fn window_proc(
                 WM_COMMAND if param2.0 != 0 => {
                     let param2e = param2.0;
                     let param1e = param1.0;
-                    match c.control_message(&mut w, RawMassage(WM_COMMAND, param1e, param2e), (param1e & 0xffff) as WindowID) {
+                    match c.control_message(
+                        &mut w,
+                        RawMassage(WM_COMMAND, param1e, param2e),
+                        (param1e & 0xffff) as WindowID,
+                    ) {
                         Ok(x) => x,
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
                         Err(x) => callback_error(x),
@@ -126,23 +130,27 @@ pub unsafe extern "system" fn window_proc(
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
                         Err(x) => callback_error(x),
                     }
-                },
+                }
                 WM_CTLCOLORSTATIC => {
-                    let mut nmhdr = NMHDRSTATIC{
+                    let mut nmhdr = NMHDRSTATIC {
                         nmhdr: NMHDR {
                             hwndFrom: HWND(param2.0 as *mut c_void),
                             idFrom: GetWindowLongW(HWND(param2.0 as *mut c_void), GWL_ID) as usize,
                             code: WM_CTLCOLORSTATIC,
                         },
-                        DC: param1.0 as *mut c_void
+                        DC: param1.0 as *mut c_void,
                     };
                     let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
-                    match c.control_message(&mut w, RawMassage(WM_NOTIFY, 0, nmhdr_ptr as isize), nmhdr.nmhdr.idFrom as WindowID) {
+                    match c.control_message(
+                        &mut w,
+                        RawMassage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                        nmhdr.nmhdr.idFrom as WindowID,
+                    ) {
                         Ok(x) => x,
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
                         Err(x) => callback_error(x),
                     }
-                },
+                }
                 // WM_DPICHANGED => {},
                 // WM_ENABLE => {},
                 // WM_ENTERSIZEMOVE => {},
@@ -189,7 +197,7 @@ fn get_proc(wnd: &Window) -> Result<*mut CallBackObj> {
         Err(x) => Err(x),
     }
 }
-fn callback_error(err:MessageReceiverError) -> isize {
+fn callback_error(err: MessageReceiverError) -> isize {
     //println!("{:?}", err);
     err.code() as isize
 }

@@ -7,8 +7,8 @@ use windows::Win32::Graphics::Gdi::GetStockObject;
 use windows::Win32::{Foundation::*, UI::Controls::*, UI::WindowsAndMessaging::*};
 use windows::core::*;
 pub mod button;
-pub mod edit;
 pub mod check_box;
+pub mod edit;
 pub mod group_box;
 pub mod radio;
 pub mod view;
@@ -38,7 +38,10 @@ fn new_control(
     let (ptr, _ptr_raw) = str_to_pcwstr(name);
     let (cptr, _cptr_raw) = str_to_pcwstr(control_name);
     let (Point(x, y), Size(width, height)) = match pos {
-        None => (Point(CW_USEDEFAULT, CW_USEDEFAULT), Size(CW_USEDEFAULT, CW_USEDEFAULT)),
+        None => (
+            Point(CW_USEDEFAULT, CW_USEDEFAULT),
+            Size(CW_USEDEFAULT, CW_USEDEFAULT),
+        ),
         Some(x) => x.get_size(),
     };
     let hinstance = HINSTANCE(unsafe { GetWindowLongW(wnd.handle, GWL_HINSTANCE) as *mut c_void });

@@ -107,7 +107,7 @@ impl Bitmap {
     }
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
-    }//width或hight为0使用实际资源大小，如果资源包含多个图像，则使用第一个图像的大小。
+    } //width或hight为0使用实际资源大小，如果资源包含多个图像，则使用第一个图像的大小。
     // width或hight为负使用系统指标值指定的宽度或高度。
     pub fn load_from_module(// module: ExecutableFile,
         // id: Either<&str, usize>,
@@ -124,26 +124,22 @@ impl Bitmap {
     }
 }
 impl From<HCURSOR> for Cursor {
-    fn from(hi:HCURSOR) -> Self{
-        Self {
-            handle: hi,
-        }
+    fn from(hi: HCURSOR) -> Self {
+        Self { handle: hi }
     }
 }
 impl Into<HCURSOR> for Cursor {
-    fn into(self) -> HCURSOR{
+    fn into(self) -> HCURSOR {
         self.handle
     }
 }
 impl From<HBITMAP> for Bitmap {
-    fn from(hi:HBITMAP) -> Self{
-        Self {
-            handle: hi,
-        }
+    fn from(hi: HBITMAP) -> Self {
+        Self { handle: hi }
     }
 }
 impl Into<HBITMAP> for Bitmap {
-    fn into(self) -> HBITMAP{
+    fn into(self) -> HBITMAP {
         self.handle
     }
 }

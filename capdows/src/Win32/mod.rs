@@ -50,9 +50,9 @@ pub mod core {
     #[derive(Debug, Clone)]
     pub enum Rectangle {
         ///通过对角线两点定义矩形
-        Points(Point, Point), 
+        Points(Point, Point),
         ///通过左上角一点和宽高定义矩形
-        PointSize(Point, Size)
+        PointSize(Point, Size),
     }
     impl Copy for Rectangle {}
     impl Rectangle {
@@ -62,28 +62,32 @@ pub mod core {
         pub fn is_size(&self) -> bool {
             matches!(self, Rectangle::PointSize(_, _))
         }
-        pub fn to_size(self) -> Self{
+        pub fn to_size(self) -> Self {
             match self {
-                Rectangle::Points(w, Point(x, y)) => Rectangle::PointSize(w, Size(x - w.0, y - w.1)), 
-                x => x
+                Rectangle::Points(w, Point(x, y)) => {
+                    Rectangle::PointSize(w, Size(x - w.0, y - w.1))
+                }
+                x => x,
             }
         }
         pub fn to_point(self) -> Self {
             match self {
-                Rectangle::PointSize(w, Size(x, y)) => Rectangle::Points(w, Point(w.0 + x, w.1 + y)), 
-                x => x, 
+                Rectangle::PointSize(w, Size(x, y)) => {
+                    Rectangle::Points(w, Point(w.0 + x, w.1 + y))
+                }
+                x => x,
             }
         }
         pub fn get_points(self) -> (Point, Point) {
             match self {
-                Rectangle::PointSize(w, Size(x, y)) => (w, Point(w.0 + x, w.1 + y)), 
-                Rectangle::Points(x, y) => (x, y), 
+                Rectangle::PointSize(w, Size(x, y)) => (w, Point(w.0 + x, w.1 + y)),
+                Rectangle::Points(x, y) => (x, y),
             }
         }
         pub fn get_size(self) -> (Point, Size) {
             match self {
-                Rectangle::Points(w, Point(x, y)) => (w, Size(x - w.0, y - w.1)), 
-                Rectangle::PointSize(x,y) => (x, y)
+                Rectangle::Points(w, Point(x, y)) => (w, Size(x - w.0, y - w.1)),
+                Rectangle::PointSize(x, y) => (x, y),
             }
         }
     }
@@ -102,11 +106,11 @@ pub mod allmods {
     pub use super::style::*;
     pub use super::window::*;
 
-    pub use super::{Result, Error};
+    pub use super::{Error, Result};
 }
 //----------------------------------------------------------------------------------
 pub use either::*;
-pub use windows::core::{Result, w, Error};
+pub use windows::core::{Error, Result, w};
 //----------------------------------------------------------------------------------
 use std::ffi::c_void;
 use std::{os::windows::raw::HANDLE, ptr::null_mut as NULL_PTR, string::*};
@@ -150,7 +154,7 @@ pub fn make_int_resource(i: usize) -> PCWSTR {
 //     let hwnd1: *mut c_void = inta as *mut c_void;
 //     HWND(hwnd1)
 // }
-pub fn str_to_pcwstr(s: & str) -> (PCWSTR, Vec<u16>) {
+pub fn str_to_pcwstr(s: &str) -> (PCWSTR, Vec<u16>) {
     let wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
     let wide_str_ptr = wide_str.as_ptr();
     return (PCWSTR(wide_str_ptr), wide_str);

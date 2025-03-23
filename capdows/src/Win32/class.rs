@@ -135,7 +135,10 @@ impl WindowClass {
         let (wname, _wnameptr) = str_to_pcwstr(name);
         let cname = self.get();
         let (Point(x, y), Size(width, height)) = match pos {
-            None => (Point(CW_USEDEFAULT, CW_USEDEFAULT), Size(CW_USEDEFAULT, CW_USEDEFAULT)),
+            None => (
+                Point(CW_USEDEFAULT, CW_USEDEFAULT),
+                Size(CW_USEDEFAULT, CW_USEDEFAULT),
+            ),
             Some(x) => x.get_size(),
         };
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();

@@ -1,15 +1,15 @@
-use std::env;
 use capdows::win32::allmods::*;
+use std::env;
 //use windows::core::*;
+use std::collections::HashMap;
 use windows::Win32::Foundation::*;
 use windows::Win32::Storage::FileSystem::*;
-use std::collections::HashMap;
 pub struct PreCompilePruduct(String);
 impl PreCompilePruduct {
-    pub fn from(s:&str) -> Self{
+    pub fn from(s: &str) -> Self {
         Self(s.to_string())
     }
-    pub fn get(self) -> String{
+    pub fn get(self) -> String {
         self.0
     }
 }
@@ -25,7 +25,7 @@ impl LangID {
             return Ok(LangID(0u16));
         }
         let y = match u16::from_str_radix(x, 16) {
-            Ok(x) => x, 
+            Ok(x) => x,
             Err(_) => return Err(Error::new(ERROR_INVALID_DATA.into(), "")), //str包含无效数字。
         };
         Ok(LangID(y))
@@ -42,52 +42,69 @@ impl LangID {
 pub enum ProductVariant {
     ///标准版本
     #[default]
-    Standard, 
+    Standard,
     ///变体 字符串为默认变体说明
-    Variant(String), 
+    Variant(String),
     ///私有 字符串为默认私有说明
-    Private(String)
+    Private(String),
 }
 #[derive(Default)]
-pub struct StringInfo{
+pub struct StringInfo {
     pub product_name: Option<String>, //自动cargo获取
-    pub organization_name: String, 
-    pub description: Option<String>, //自动cargo获取
-    pub product_version: Option<String>, //自动：CARGO_PKG_VERSION
-    pub file_version: Option<String>, //自动：CARGO_PKG_VERSION
-    pub internal_name: Option<String>, //自动获取CARGO_PKG_NAME
-    pub copyright: Option<String>, //可选
-    pub trademarks: Option<String>, //可选
+    pub organization_name: String,
+    pub description: Option<String>,       //自动cargo获取
+    pub product_version: Option<String>,   //自动：CARGO_PKG_VERSION
+    pub file_version: Option<String>,      //自动：CARGO_PKG_VERSION
+    pub internal_name: Option<String>,     //自动获取CARGO_PKG_NAME
+    pub copyright: Option<String>,         //可选
+    pub trademarks: Option<String>,        //可选
     pub original_filename: Option<String>, //自动获取文件名带扩展名
     ///只有在ProductVariant为Variant或Private时才应指定，否则使用时返回Err
     ///如果在ProductVariant为Variant或Private时不指定，则使用默认说明
-    pub special_info: Option<String>
+    pub special_info: Option<String>,
 }
-impl StringInfo{
-    fn pre_compile(self, id:LangID, variants:&ProductVariant) -> Result<(PreCompilePruduct, PreCompilePruduct)> {
+impl StringInfo {
+    fn pre_compile(
+        self,
+        id: LangID,
+        variants: &ProductVariant,
+    ) -> Result<(PreCompilePruduct, PreCompilePruduct)> {
         use ProductVariant::*;
         let variant = match self.special_info {
             None => match variants {
-                Standard =>  "".to_string(), 
-                Variant(s) => format!("VALUE \"SpecialBuild\", \"{}\"", s) , 
-                Private(s) => format!("VALUE \"PrivateBuild\", \"{}\"", s) , 
-            }
+                Standard => "".to_string(),
+                Variant(s) => format!("VALUE \"SpecialBuild\", \"{}\"", s),
+                Private(s) => format!("VALUE \"PrivateBuild\", \"{}\"", s),
+            },
             Some(x) => match variants {
-                Standard =>  return Err(Error::new(ERROR_INVALID_DATA.into(), "")), 
-                Variant(_) => format!("VALUE \"SpecialBuild\", \"{}\"", x) , 
-                Private(_) => format!("VALUE \"PrivateBuild\", \"{}\"", x) , 
-            }
+                Standard => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+                Variant(_) => format!("VALUE \"SpecialBuild\", \"{}\"", x),
+                Private(_) => format!("VALUE \"PrivateBuild\", \"{}\"", x),
+            },
         };
-        let product_name = self.product_name.unwrap_or_else(|| env::var("CARGO_PKG_NAME").unwrap());
+        let product_name = self
+            .product_name
+            .unwrap_or_else(|| env::var("CARGO_PKG_NAME").unwrap());
         let organization_name = self.organization_name;
-        let description = self.description.unwrap_or_else(|| env::var("CARGO_PKG_DESCRIPTION").unwrap());
-        let product_version = self.product_version.unwrap_or_else(|| env::var("CARGO_PKG_VERSION").unwrap());
-        let file_version = self.file_version.unwrap_or_else(|| env::var("CARGO_PKG_VERSION").unwrap());
-        let internal_name = self.internal_name.unwrap_or_else(|| env::var("CARGO_PKG_NAME").unwrap());
+        let description = self
+            .description
+            .unwrap_or_else(|| env::var("CARGO_PKG_DESCRIPTION").unwrap());
+        let product_version = self
+            .product_version
+            .unwrap_or_else(|| env::var("CARGO_PKG_VERSION").unwrap());
+        let file_version = self
+            .file_version
+            .unwrap_or_else(|| env::var("CARGO_PKG_VERSION").unwrap());
+        let internal_name = self
+            .internal_name
+            .unwrap_or_else(|| env::var("CARGO_PKG_NAME").unwrap());
         let copyright = self.copyright.unwrap_or("".to_string());
         let trademarks = self.trademarks.unwrap_or("".to_string());
-        let original_filename = self.original_filename.unwrap_or_else(|| env::var("CARGO_PKG_NAME").unwrap());
-let result1 = format!("
+        let original_filename = self
+            .original_filename
+            .unwrap_or_else(|| env::var("CARGO_PKG_NAME").unwrap());
+        let result1 = format!(
+            "
 BLOCK \"{}04B0\"
 {{
 VALUE \"CompanyName\", \"{}\"
@@ -101,14 +118,32 @@ VALUE \"ProductName\", \"{}\"
 VALUE \"ProductVersion\", \"{}\"
 {}
 }}
-", id.to_hex_string(), organization_name, description, file_version, internal_name, copyright, trademarks, original_filename, product_name, product_version, variant);
-    Ok((PreCompilePruduct::from(&result1), PreCompilePruduct::from(&format!("VALUE \"Translation\", 0x{}, 1200\n", id.to_hex_string()))))
+",
+            id.to_hex_string(),
+            organization_name,
+            description,
+            file_version,
+            internal_name,
+            copyright,
+            trademarks,
+            original_filename,
+            product_name,
+            product_version,
+            variant
+        );
+        Ok((
+            PreCompilePruduct::from(&result1),
+            PreCompilePruduct::from(&format!(
+                "VALUE \"Translation\", 0x{}, 1200\n",
+                id.to_hex_string()
+            )),
+        ))
     }
 }
 //-----------------------------------------------AI开始
-#[derive(Default)]
-#[derive(Debug, PartialEq)]
-pub enum OperatingSystem {//ai
+#[derive(Default, Debug, PartialEq)]
+pub enum OperatingSystem {
+    //ai
     Unknown,
     Dos,
     Nt,
@@ -120,7 +155,8 @@ pub enum OperatingSystem {//ai
     NtWindows32,
 }
 
-impl From<OperatingSystem> for u32 {//ai
+impl From<OperatingSystem> for u32 {
+    //ai
     fn from(os: OperatingSystem) -> u32 {
         match os {
             OperatingSystem::Unknown => VOS_UNKNOWN.0,
@@ -134,8 +170,7 @@ impl From<OperatingSystem> for u32 {//ai
         }
     }
 }
-#[derive(Default)]
-#[derive(Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 pub enum SubtypeDrv {
     #[default]
     Unknown,
@@ -152,8 +187,7 @@ pub enum SubtypeDrv {
     VersionedPrinter,
 }
 
-#[derive(Debug, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, PartialEq, Default)]
 pub enum SubtypeFont {
     #[default]
     Unknown,
@@ -162,17 +196,20 @@ pub enum SubtypeFont {
     TrueType,
 }
 
-#[derive(Debug, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, PartialEq, Default)]
 pub enum FileType {
     Unknown,
     #[default]
     App,
     Dll,
-    Drv { subtype: SubtypeDrv },
-    Font { subtype: SubtypeFont },
+    Drv {
+        subtype: SubtypeDrv,
+    },
+    Font {
+        subtype: SubtypeFont,
+    },
     ///参数是虚拟设备控制块中包含的虚拟设备标识符
-    Vxd(i32), 
+    Vxd(i32),
     StaticLib,
 }
 
@@ -185,11 +222,11 @@ impl Into<(i32, i32)> for FileType {
             FileType::Drv { subtype } => {
                 let subtype_val: i32 = subtype.into();
                 (VFT_DRV.0, subtype_val)
-            },
+            }
             FileType::Font { subtype } => {
                 let subtype_val: i32 = subtype.into();
                 (VFT_FONT.0, subtype_val)
-            },
+            }
             FileType::Vxd(id) => (VFT_VXD.0, id),
             FileType::StaticLib => (VFT_STATIC_LIB.0, 0),
         }
@@ -226,62 +263,87 @@ impl Into<i32> for SubtypeFont {
     }
 }
 //-----------------------------------------------AI结束
-pub struct Version{
-    pub product_internal_version: (u16, u16, u16, u16), 
-    pub file_internal_version: Option<(u16, u16, u16, u16)>,//None表示与 product_internal_version 相同
-    pub debug: Option<bool>, 
-    pub pre_release: bool, 
-    pub pached: bool, 
-    pub variant: ProductVariant, 
-    pub strings: HashMap<LangID, StringInfo>, 
-    pub os: OperatingSystem, 
-    pub ftype: FileType
+pub struct Version {
+    pub product_internal_version: (u16, u16, u16, u16),
+    pub file_internal_version: Option<(u16, u16, u16, u16)>, //None表示与 product_internal_version 相同
+    pub debug: Option<bool>,
+    pub pre_release: bool,
+    pub pached: bool,
+    pub variant: ProductVariant,
+    pub strings: HashMap<LangID, StringInfo>,
+    pub os: OperatingSystem,
+    pub ftype: FileType,
 }
-impl Version{
+impl Version {
     pub fn pre_compile(self) -> Result<PreCompilePruduct> {
-        let piv = format!("FILEVERSION {},{},{},{}", self.product_internal_version.0, self.product_internal_version.1, self.product_internal_version.2, self.product_internal_version.3);
+        let piv = format!(
+            "FILEVERSION {},{},{},{}",
+            self.product_internal_version.0,
+            self.product_internal_version.1,
+            self.product_internal_version.2,
+            self.product_internal_version.3
+        );
         let fiv = match self.file_internal_version {
-            Some((a, b, c, d)) => format!("PRODUCTVERSION {},{},{},{}", a, b, c, d), 
-            None => format!("PRODUCTVERSION {},{},{},{}", self.product_internal_version.0, self.product_internal_version.1, self.product_internal_version.2, self.product_internal_version.3), 
+            Some((a, b, c, d)) => format!("PRODUCTVERSION {},{},{},{}", a, b, c, d),
+            None => format!(
+                "PRODUCTVERSION {},{},{},{}",
+                self.product_internal_version.0,
+                self.product_internal_version.1,
+                self.product_internal_version.2,
+                self.product_internal_version.3
+            ),
         };
         let debug = match self.debug {
-            None => env::var("DEBUG").unwrap()=="true", 
-            Some(x) => x
+            None => env::var("DEBUG").unwrap() == "true",
+            Some(x) => x,
         };
         let mut flag = VS_FIXEDFILEINFO_FILE_FLAGS(0);
-        if debug {flag |= VS_FF_DEBUG};
-        if self.pre_release {flag |= VS_FF_PRERELEASE};
-        if self.pached {flag |= VS_FF_PATCHED};
+        if debug {
+            flag |= VS_FF_DEBUG
+        };
+        if self.pre_release {
+            flag |= VS_FF_PRERELEASE
+        };
+        if self.pached {
+            flag |= VS_FF_PATCHED
+        };
         //use ProductVariant::*;
         // let e_str = match self.variant {
-        //     Standard => None, 
+        //     Standard => None,
         //     Variant(s) => {
         //         flag |= VS_FF_SPECIALBUILD;
         //         Some(s)
-        //     }, 
+        //     },
         //     Private(s) => {
         //         flag |= VS_FF_PRIVATEBUILD;
         //         Some(s)
         //     }
         // };
-        let (flags,marker) = if flag == VS_FIXEDFILEINFO_FILE_FLAGS(0) {
+        let (flags, marker) = if flag == VS_FIXEDFILEINFO_FILE_FLAGS(0) {
             (String::from(""), String::from(""))
         } else {
-            (format!("FILEFLAGS 0x{:X}", flag.0), String::from("FILEFLAGSMASK 0x3F"))
+            (
+                format!("FILEFLAGS 0x{:X}", flag.0),
+                String::from("FILEFLAGSMASK 0x3F"),
+            )
         };
-        let os = format!("FILEOS 0x{:X}", <OperatingSystem as Into<u32>>::into(self.os));
-        let (ftype,sftype) = self.ftype.into();
+        let os = format!(
+            "FILEOS 0x{:X}",
+            <OperatingSystem as Into<u32>>::into(self.os)
+        );
+        let (ftype, sftype) = self.ftype.into();
         let ft = format!("FILETYPE 0x{:X}", ftype);
         let sft = format!("FILESUBTYPE 0x{:X}", sftype);
         //e_str后续处理
         let mut sif = String::from("");
         let mut vif = String::from("");
-        for (i,j) in self.strings.into_iter() {
+        for (i, j) in self.strings.into_iter() {
             let (a1, a2) = j.pre_compile(i, &self.variant)?;
             sif += &a1.0;
             vif += &a2.0;
         }
-        let result = format!("
+        let result = format!(
+            "
 1 VERSIONINFO
 {}
 {}
@@ -300,7 +362,9 @@ BLOCK \"VarFileInfo\"
 {}
 }}
 }}
-", piv, fiv, flags, marker, os, ft, sft, sif, vif);
-    Ok(PreCompilePruduct::from(&result))
+",
+            piv, fiv, flags, marker, os, ft, sft, sif, vif
+        );
+        Ok(PreCompilePruduct::from(&result))
     }
 }
