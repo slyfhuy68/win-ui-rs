@@ -176,7 +176,7 @@ pub trait MessageReceiver {
         additional_application_data: usize,
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
-    } //默认返回true
+    }
     fn nc_destroy(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
@@ -254,14 +254,17 @@ pub trait MessageReceiver {
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
-    fn class_messages(&mut self,window: &mut Window, id:u16, msg: RawMassage) -> MessageReceiverResult<isize>{
-        Err(NoProcessed)
+    fn class_messages(&mut self, window: &mut Window, code:u16, msg: RawMassage) -> MessageReceiverResult<usize>{
+        Err(NoProcessed)//code = raw_code(WM_USER 到 0x7FFF) - WM_USER + 1, WM_USER = 0x0400
     }
-    fn applications_messages(&mut self,window: &mut Window, id:u16, msg: RawMassage) -> MessageReceiverResult<isize>{
-        Err(NoProcessed)
+    fn applications_messages(&mut self, window: &mut Window, code:u16, msg: RawMassage) -> MessageReceiverResult<usize>{
+        Err(NoProcessed)//code = raw_code(WM_APP 到 0xBFFF) - WM_APP + 1, WM_APP = 0x8000
     }
-    fn share_messages(&mut self,window: &mut Window, id:&str, msg: RawMassage) -> MessageReceiverResult<isize>{
-        Err(NoProcessed)
+    fn share_messages(&mut self, window: &mut Window, code:&str, msg: RawMassage) -> MessageReceiverResult<usize>{
+        Err(NoProcessed)//code = raw_code(0xC000到0xFFFF) - 0xC000 + 1, 字符串消息
+    }
+    fn system_reserved_messages(&mut self, window: &mut Window, code:u32, msg: RawMassage) -> MessageReceiverResult<usize>{
+        Err(NoProcessed)//code = raw_code(大于 0xFFFF) - 0xFFFF，由系统保留
     }
 }
 pub fn msg_loop() -> () {
@@ -275,31 +278,14 @@ pub fn msg_loop() -> () {
 }
 #[derive(Copy, Clone)]
 pub struct RawMassage(pub u32, pub usize, pub isize);
-impl RawMassage {
-    // pub fn get_msg<T:CustomMessage>(self) -> MessageReceiverResult<T> {
-    //     match unsafe { T::is_self(self.0) } {
-    //         Ok(false) => panic!("The type provided does not match the actual message!"),
-    //         Ok(true) => {
-    //             if let Some(x) = unsafe { T::from_msg(self.0) } {
-    //                 Ok(*x)
-    //             } else {
-    //                 Err(NoProcessed)
-    //             }
-    //         }
-    //         Err(_) => Err(NoProcessed),
-    //     }
-    // }
-    // pub fn get_control_msg<C:Control>(self) -> MessageReceiverResult<C::MsgType> {
-    //     self.get_msg::<C::MsgType>()
-    // }
 
-}
+
 pub trait CustomMessage {
     ///给你一个RawMassage, 判断是否为自身类型消息
     unsafe fn is_self_msg(ptr: RawMassage) -> Result<bool>;
     ///给你一个RawMassage,返回一个自身实例(***不检查***)
     unsafe fn from_raw_msg(ptr: RawMassage) -> Result<Box<Self>>;
-    ///转换成RawMassage
+    ///转换成RawMassage, self如果存在则RawMassage里的指针（如有）指向的内容一定存在，self被Drop时，应释放指针内容避免内存泄漏
     unsafe fn into_raw_msg(&mut self) -> Result<RawMassage>;
 }
 pub trait ShareMessage: CustomMessage {
@@ -315,7 +301,14 @@ impl<T: ControlMsg> CustomMessage for T {
         unsafe {
         let ptr = self.into_raw()?;
         Ok(match ptr {
-            Left(l) => RawMassage(WM_COMMAND, l.0, self.get_control().to_window().handle.0 as isize), 
+            Left(l) => {
+                let handle = self.get_control().to_window().handle;
+                let id: WindowID = match GetDlgCtrlID(handle){
+                    0 => 0, 
+                    a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."), 
+                };
+                RawMassage(WM_COMMAND, ((l as usize) << 16) | (id as usize), handle.0 as isize)
+            }, 
             Right(r) => RawMassage(WM_NOTIFY, 0, r as isize)
         })
         }

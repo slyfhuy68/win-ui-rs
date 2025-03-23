@@ -10,11 +10,6 @@ pub enum ViewContent{
     Bitmap(Bitmap), 
     EnhMetaFile(EnhMetaFile), 
 }
-#[repr(C)]
-struct NMHDRSTATIC {
-	nmhdr:NMHDR, 
-	DC:HANDLE, 
-}
 //样式部分为AI生成
 pub enum Alignment {
     Center,
@@ -172,17 +167,45 @@ impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
         (window_style, content_data)
     }
 }
-
+#[repr(C)]
+struct NMHDRSTATIC {
+	nmhdr:NMHDR, 
+	DC:HANDLE, 
+}
 pub enum ImageTextViewMsgType {
-    Clicked,
-    DoubleClicked,
-    Disable,
-    Enable,
-    Colour(HANDLE)
+    Clicked,    //WM_COMMAND
+    DoubleClicked,//WM_COMMAND
+    Disable,//WM_COMMAND
+    Enable,//WM_COMMAND
+    Colour(HANDLE)//WM_CTLCOLORSTATIC
 }
 pub struct ImageTextViewMsg {
     hwnd: HWND,
-    pub bm_type: ImageTextViewMsgType,
+    bm_type: ImageTextViewMsgType,
+    ptr:usize, 
+}
+impl Drop for ImageTextViewMsg {
+    fn drop(&mut self) {
+        unsafe{
+        if self.ptr != 0 {
+            if let ImageTextViewMsgType::Colour(_) = self.bm_type {
+                drop(Box::from_raw(self.ptr));
+            }
+        }
+        }
+    }
+}
+impl ImageTextViewMsg {
+    pub fn get_data(&self) -> &ImageTextViewMsgType{
+        self.bm_data
+    }
+    pub fn new(wnd:Window, bm_type: ImageTextViewMsgType){
+        Self{
+            hwnd: Window.handle,
+            bm_type,
+            ptr:0, 
+        }
+    }
 }
 impl Control for ImageTextView {
     type MsgType = ImageTextViewMsg;
@@ -208,7 +231,7 @@ impl Control for ImageTextView {
 }
 impl ControlMsg for ImageTextViewMsg {
     type ControlType = ImageTextView;
-    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -224,16 +247,39 @@ impl ControlMsg for ImageTextViewMsg {
                     let nmhdr = (*(ptr as *mut NMHDRSTATIC)).DC;
                     Colour(nmhdr)
                 }
-                _ => return None,
+                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
             Some(Box::new(Self {
                 hwnd: w,
                 bm_type: bmtype,
+                ptr: 0, 
             }))
         }
     }
     fn get_control(&self) -> Self::ControlType {
         ImageTextView(self.hwnd)
+    }
+    unsafe fn into_raw(&mut self) -> Result<Either<WPARAM, *mut NMHDR>>{
+        unsafe{
+        Ok(match self.bm_type {
+            Clicked => Left(STN_CLICKED), 
+            DoubleClicked => Left(STN_DBLCLK), 
+            Disable => Left(STN_DISABLE), 
+            Enable => Left(STN_ENABLE), 
+            Colour(h) => {
+                let stk = Box::new(NMHDRSTATIC {
+                    nmhdr:NMHDR {
+                        hwndFrom: self.hwnd, 
+                        idFrom: match GetDlgCtrlID(handle){0 => 0, a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value.");}, 
+                        code: WM_CTLCOLORSTATIC, 
+                    }, 
+                    DC:h, 
+                });//[todo]内存泄漏
+                self.ptr = Box::into_raw(stk) as usize;
+                Left(self.ptr as *mut NMHDR)
+            }
+        })
+        }
     }
 }
 
@@ -255,7 +301,7 @@ impl ImageTextView {
         let hwnd = match y {
             ViewContent::Text(z) => ImageTextView(new_control(wnd, "STATIC", &z, pos, identifier, style, style_ex, x, font, no_notify)?), 
             v => {
-                let mut ra = ImageTextView(new_control(wnd, "STATIC", &("id:".to_owned() + &identifier.to_string()), pos, identifier, style, style_ex, x, font, no_notify)?);
+                let mut ra = ImageTextView(new_control(wnd, "STATIC", &("id:".to_owned() + &identifier.to_string()), pos, identifier, style, style_ex, x, font, no_notify)?), 
                 ra.change_content(v)?;
                 ra
             },

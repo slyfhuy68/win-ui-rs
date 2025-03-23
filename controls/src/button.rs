@@ -67,7 +67,7 @@ impl Control for ManuallyDrawButton {
 }
 impl ControlMsg for ManuallyDrawButtonMsg {
     type ControlType = ManuallyDrawButton;
-    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -81,14 +81,14 @@ impl ControlMsg for ManuallyDrawButtonMsg {
                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                         ManuallyDrawButtonMsgType::MouseLaveing
                     } else {
-                        return None;
+                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
                     }
                 }
                 BN_CLICKED => ManuallyDrawButtonMsgType::Clicked,
                 BN_DBLCLK => ManuallyDrawButtonMsgType::DoubleClicked,
                 BN_KILLFOCUS => ManuallyDrawButtonMsgType::LoseKeyboardFocus,
                 BN_SETFOCUS => ManuallyDrawButtonMsgType::GetKeyboardFocus,
-                _ => return None,
+                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
             Some(Box::new(Self {
                 hwnd: w,
@@ -201,7 +201,7 @@ impl Control for Button {
 }
 impl ControlMsg for ButtonMsg {
     type ControlType = Button;
-    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -216,7 +216,7 @@ impl ControlMsg for ButtonMsg {
                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                         MouseLaveing
                     } else {
-                        return None;
+                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
                     }
                 }
                 BN_CLICKED => Clicked,
@@ -224,7 +224,7 @@ impl ControlMsg for ButtonMsg {
                 BN_KILLFOCUS => LoseKeyboardFocus,
                 BN_SETFOCUS => GetKeyboardFocus,
                 NM_CUSTOMDRAW => Draw(ptr),
-                _ => return None,
+                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
             Some(Box::new(Self {
                 hwnd: w,
@@ -378,7 +378,7 @@ impl Control for SplitButton {
 }
 impl ControlMsg for SplitButtonMsg {
     type ControlType = SplitButton;
-    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -393,7 +393,7 @@ impl ControlMsg for SplitButtonMsg {
                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                         MouseLaveing
                     } else {
-                        return None;
+                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
                     }
                 }
                 BN_CLICKED => Clicked,
@@ -405,7 +405,7 @@ impl ControlMsg for SplitButtonMsg {
                     DropDown(Rectangle::Points(Point(data.left, data.top), Point(data.right, data.bottom)))
                 }
                 NM_CUSTOMDRAW => Draw(ptr),
-                _ => return None,
+                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
             Some(Box::new(Self {
                 hwnd: w,
@@ -548,7 +548,7 @@ impl Control for LinkButton {
 }
 impl ControlMsg for LinkButtonMsg {
     type ControlType = LinkButton;
-    unsafe fn from_msg(ptr: usize) -> Option<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -563,7 +563,7 @@ impl ControlMsg for LinkButtonMsg {
                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                         MouseLaveing
                     } else {
-                        return None;
+                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
                     }
                 }
                 BN_CLICKED => Clicked,
@@ -571,7 +571,7 @@ impl ControlMsg for LinkButtonMsg {
                 BN_KILLFOCUS => LoseKeyboardFocus,
                 BN_SETFOCUS => GetKeyboardFocus,
                 NM_CUSTOMDRAW => Draw(ptr),
-                _ => return None,
+                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
             Some(Box::new(Self {
                 hwnd: w,
