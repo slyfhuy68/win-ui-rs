@@ -4,7 +4,7 @@ use capdows_controls::button::*;
 use capdows_controls::check_box::*;
 use capdows_controls::group_box::*;
 use capdows_controls::radio::*;
-use capdows_controls::text_view::*;
+// use capdows_controls::view::*;
 struct MyControls {
     a1: RadioButton,
     a2: RadioButton,
@@ -16,7 +16,7 @@ struct MyControls {
     link_button_1: LinkButton,
     split_button: SplitButton,
     g_b: GroupBox,
-    text_view: TextView,
+    // text_view: TextView,
 }
 struct Mycb {
     num: i8,
@@ -33,7 +33,7 @@ const RADIO_BUTTON_02_01: WindowID = 3u16;
 const RADIO_BUTTON_02_02: WindowID = 4u16;
 const CHECK_BOX_01: WindowID = 5u16;
 const CHECK_BOX_02: WindowID = 6u16;
-const TEXT_VIEW_01: WindowID = 6u16;
+// const TEXT_VIEW_01: WindowID = 6u16;
 impl MessageReceiver for Mycb {
     fn create(
         &mut self,
@@ -41,7 +41,7 @@ impl MessageReceiver for Mycb {
         _name: &str,
         _class: WindowClass,
         _file: ExecutableFile,
-        _pos: RectangleWH,
+        _pos: Rectangle,
         _itype: WindowType,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
@@ -53,7 +53,7 @@ impl MessageReceiver for Mycb {
         let mut link_button_1 = LinkButton::new(
             window,
             "链接按钮01",
-            Some(((400, 0), 150, 50)),
+            Some(Rectangle::PointSize(Point(400, 0), Size(150, 50))),
             LINK_BUTTON_01,
             Default::default(),
             style.clone(),
@@ -65,7 +65,7 @@ impl MessageReceiver for Mycb {
         let mut g_b = GroupBox::new(
             window,
             "分组框01",
-            Some(((575, 0), 300, 100)),
+            Some(Rectangle::PointSize(Point(575, 0), Size(300, 100))),
             GROUP_BOX_01,
             style.clone(),
             Default::default(),
@@ -77,7 +77,7 @@ impl MessageReceiver for Mycb {
             button1: Button::new(
                 window,
                 "按钮01",
-                Some(((0, 0), 150, 50)),
+                Some(Rectangle::PointSize(Point(0, 0), Size(150, 50))),
                 BUTTON_01,
                 Default::default(),
                 style.clone(),
@@ -89,7 +89,7 @@ impl MessageReceiver for Mycb {
             split_button: SplitButton::new(
                 window,
                 "分割按钮01",
-                Some(((200, 0), 150, 50)),
+                Some(Rectangle::PointSize(Point(200, 0), Size(150, 50))),
                 SPLIT_BUTTON_01,
                 Default::default(),
                 style.clone(),
@@ -100,7 +100,7 @@ impl MessageReceiver for Mycb {
             a2: RadioButton::new(
                 &mut g_b,
                 "单选按钮a02",
-                Some(((150, 20), 100, 20)),
+                Some(Rectangle::PointSize(Point(150, 20), Size(100, 20))),
                 RADIO_BUTTON_01_02,
                 Default::default(),
                 style.clone(),
@@ -111,7 +111,7 @@ impl MessageReceiver for Mycb {
             b1: RadioButton::new(
                 &mut g_b,
                 "单选按钮b01",
-                Some(((20, 70), 100, 20)),
+                Some(Rectangle::PointSize(Point(20, 70), Size(100, 20))),
                 RADIO_BUTTON_02_01,
                 Default::default(),
                 style_group.clone(),
@@ -122,7 +122,7 @@ impl MessageReceiver for Mycb {
             b2: RadioButton::new(
                 &mut g_b,
                 "单选按钮b02",
-                Some(((150, 70), 100, 20)),
+                Some(Rectangle::PointSize(Point(150, 70), Size(100, 20))),
                 RADIO_BUTTON_02_02,
                 Default::default(),
                 style.clone(),
@@ -133,7 +133,7 @@ impl MessageReceiver for Mycb {
             boxed1: CheckBox::new(
                 window,
                 "选择框01",
-                Some(((900, 0), 150, 50)),
+                Some(Rectangle::PointSize(Point(900, 0), Size(150, 50))),
                 CHECK_BOX_01,
                 Default::default(),
                 style.clone(),
@@ -144,7 +144,7 @@ impl MessageReceiver for Mycb {
             boxed2: CheckBox::new(
                 window,
                 "选择框02",
-                Some(((900, 50), 150, 50)),
+                Some(Rectangle::PointSize(Point(900, 50), Size(150, 50))),
                 CHECK_BOX_02,
                 CheckBoxDrawType(ButtonAutoDrawType::TextOnly(false), {
                     let mut state: CheckBoxStyle = Default::default();
@@ -159,7 +159,7 @@ impl MessageReceiver for Mycb {
             a1: RadioButton::new(
                 &mut g_b,
                 "单选按钮a01",
-                Some(((20, 20), 100, 20)),
+                Some(Rectangle::PointSize(Point(20, 20), Size(100, 20))),
                 RADIO_BUTTON_01_01,
                 Default::default(),
                 style_group.clone(),
@@ -167,33 +167,33 @@ impl MessageReceiver for Mycb {
                 true,
                 false,
             )?,
-            g_b: *GroupBox::from_window(g_b)?,
-            text_view: TextView::new(
-                window,
-                "文本11111111112",
-                Some(((15, 75), 130, 50)),
-                TEXT_VIEW_01,
-                Default::default(),
-                Default::default(),
-                Default::default(),
-                true,
-                true,
-            )?,
+            g_b: GroupBox::from_window(g_b)?,
+            // text_view: TextView::new(
+            //     window,
+            //     "文本11111111112",
+            //     Some(Rectangle::PointSize(Point(15, 75), Size(130, 50))),
+            //     TEXT_VIEW_01,
+            //     Default::default(),
+            //     Default::default(),
+            //     Default::default(),
+            //     true,
+            //     true,
+            // )?,
         });
-        println!("hello from create");
+        println!("hello from example");
         Ok(true)
     }
     fn control_message(
         &mut self,
         _window: &mut Window,
-        msg: usize,
+        msg: RawMessage,
         id: WindowID,
     ) -> MessageReceiverResult<isize> {
         let controls = &mut self.controls.as_mut().unwrap();
         match id {
             BUTTON_01 => {
                 use ButtonMsgType::*;
-                let msg = get_control_msg::<Button>(msg)?;
+                let msg = msg.get_control_msg::<Button>()?;
                 match msg.bm_type {
                     Clicked => {
                         println!(
@@ -210,7 +210,7 @@ impl MessageReceiver for Mycb {
             }
             SPLIT_BUTTON_01 => {
                 use SplitButtonMsgType::*;
-                let msg = get_control_msg::<SplitButton>(msg)?;
+                let msg = msg.get_control_msg::<SplitButton>()?;
                 match msg.bm_type {
                     Clicked => {
                         println!(
@@ -234,7 +234,7 @@ impl MessageReceiver for Mycb {
             }
             LINK_BUTTON_01 => {
                 use ButtonMsgType::*;
-                let msg = get_control_msg::<LinkButton>(msg)?;
+                let msg = msg.get_control_msg::<LinkButton>()?;
                 match msg.bm_type {
                     Clicked => {
                         println!("链接按钮1点了");

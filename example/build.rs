@@ -33,10 +33,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     compile(dest_path.to_str().unwrap(), NONE)
         .manifest_required()
         .unwrap();
-    print!(
-        "cargo::warning={}nnnn{}\n",
-        dest_path.to_str().unwrap(),
-        LangID::new("0804")?.to_hex_string()
-    );
+    // print!(
+    //     "cargo::warning={}nnnn{}\n",
+    //     dest_path.to_str().unwrap(),
+    //     LangID::new("0804")?.to_hex_string()
+    // );
     Ok(())
 }

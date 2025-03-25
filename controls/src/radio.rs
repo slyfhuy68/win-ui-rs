@@ -52,15 +52,6 @@ pub struct RadioButtonMsg {
 }
 impl Control for RadioButton {
     type MsgType = RadioButtonMsg;
-    fn from_window(wnd: Window) -> Result<Box<Self>> {
-        unsafe {
-            if Self::is_self(&wnd.handle)? {
-                Ok(Box::new(Self(wnd.handle)))
-            } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
-            }
-        }
-    }
     unsafe fn force_from_window(wnd: Window) -> Self {
         Self(wnd.handle)
     }
@@ -80,7 +71,7 @@ impl Control for RadioButton {
 }
 impl ControlMsg for RadioButtonMsg {
     type ControlType = RadioButton;
-    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Self> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -105,10 +96,10 @@ impl ControlMsg for RadioButtonMsg {
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Ok(Box::new(Self {
+            Ok(Self {
                 hwnd: w,
                 bm_type: bmtype,
-            }))
+            })
         }
     }
     fn get_control(&self) -> Self::ControlType {

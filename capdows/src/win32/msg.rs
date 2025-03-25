@@ -298,25 +298,27 @@ pub fn msg_loop() -> () {
 }
 #[derive(Copy, Clone)]
 pub struct RawMessage(pub u32, pub usize, pub isize);
-impl RawMessage{
+impl RawMessage {
     pub fn get_msg<T: CustomMessage>(self) -> Result<T> {
         unsafe {
-        match T::is_self_msg(&self)? {
-            false => panic!("The type provided does not match the actual message!"), 
-            _ => ()
-        };
-        match T::from_raw_msg(self) {
-            Ok(x) => Ok(*x), 
-            Err(e) => Err(e)
+            match T::is_self_msg(&self)? {
+                false => panic!("The type provided does not match the actual message!"),
+                _ => (),
+            };
+            T::from_raw_msg(self)
         }
-        }
+    }
+    pub fn get_control_msg<T: Control>(self) -> Result<T::MsgType> {
+        self.get_msg::<T::MsgType>()
     }
 }
 pub trait CustomMessage {
     ///给你一个RawMessage,判断是否为自身类型消息
     unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool>;
-    ///给你一个RawMessage,返回一个自身实例(***不检查***)
-    unsafe fn from_raw_msg(ptr: RawMessage) -> Result<Box<Self>>;
+    ///给你一个RawMessage, 返回一个自身实例(***不检查***)
+    unsafe fn from_raw_msg(ptr: RawMessage) -> Result<Self>
+    where
+        Self: Sized;
     ///转换成RawMessage,self如果存在则RawMessage里的指针（如有）指向的内容一定存在，self被Drop时，应释放指针内容避免内存泄漏
     unsafe fn into_raw_msg(&mut self) -> Result<RawMessage>;
 }
@@ -358,7 +360,7 @@ impl<T: ControlMsg> CustomMessage for T {
                     T::ControlType::is_self(&param2e)
                 }
                 WM_NOTIFY => {
-                    if *lparam == 0{
+                    if *lparam == 0 {
                         return Err(win_error!(ERROR_BAD_ARGUMENTS));
                     }
                     let ptr = (*((*lparam) as *mut NMHDR)).hwndFrom;
@@ -368,7 +370,10 @@ impl<T: ControlMsg> CustomMessage for T {
             }
         }
     }
-    unsafe fn from_raw_msg(ptr: RawMessage) -> Result<Box<Self>> {
+    unsafe fn from_raw_msg(ptr: RawMessage) -> Result<Self>
+    where
+        Self: Sized,
+    {
         unsafe {
             let RawMessage(msg, wparam, lparam) = ptr;
             match msg {

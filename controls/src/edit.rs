@@ -113,7 +113,7 @@ pub enum EditMsgType {
 }
 impl ControlMsg for EditMsg {
     type ControlType = Edit;
-    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Self> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -133,10 +133,10 @@ impl ControlMsg for EditMsg {
                 EN_UPDATE => Update,
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Ok(Box::new(Self {
+            Ok(Self {
                 hwnd: w,
                 bm_type: bmtype,
-            }))
+            })
         }
     }
     fn get_control(&self) -> Self::ControlType {
@@ -148,15 +148,6 @@ impl ControlMsg for EditMsg {
 }
 impl Control for Edit {
     type MsgType = EditMsg;
-    fn from_window(wnd: Window) -> Result<Box<Self>> {
-        unsafe {
-            if Self::is_self(&wnd.handle)? {
-                Ok(Box::new(Self(wnd.handle)))
-            } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
-            }
-        }
-    }
     fn to_window(self) -> Window {
         Window { handle: self.0 }
     }

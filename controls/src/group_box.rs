@@ -5,15 +5,6 @@ unsafe impl Sync for GroupBox {}
 pub struct GroupBoxMsg(pub usize, HWND);
 impl Control for GroupBox {
     type MsgType = GroupBoxMsg;
-    fn from_window(wnd: Window) -> Result<Box<Self>> {
-        unsafe {
-            if Self::is_self(&wnd.handle)? {
-                Ok(Box::new(Self(wnd.handle)))
-            } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
-            }
-        }
-    }
     fn to_window(self) -> Window {
         Window { handle: self.0 }
     }
@@ -43,7 +34,7 @@ impl Control for GroupBox {
 }
 impl ControlMsg for GroupBoxMsg {
     type ControlType = GroupBox;
-    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Self> {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -53,7 +44,7 @@ impl ControlMsg for GroupBoxMsg {
                 NM_CUSTOMDRAW => ptr,
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Ok(Box::new(Self(bmtype, w)))
+            Ok(Self(bmtype, w))
         }
     }
     fn get_control(&self) -> Self::ControlType {

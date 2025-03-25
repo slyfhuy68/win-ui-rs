@@ -62,15 +62,6 @@ pub struct CheckBoxMsg {
 }
 impl Control for CheckBox {
     type MsgType = CheckBoxMsg;
-    fn from_window(wnd: Window) -> Result<Box<Self>> {
-        unsafe {
-            if Self::is_self(&wnd.handle)? {
-                Ok(Box::new(Self(wnd.handle)))
-            } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
-            }
-        }
-    }
     fn to_window(self) -> Window {
         Window { handle: self.0 }
     }
@@ -93,7 +84,10 @@ impl Control for CheckBox {
 }
 impl ControlMsg for CheckBoxMsg {
     type ControlType = CheckBox;
-    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Self>
+    where
+        Self: Sized,
+    {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -118,10 +112,10 @@ impl ControlMsg for CheckBoxMsg {
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Ok(Box::new(Self {
+            Ok(Self {
                 hwnd: w,
                 bm_type: bmtype,
-            }))
+            })
         }
     }
     fn get_control(&self) -> Self::ControlType {

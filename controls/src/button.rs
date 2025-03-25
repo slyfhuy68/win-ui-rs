@@ -40,15 +40,7 @@ impl ManuallyDrawButton {
 }
 impl Control for ManuallyDrawButton {
     type MsgType = ManuallyDrawButtonMsg;
-    fn from_window(wnd: Window) -> Result<Box<Self>> {
-        unsafe {
-            if Self::is_self(&wnd.handle)? {
-                Ok(Box::new(Self(wnd.handle)))
-            } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
-            }
-        }
-    }
+
     unsafe fn force_from_window(wnd: Window) -> Self {
         Self(wnd.handle)
     }
@@ -67,7 +59,10 @@ impl Control for ManuallyDrawButton {
 }
 impl ControlMsg for ManuallyDrawButtonMsg {
     type ControlType = ManuallyDrawButton;
-    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Self>
+    where
+        Self: Sized,
+    {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -90,10 +85,10 @@ impl ControlMsg for ManuallyDrawButtonMsg {
                 BN_SETFOCUS => ManuallyDrawButtonMsgType::GetKeyboardFocus,
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Ok(Box::new(Self {
+            Ok(Self {
                 hwnd: w,
                 bm_type: bmtype,
-            }))
+            })
         }
     }
     fn get_control(&self) -> Self::ControlType {
@@ -171,15 +166,7 @@ pub struct ButtonMsg {
 }
 impl Control for Button {
     type MsgType = ButtonMsg;
-    fn from_window(wnd: Window) -> Result<Box<Self>> {
-        unsafe {
-            if Self::is_self(&wnd.handle)? {
-                Ok(Box::new(Self(wnd.handle)))
-            } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
-            }
-        }
-    }
+
     unsafe fn force_from_window(wnd: Window) -> Self {
         Self(wnd.handle)
     }
@@ -204,7 +191,10 @@ impl Control for Button {
 }
 impl ControlMsg for ButtonMsg {
     type ControlType = Button;
-    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Self>
+    where
+        Self: Sized,
+    {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -229,10 +219,10 @@ impl ControlMsg for ButtonMsg {
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Ok(Box::new(Self {
+            Ok(Self {
                 hwnd: w,
                 bm_type: bmtype,
-            }))
+            })
         }
     }
     fn get_control(&self) -> Self::ControlType {
@@ -356,15 +346,7 @@ pub struct SplitButtonMsg {
 }
 impl Control for SplitButton {
     type MsgType = SplitButtonMsg;
-    fn from_window(wnd: Window) -> Result<Box<Self>> {
-        unsafe {
-            if Self::is_self(&wnd.handle)? {
-                Ok(Box::new(Self(wnd.handle)))
-            } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
-            }
-        }
-    }
+
     unsafe fn force_from_window(wnd: Window) -> Self {
         Self(wnd.handle)
     }
@@ -384,7 +366,10 @@ impl Control for SplitButton {
 }
 impl ControlMsg for SplitButtonMsg {
     type ControlType = SplitButton;
-    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Self>
+    where
+        Self: Sized,
+    {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -416,10 +401,10 @@ impl ControlMsg for SplitButtonMsg {
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Ok(Box::new(Self {
+            Ok(Self {
                 hwnd: w,
                 bm_type: bmtype,
-            }))
+            })
         }
     }
     fn get_control(&self) -> Self::ControlType {
@@ -532,15 +517,6 @@ pub struct LinkButtonMsg {
 }
 impl Control for LinkButton {
     type MsgType = LinkButtonMsg;
-    fn from_window(wnd: Window) -> Result<Box<Self>> {
-        unsafe {
-            if Self::is_self(&wnd.handle)? {
-                Ok(Box::new(Self(wnd.handle)))
-            } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
-            }
-        }
-    }
     unsafe fn force_from_window(wnd: Window) -> Self {
         Self(wnd.handle)
     }
@@ -560,7 +536,10 @@ impl Control for LinkButton {
 }
 impl ControlMsg for LinkButtonMsg {
     type ControlType = LinkButton;
-    unsafe fn from_msg(ptr: usize) -> Result<Box<Self>> {
+    unsafe fn from_msg(ptr: usize) -> Result<Self>
+    where
+        Self: Sized,
+    {
         unsafe {
             let nmhdr = *(ptr as *mut NMHDR);
             let code = nmhdr.code;
@@ -585,10 +564,10 @@ impl ControlMsg for LinkButtonMsg {
                 NM_CUSTOMDRAW => Draw(ptr),
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             };
-            Ok(Box::new(Self {
+            Ok(Self {
                 hwnd: w,
                 bm_type: bmtype,
-            }))
+            })
         }
     }
     fn get_control(&self) -> Self::ControlType {
