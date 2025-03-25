@@ -108,7 +108,7 @@ pub unsafe extern "system" fn window_proc(
                     let param1e = param1.0;
                     match c.control_message(
                         &mut w,
-                        RawMassage(WM_COMMAND, param1e, param2e),
+                        RawMessage(WM_COMMAND, param1e, param2e),
                         (param1e & 0xffff) as WindowID,
                     ) {
                         Ok(x) => x,
@@ -123,7 +123,7 @@ pub unsafe extern "system" fn window_proc(
                     let nmhdr_ptr = param2.0 as *mut NMHDR;
                     match c.control_message(
                         &mut w,
-                        RawMassage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                        RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                         (*nmhdr_ptr).idFrom as WindowID,
                     ) {
                         Ok(x) => x,
@@ -143,7 +143,7 @@ pub unsafe extern "system" fn window_proc(
                     let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
                     match c.control_message(
                         &mut w,
-                        RawMassage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                        RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                         nmhdr.nmhdr.idFrom as WindowID,
                     ) {
                         Ok(x) => x,

@@ -41,6 +41,7 @@ pub mod timer;
 pub mod window;
 use window::*;
 pub mod core {
+    pub use crate::win_error;
     #[derive(Debug, Clone)]
     pub struct Point(pub i32, pub i32);
     impl Copy for Point {}
@@ -178,3 +179,9 @@ pub fn str_to_pcwstr(s: &str) -> (PCWSTR, Vec<u16>) {
 //     let ptr_data = RawPointerData(Box::new(wide_str));
 //     return (PCWSTR(wide_str_ptr), ptr_data);
 // }
+#[macro_export]
+macro_rules! win_error {
+    ($const:expr) => {
+        Error::new($const.into(), "")
+    };
+}
