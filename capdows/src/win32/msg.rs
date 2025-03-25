@@ -299,7 +299,7 @@ pub fn msg_loop() -> () {
 #[derive(Copy, Clone)]
 pub struct RawMessage(pub u32, pub usize, pub isize);
 impl RawMessage{
-    fn get_msg<T: CustomMessage>(self) -> Result<T> {
+    pub fn get_msg<T: CustomMessage>(self) -> Result<T> {
         unsafe {
         match T::is_self_msg(&self)? {
             false => panic!("The type provided does not match the actual message!"), 
