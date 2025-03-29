@@ -1,8 +1,8 @@
 extern crate capdows_resource;
 // use either::Either;
 // use either::Either::*;
-use capdows_resource::{version::*, image::*};
 use capdows_resource::*;
+use capdows_resource::{image::*, version::*};
 use std::collections::HashMap;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     //print!("cargo::warning={} {}\n", is_debug, env::var("DEBUG").unwrap()=="true");
@@ -20,7 +20,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ]),
         os: Default::default(),
         ftype: Default::default(),
-    }.pre_compile()?;
+    }
+    .pre_compile()?;
     let icon1 = Icon(NumberId(1), "./res/ICON1.ico".into()).pre_compile()?;
     let icon2 = Icon(NumberId(2), "./res/ICON2.ico".into()).pre_compile()?;
     let icon3 = Icon(NumberId(3), "./res/ICON3.ico".into()).pre_compile()?;

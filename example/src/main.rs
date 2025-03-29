@@ -60,7 +60,8 @@ impl MessageReceiver for Mycb {
             Default::default(),
             true,
             false,
-        ).unwrap();
+        )
+        .unwrap();
         link_button_1.set_note("114514abc中文").unwrap();
         let mut g_b = GroupBox::new(
             window,
@@ -71,7 +72,8 @@ impl MessageReceiver for Mycb {
             Default::default(),
             true,
             false,
-        ).unwrap()
+        )
+        .unwrap()
         .to_window();
         self.controls = Some(MyControls {
             button1: Button::new(
@@ -84,7 +86,8 @@ impl MessageReceiver for Mycb {
                 Default::default(),
                 true,
                 false,
-            ).unwrap(),
+            )
+            .unwrap(),
             link_button_1,
             split_button: SplitButton::new(
                 window,
@@ -96,7 +99,8 @@ impl MessageReceiver for Mycb {
                 Default::default(),
                 true,
                 false,
-            ).unwrap(),
+            )
+            .unwrap(),
             a2: RadioButton::new(
                 &mut g_b,
                 "单选按钮a02",
@@ -107,7 +111,8 @@ impl MessageReceiver for Mycb {
                 Default::default(),
                 true,
                 false,
-            ).unwrap(),
+            )
+            .unwrap(),
             b1: RadioButton::new(
                 &mut g_b,
                 "单选按钮b01",
@@ -118,7 +123,8 @@ impl MessageReceiver for Mycb {
                 Default::default(),
                 true,
                 false,
-            ).unwrap(),
+            )
+            .unwrap(),
             b2: RadioButton::new(
                 &mut g_b,
                 "单选按钮b02",
@@ -129,7 +135,8 @@ impl MessageReceiver for Mycb {
                 Default::default(),
                 true,
                 false,
-            ).unwrap(),
+            )
+            .unwrap(),
             boxed1: CheckBox::new(
                 window,
                 "选择框01",
@@ -140,7 +147,8 @@ impl MessageReceiver for Mycb {
                 Default::default(),
                 true,
                 false,
-            ).unwrap(),
+            )
+            .unwrap(),
             boxed2: CheckBox::new(
                 window,
                 "选择框02",
@@ -155,7 +163,8 @@ impl MessageReceiver for Mycb {
                 Default::default(),
                 true,
                 false,
-            ).unwrap(),
+            )
+            .unwrap(),
             a1: RadioButton::new(
                 &mut g_b,
                 "单选按钮a01",
@@ -166,7 +175,8 @@ impl MessageReceiver for Mycb {
                 Default::default(),
                 true,
                 false,
-            ).unwrap(),
+            )
+            .unwrap(),
             g_b: GroupBox::from_window(g_b).unwrap(),
             // text_view: TextView::new(
             //     window,

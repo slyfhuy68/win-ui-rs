@@ -1,3 +1,5 @@
 fn main() {
-	embed_resource::compile("manifest.rc", embed_resource::NONE).manifest_required().unwrap();
+    embed_resource::compile("manifest.rc", embed_resource::NONE)
+        .manifest_required()
+        .unwrap();
 }

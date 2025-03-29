@@ -23,7 +23,7 @@ impl ExecutableFile {
     pub fn open(dir: &str) -> Result<Self> {
         let (pdir, _pdir) = str_to_pcwstr(dir);
         Ok(Self {
-            handle: unsafe { GetModuleHandleW(pdir)}?
+            handle: unsafe { GetModuleHandleW(pdir) }?,
         })
     }
 }

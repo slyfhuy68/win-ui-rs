@@ -5,7 +5,9 @@ pub struct Icon {
 }
 impl Icon {
     pub const unsafe fn null() -> Self {
-        Self { handle: HICON(NULL_PTR()) }
+        Self {
+            handle: HICON(NULL_PTR()),
+        }
     }
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
@@ -16,12 +18,24 @@ impl Icon {
         width: Option<Size>,
     ) -> Result<Self> {
         let (pcw, _pcw) = match id {
-            Left(l) => str_to_pcwstr(l), 
-            Right(r) => str_to_pcwstr(&("#".to_owned()+&r.to_string()))
+            Left(l) => str_to_pcwstr(l),
+            Right(r) => str_to_pcwstr(&("#".to_owned() + &r.to_string())),
         };
         let Size(cx, cy) = width.unwrap_or(Size(0, 0));
         Ok(Self {
-            handle: HICON(unsafe {LoadImageW(Some(module.into()), pcw, IMAGE_ICON, cx, cy, IMAGE_FLAGS::default())?}.0)
+            handle: HICON(
+                unsafe {
+                    LoadImageW(
+                        Some(module.into()),
+                        pcw,
+                        IMAGE_ICON,
+                        cx,
+                        cy,
+                        IMAGE_FLAGS::default(),
+                    )?
+                }
+                .0,
+            ),
         })
     }
 }
@@ -54,12 +68,24 @@ impl Cursor {
         width: Option<Size>,
     ) -> Result<Self> {
         let (pcw, _pcw) = match id {
-            Left(l) => str_to_pcwstr(l), 
-            Right(r) => str_to_pcwstr(&("#".to_owned()+&r.to_string()))
+            Left(l) => str_to_pcwstr(l),
+            Right(r) => str_to_pcwstr(&("#".to_owned() + &r.to_string())),
         };
         let Size(cx, cy) = width.unwrap_or(Size(0, 0));
         Ok(Self {
-            handle: HCURSOR(unsafe {LoadImageW(Some(module.into()), pcw, IMAGE_CURSOR, cx, cy, IMAGE_FLAGS::default())?}.0)
+            handle: HCURSOR(
+                unsafe {
+                    LoadImageW(
+                        Some(module.into()),
+                        pcw,
+                        IMAGE_CURSOR,
+                        cx,
+                        cy,
+                        IMAGE_FLAGS::default(),
+                    )?
+                }
+                .0,
+            ),
         })
     }
     ///| 值    | 含义                                     |
@@ -153,7 +179,9 @@ pub struct EnhMetaFile {
 }
 impl EnhMetaFile {
     pub const unsafe fn null() -> Self {
-        Self { handle: HENHMETAFILE(NULL_PTR()) }
+        Self {
+            handle: HENHMETAFILE(NULL_PTR()),
+        }
     }
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()

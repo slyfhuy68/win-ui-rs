@@ -27,8 +27,8 @@ impl PreCompilePruduct {
         let mut f = File::create(&dest_path).expect("无法创建文件");
         f.write_all((self.0).as_bytes()).expect("无法写入文件");
         compile(dest_path.to_str().unwrap(), NONE)
-        .manifest_required()
-        .unwrap();
+            .manifest_required()
+            .unwrap();
         Ok(())
     }
 }
@@ -38,13 +38,13 @@ impl Add for PreCompilePruduct {
         PreCompilePruduct(format!("{}\n{}", self.0, other.0))
     }
 }
-pub enum ResourceID{
-    StringId(String), 
-    NumberId(u16)
+pub enum ResourceID {
+    StringId(String),
+    NumberId(u16),
 }
 pub use ResourceID::*;
-pub mod version;
 pub mod image;
+pub mod version;
 #[macro_export]
 macro_rules! compile_all {
     ($first:expr, $($rest:expr),+ $(,)?) => {

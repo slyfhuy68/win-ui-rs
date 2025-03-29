@@ -62,7 +62,11 @@ pub enum WindowNotify {
 }
 pub trait MessageReceiver {
     ///不常用的wParam与lParam都未使用、处理消息返回零的消息与WM_NULL
-    fn notifications(&mut self, window: &mut Window, notification_type:WindowNotify) -> MessageReceiverResult<()> {
+    fn notifications(
+        &mut self,
+        window: &mut Window,
+        notification_type: WindowNotify,
+    ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     fn control_message(
@@ -398,6 +402,3 @@ impl<T: ControlMsg> CustomMessage for T {
         }
     }
 }
-
-
-

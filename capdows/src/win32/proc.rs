@@ -162,15 +162,10 @@ pub unsafe extern "system" fn window_proc(
                 // WM_NCCALCSIZE => {},
                 // WM_NCCREATE => {},
                 // WM_NCDESTROY => {},
-                WM_NULL => {
-                    match c.notifications(
-                        &mut w,
-                        WindowNotify::Null,
-                        ) {
-                        Ok(_) => 0,
-                        Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(x),
-                    }
+                WM_NULL => match c.notifications(&mut w, WindowNotify::Null) {
+                    Ok(_) => 0,
+                    Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
+                    Err(x) => callback_error(x),
                 },
                 // WM_QUERYDRAGICON => {},
                 // WM_QUERYOPEN => {},
