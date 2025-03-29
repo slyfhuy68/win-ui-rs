@@ -66,10 +66,7 @@ pub unsafe extern "system" fn window_proc(
                             },
                             Ok(x) => x,
                         },
-                        ExecutableFile {
-                            name: None,
-                            handle: Some(HMODULE(s.hInstance.0)),
-                        },
+                        HMODULE(s.hInstance.0).into(),
                         Rectangle::PointSize(Point(s.x, s.y), Size(s.cx, s.cy)),
                         (
                             WINDOW_STYLE(s.style as u32),
@@ -108,7 +105,7 @@ pub unsafe extern "system" fn window_proc(
                     let param1e = param1.0;
                     match c.control_message(
                         &mut w,
-                        RawMessage(WM_COMMAND, param1e, param2e),
+                        &mut RawMessage(WM_COMMAND, param1e, param2e),
                         (param1e & 0xffff) as WindowID,
                     ) {
                         Ok(x) => x,
@@ -123,7 +120,7 @@ pub unsafe extern "system" fn window_proc(
                     let nmhdr_ptr = param2.0 as *mut NMHDR;
                     match c.control_message(
                         &mut w,
-                        RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                        &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                         (*nmhdr_ptr).idFrom as WindowID,
                     ) {
                         Ok(x) => x,
@@ -143,7 +140,7 @@ pub unsafe extern "system" fn window_proc(
                     let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
                     match c.control_message(
                         &mut w,
-                        RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                        &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                         nmhdr.nmhdr.idFrom as WindowID,
                     ) {
                         Ok(x) => x,
@@ -165,7 +162,16 @@ pub unsafe extern "system" fn window_proc(
                 // WM_NCCALCSIZE => {},
                 // WM_NCCREATE => {},
                 // WM_NCDESTROY => {},
-                // WM_NULL => {},
+                WM_NULL => {
+                    match c.notifications(
+                        &mut w,
+                        WindowNotify::Null,
+                        ) {
+                        Ok(_) => 0,
+                        Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
+                        Err(x) => callback_error(x),
+                    }
+                },
                 // WM_QUERYDRAGICON => {},
                 // WM_QUERYOPEN => {},
                 // WM_SHOWWINDOW => {},

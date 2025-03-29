@@ -110,7 +110,7 @@ fn new_button(
                     Some(hwnd),
                     BM_SETIMAGE,
                     WPARAM(IMAGE_ICON.0 as usize),
-                    LPARAM(c.handle as isize),
+                    LPARAM(c.handle.0 as isize),
                 ),
             };
         },

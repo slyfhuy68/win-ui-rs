@@ -253,9 +253,14 @@ impl Control for ImageTextView {
     unsafe fn force_from_window(wnd: Window) -> Self {
         Self(wnd.handle)
     }
-    unsafe fn is_self(_wnd: &HWND) -> Result<bool> {
-        eprint!("impl Control for ImageTextView ->  unsafe fn is_self 未实现");
-        Ok(true)
+    unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+        let mut array1 = vec![0u16; 8];
+        if unsafe { GetClassNameW(*wnd, &mut array1[..]) } == 0 {
+            return Err(Error::from_win32());
+        }
+        let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
+        //println!("{}", meunasfe);
+        return Ok(meunasfe == "Static".to_string());
     }
 }
 impl ControlMsg for ImageTextViewMsg {

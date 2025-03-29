@@ -57,11 +57,18 @@ pub enum SizingMsgType {
     TopLeft,     //WMSZ_TOPLEFT
     TopRight,    //WMSZ_TOPRIGHT
 }
+pub enum WindowNotify {
+    Null, //WM_NULL
+}
 pub trait MessageReceiver {
+    ///不常用的wParam与lParam都未使用、处理消息返回零的消息与WM_NULL
+    fn notifications(&mut self, window: &mut Window, notification_type:WindowNotify) -> MessageReceiverResult<()> {
+        Err(NoProcessed)
+    }
     fn control_message(
         &mut self,
         window: &mut Window,
-        msg: RawMessage,
+        msg: &mut RawMessage,
         id: WindowID,
     ) -> MessageReceiverResult<isize> {
         Err(NoProcessed)
@@ -180,9 +187,6 @@ pub trait MessageReceiver {
     fn nc_destroy(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
-    fn null_message(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
     fn query_drag_icon(&mut self, window: &mut Window) -> MessageReceiverResult<Option<Cursor>> {
         Err(NoProcessed)
     }
@@ -233,7 +237,9 @@ pub trait MessageReceiver {
     fn theme_changed(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
-    //fn user_changed(&mut self,window: Window) -> MessageReceiverResult<()> {Err(NoProcessed)}
+    // fn user_changed(&mut self, window: Window) -> MessageReceiverResult<()> {
+    //     Err(NoProcessed)
+    // }
     fn pos_changed(
         &mut self,
         window: &mut Window,
@@ -296,22 +302,23 @@ pub fn msg_loop() -> () {
         }
     }
 }
-#[derive(Copy, Clone)]
+// 不实现Copy、Clone
 pub struct RawMessage(pub u32, pub usize, pub isize);
 impl RawMessage {
-    pub fn get_msg<T: CustomMessage>(self) -> Result<T> {
+    pub fn get_msg<T: CustomMessage>(&mut self) -> Result<T> {
         unsafe {
             match T::is_self_msg(&self)? {
                 false => panic!("The type provided does not match the actual message!"),
                 _ => (),
             };
-            T::from_raw_msg(self)
+            T::from_raw_msg(RawMessage(self.0, self.1, self.2))
         }
     }
-    pub fn get_control_msg<T: Control>(self) -> Result<T::MsgType> {
+    pub fn get_control_msg<T: Control>(&mut self) -> Result<T::MsgType> {
         self.get_msg::<T::MsgType>()
     }
 }
+///注意为此类型实现Clone时，也要克隆指针指向的数据
 pub trait CustomMessage {
     ///给你一个RawMessage,判断是否为自身类型消息
     unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool>;
@@ -391,3 +398,6 @@ impl<T: ControlMsg> CustomMessage for T {
         }
     }
 }
+
+
+

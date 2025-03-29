@@ -1,36 +1,38 @@
 use super::*;
 #[derive(Clone, PartialEq)]
 pub struct Icon {
-    pub handle: HANDLE,
+    pub handle: HICON,
 }
 impl Icon {
     pub const unsafe fn null() -> Self {
-        Self { handle: NULL_PTR() }
+        Self { handle: HICON(NULL_PTR()) }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle == NULL_PTR()
+        self.handle.0 == NULL_PTR()
     }
-    pub fn load_from_module(// module: ExecutableFile,
-        // id: Either<&str, usize>,
-        // width: i32,
-        // hight: i32,
-        // black: bool,
-        // map3d_colours: bool,
-        // transparent: bool,
-        // shared: bool,
-        // vga_colour: bool,
-    ) -> Self {
-        todo!()
+    pub fn load_from_module(
+        module: ExecutableFile,
+        id: Either<&str, u16>,
+        width: Option<Size>,
+    ) -> Result<Self> {
+        let (pcw, _pcw) = match id {
+            Left(l) => str_to_pcwstr(l), 
+            Right(r) => str_to_pcwstr(&("#".to_owned()+&r.to_string()))
+        };
+        let Size(cx, cy) = width.unwrap_or(Size(0, 0));
+        Ok(Self {
+            handle: HICON(unsafe {LoadImageW(Some(module.into()), pcw, IMAGE_ICON, cx, cy, IMAGE_FLAGS::default())?}.0)
+        })
     }
 }
 impl From<HICON> for Icon {
     fn from(hi: HICON) -> Self {
-        Self { handle: hi.0 }
+        Self { handle: hi }
     }
 }
 impl Into<HICON> for Icon {
     fn into(self) -> HICON {
-        HICON(self.handle)
+        self.handle
     }
 }
 #[derive(Clone, PartialEq)]
@@ -46,17 +48,19 @@ impl Cursor {
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
     }
-    pub fn from_module(// module: ExecutableFile,
-        // id: u16,
-        // width: i32,
-        // hight: i32,
-        // black: bool,
-        // map3d_colours: bool,
-        // transparent: bool,
-        // shared: bool,
-        // vga_colour: bool,
-    ) -> Self {
-        todo!()
+    pub fn load_from_module(
+        module: ExecutableFile,
+        id: Either<&str, u16>,
+        width: Option<Size>,
+    ) -> Result<Self> {
+        let (pcw, _pcw) = match id {
+            Left(l) => str_to_pcwstr(l), 
+            Right(r) => str_to_pcwstr(&("#".to_owned()+&r.to_string()))
+        };
+        let Size(cx, cy) = width.unwrap_or(Size(0, 0));
+        Ok(Self {
+            handle: HCURSOR(unsafe {LoadImageW(Some(module.into()), pcw, IMAGE_CURSOR, cx, cy, IMAGE_FLAGS::default())?}.0)
+        })
     }
     ///| 值    | 含义                                     |
     ///| ----- | ---------------------------------------- |
@@ -145,14 +149,14 @@ impl Into<HBITMAP> for Bitmap {
 }
 #[derive(Clone, PartialEq)]
 pub struct EnhMetaFile {
-    pub handle: HANDLE,
+    pub handle: HENHMETAFILE,
 }
 impl EnhMetaFile {
     pub const unsafe fn null() -> Self {
-        Self { handle: NULL_PTR() }
+        Self { handle: HENHMETAFILE(NULL_PTR()) }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle == NULL_PTR()
+        self.handle.0 == NULL_PTR()
     }
     pub fn load_from_module(// module: ExecutableFile,
         // id: Either<&str, usize>,
@@ -169,12 +173,12 @@ impl EnhMetaFile {
 }
 impl From<HENHMETAFILE> for EnhMetaFile {
     fn from(hi: HENHMETAFILE) -> Self {
-        Self { handle: hi.0 }
+        Self { handle: hi }
     }
 }
 impl Into<HENHMETAFILE> for EnhMetaFile {
     fn into(self) -> HENHMETAFILE {
-        HENHMETAFILE(self.handle)
+        self.handle
     }
 }
 pub enum Image {

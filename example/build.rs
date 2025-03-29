@@ -1,15 +1,12 @@
-use std::env;
 extern crate capdows_resource;
-extern crate embed_resource;
+// use either::Either;
+// use either::Either::*;
+use capdows_resource::{version::*, image::*};
 use capdows_resource::*;
-use embed_resource::*;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
-use std::path::Path;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     //print!("cargo::warning={} {}\n", is_debug, env::var("DEBUG").unwrap()=="true");
-    compile("manifest.rc", NONE).manifest_required().unwrap();
+    // compile("manifest.rc", NONE).manifest_required().unwrap();
     let vstr = Version {
         product_internal_version: (0u16, 0u16, 0u16, 1u16),
         file_internal_version: None,
@@ -19,20 +16,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         variant: ProductVariant::default(),
         strings: HashMap::from([
             (LangID::new("0804")?, StringInfo::default()),
-            (LangID::new("0809")?, StringInfo::default()),
+            // (LangID::new("0809")?, StringInfo::default()),
         ]),
         os: Default::default(),
         ftype: Default::default(),
-    }
-    .pre_compile()?
-    .get();
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let dest_path = Path::new(&out_dir).join("resource.rc");
-    let mut f = File::create(&dest_path).expect("无法创建文件");
-    f.write_all(vstr.as_bytes()).expect("无法写入文件");
-    compile(dest_path.to_str().unwrap(), NONE)
-        .manifest_required()
-        .unwrap();
+    }.pre_compile()?;
+    let icon1 = Icon(NumberId(1), "./res/ICON1.ico".into()).pre_compile()?;
+    let icon2 = Icon(NumberId(2), "./res/ICON2.ico".into()).pre_compile()?;
+    let icon3 = Icon(NumberId(3), "./res/ICON3.ico".into()).pre_compile()?;
+    let cursor1 = Cursor(NumberId(4), "./res/CURSOR1.cur".into()).pre_compile()?;
+    compile_all!(vstr, icon1, icon2, icon3, cursor1)?;
     // print!(
     //     "cargo::warning={}nnnn{}\n",
     //     dest_path.to_str().unwrap(),

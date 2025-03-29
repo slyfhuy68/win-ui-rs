@@ -17,18 +17,33 @@ pub fn get_winmain_args() -> Result<(HINSTANCE, HINSTANCE, Vec<String>, SHOW_WIN
 }
 
 pub struct ExecutableFile {
-    pub name: Option<String>,
-    pub handle: Option<HMODULE>,
+    handle: HMODULE,
 }
 impl ExecutableFile {
-    pub fn open(dir: &str) -> Self {
-        let (pdir, ppdir) = str_to_pcwstr(dir);
-        Self {
-            name: Some(dir.to_string()),
-            handle: match unsafe { GetModuleHandleW(pdir) } {
-                Ok(x) => Some(x),
-                Err(_) => None,
-            },
-        }
+    pub fn open(dir: &str) -> Result<Self> {
+        let (pdir, _pdir) = str_to_pcwstr(dir);
+        Ok(Self {
+            handle: unsafe { GetModuleHandleW(pdir)}?
+        })
+    }
+}
+impl From<HMODULE> for ExecutableFile {
+    fn from(hi: HMODULE) -> Self {
+        Self { handle: hi }
+    }
+}
+impl Into<HMODULE> for ExecutableFile {
+    fn into(self) -> HMODULE {
+        self.handle
+    }
+}
+impl From<HINSTANCE> for ExecutableFile {
+    fn from(hi: HINSTANCE) -> Self {
+        Self { handle: hi.into() }
+    }
+}
+impl Into<HINSTANCE> for ExecutableFile {
+    fn into(self) -> HINSTANCE {
+        self.handle.into()
     }
 }
