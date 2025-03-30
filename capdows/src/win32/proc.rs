@@ -34,172 +34,202 @@ pub unsafe extern "system" fn window_proc(
             return DefWindowProcW(window_handle, msg, param1, param2);
         }
         let user_callback_s = &mut *user_callback_ptr;
-        let c = user_callback_s;
         // println!("{}", std::any::type_name(c));
-        pub use MessageReceiverError::*;
-        let result = {
-            let mut w = window;
-            match msg {
-                //----------------------------------------------------------------------------------
-                // WM_ACTIVATEAPP => {},
-                // WM_CANCELMODE => {},
-                // WM_CHILDACTIVATE => {},
-                // WM_CLOSE => {
-                //     mstch user_callback_s {
-                //
-                //     }
-                // },
-                // WM_COMPACTING => {},
-                WM_CREATE => {
-                    let s = *(param2.0 as *mut CREATESTRUCTW);
-                    let wc = w.get_class();
-                    match c.create(
-                        &mut w,
-                        &s.lpszName.to_string().unwrap_or(String::from("")),
-                        match wc {
-                            Err(_) => WindowClass {
-                                name: None,
-                                atom: s.lpszClass,
-                                handle_instance: None,
-                            },
-                            Ok(x) => x,
-                        },
-                        HMODULE(s.hInstance.0).into(),
-                        Rectangle::PointSize(Point(s.x, s.y), Size(s.cx, s.cy)),
-                        (
-                            WINDOW_STYLE(s.style as u32),
-                            s.dwExStyle,
-                            if s.hMenu.is_invalid() {
-                                None
-                            } else {
-                                Some(s.hMenu)
-                            },
-                            if s.hwndParent.is_invalid() {
-                                None
-                            } else {
-                                Some(s.hwndParent)
-                            },
-                        )
-                            .into(),
-                    ) {
-                        Ok(x) => match x {
-                            true => 0isize,
-                            false => -1isize,
-                        },
-                        Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => {
-                            callback_error(c, x);
-                            -1isize
-                        }
-                    }
-                }
-                WM_DESTROY => {
-                    let result = match c.destroy(&mut w) {
-                        Ok(_) => 0isize,
-                        Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(c, x),
-                    };
-                    let _ = set_proc(&mut w, 0 as *mut Box<CallBackObj>);
-                    let _ = Box::from_raw(user_callback_ptr);
-                    //这里的return不要删，作用是防止回调对象被变成原始指针，销毁窗口时，应该销毁回调对象
-                    result
-                }
-                WM_COMMAND if param2.0 != 0 => {
-                    let param2e = param2.0;
-                    let param1e = param1.0;
-                    match c.control_message(
-                        &mut w,
-                        &mut RawMessage(WM_COMMAND, param1e, param2e),
-                        (param1e & 0xffff) as WindowID,
-                    ) {
-                        Ok(x) => x,
-                        Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(c, x),
-                    }
-                }
-                WM_NOTIFYFORMAT => {
-                    2isize //NFR_UNICODE
-                }
-                WM_NOTIFY => {
-                    let nmhdr_ptr = param2.0 as *mut NMHDR;
-                    match c.control_message(
-                        &mut w,
-                        &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
-                        (*nmhdr_ptr).idFrom as WindowID,
-                    ) {
-                        Ok(x) => x,
-                        Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(c, x),
-                    }
-                }
-                WM_CTLCOLORSTATIC => {
-                    let mut nmhdr = NMHDRSTATIC {
-                        nmhdr: NMHDR {
-                            hwndFrom: HWND(param2.0 as *mut c_void),
-                            idFrom: GetWindowLongW(HWND(param2.0 as *mut c_void), GWL_ID) as usize,
-                            code: WM_CTLCOLORSTATIC,
-                        },
-                        DC: param1.0 as *mut c_void,
-                    };
-                    let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
-                    match c.control_message(
-                        &mut w,
-                        &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
-                        nmhdr.nmhdr.idFrom as WindowID,
-                    ) {
-                        Ok(x) => x,
-                        Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(c, x),
-                    }
-                }
-                // WM_DPICHANGED => {},
-                // WM_ENABLE => {},
-                // WM_ENTERSIZEMOVE => {},
-                // WM_EXITSIZEMOVE => {},
-                // WM_GETICON => {},
-                // WM_GETMINMAXINFO => {},
-                // WM_INPUTLANGCHANGE => {},
-                // WM_INPUTLANGCHANGEREQUEST => {},
-                // WM_MOVE => {},
-                // WM_MOVING => {},
-                // WM_NCACTIVATE => {},
-                // WM_NCCALCSIZE => {},
-                // WM_NCCREATE => {},
-                // WM_NCDESTROY => {},
-                WM_NULL => match c.notifications(&mut w, WindowNotify::Null) {
-                    Ok(_) => 0,
-                    Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                    Err(x) => callback_error(c, x),
+        let rusult = LRESULT(msg_handler(
+            user_callback_s,
+            window,
+            msg,
+            param1,
+            param2,
+            0,
+            windows_porc_default_handler,
+        ));
+        if msg == WM_DESTROY {
+            let _ = set_proc(
+                &mut Window {
+                    handle: window_handle,
                 },
-                // WM_QUERYDRAGICON => {},
-                // WM_QUERYOPEN => {},
-                // WM_SHOWWINDOW => {},
-                // WM_SIZE => {},
-                // WM_SIZING => {},
-                // WM_STYLECHANGED => {},
-                // WM_STYLECHANGING => {},
-                // WM_THEMECHANGED => {},
-                // WM_USERCHANGED => {},
-                // WM_WINDOWPOSCHANGED => {},
-                // WM_WINDOWPOSCHANGING => {},
-                //----------------------------------------------------------------------------------
-                _ => {
-                    //println!("msg:{}", msg);
-                    DefWindowProcW(window_handle, msg, param1, param2).0
-                }
-            }
+                0 as *mut Box<CallBackObj>,
+            );
+            let _ = Box::from_raw(user_callback_ptr);
         };
-        // let _ = Box::into_raw(c);
-        LRESULT(result)
+        rusult
     }
 }
 fn set_proc(wnd: &mut Window, ptr: *mut Box<CallBackObj>) -> Result<()> {
     wnd.set_prop(PROC_KEY_NAME, ptr as usize)
 }
-fn get_proc(wnd: &Window) -> Result<*mut Box<CallBackObj>> {
+pub fn get_proc(wnd: &Window) -> Result<*mut Box<CallBackObj>> {
     match wnd.get_prop(PROC_KEY_NAME) {
         Ok(x) => Ok(x as *mut Box<CallBackObj>),
         Err(x) => Err(x),
+    }
+}
+fn windows_porc_default_handler(p1: Window, p2: u32, p3: usize, p4: isize) -> isize {
+    unsafe { DefWindowProcW(p1.handle, p2, WPARAM(p3), LPARAM(p4)).0 }
+}
+unsafe fn msg_handler(
+    c: &mut Box<CallBackObj>,
+    mut w: Window,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+    callback_id: usize,
+    default_handler: unsafe fn(Window, u32, usize, isize) -> isize,
+) -> isize {
+    unsafe {
+        let WPARAM(param1) = wparam;
+        let LPARAM(param2) = lparam;
+        use MessageReceiverError::*;
+        match msg {
+            WM_CREATE => {
+                let s = *(param2 as *mut CREATESTRUCTW);
+                let wc = w.get_class();
+                match c.create(
+                    callback_id,
+                    &mut w,
+                    &s.lpszName.to_string().unwrap_or(String::from("")),
+                    match wc {
+                        Err(_) => WindowClass {
+                            name: None,
+                            atom: s.lpszClass,
+                            handle_instance: None,
+                        },
+                        Ok(x) => x,
+                    },
+                    HMODULE(s.hInstance.0).into(),
+                    Rectangle::PointSize(Point(s.x, s.y), Size(s.cx, s.cy)),
+                    (
+                        WINDOW_STYLE(s.style as u32),
+                        s.dwExStyle,
+                        if s.hMenu.is_invalid() {
+                            None
+                        } else {
+                            Some(s.hMenu)
+                        },
+                        if s.hwndParent.is_invalid() {
+                            None
+                        } else {
+                            Some(s.hwndParent)
+                        },
+                    )
+                        .into(),
+                ) {
+                    Ok(x) => match x {
+                        true => 0isize,
+                        false => -1isize,
+                    },
+                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(x) => {
+                        callback_error(c, x);
+                        -1isize
+                    }
+                }
+            }
+            WM_DESTROY => match c.destroy(callback_id, &mut w) {
+                Ok(_) => 0isize,
+                Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                Err(x) => callback_error(c, x),
+            },
+            WM_COMMAND if param2 != 0 => {
+                let param2e = param2;
+                let param1e = param1;
+                match c.control_message(
+                    callback_id,
+                    &mut w,
+                    &mut RawMessage(WM_COMMAND, param1e, param2e),
+                    (param1e & 0xffff) as WindowID,
+                ) {
+                    Ok(x) => x,
+                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(x) => callback_error(c, x),
+                }
+            }
+            WM_NOTIFYFORMAT => {
+                2isize //NFR_UNICODE
+            }
+            WM_NOTIFY => {
+                let nmhdr_ptr = param2 as *mut NMHDR;
+                match c.control_message(
+                    callback_id,
+                    &mut w,
+                    &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                    (*nmhdr_ptr).idFrom as WindowID,
+                ) {
+                    Ok(x) => x,
+                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(x) => callback_error(c, x),
+                }
+            }
+            WM_CTLCOLORSTATIC => {
+                let mut nmhdr = NMHDRSTATIC {
+                    nmhdr: NMHDR {
+                        hwndFrom: HWND(param2 as *mut c_void),
+                        idFrom: GetWindowLongW(HWND(param2 as *mut c_void), GWL_ID) as usize,
+                        code: WM_CTLCOLORSTATIC,
+                    },
+                    DC: param1 as *mut c_void,
+                };
+                let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
+                match c.control_message(
+                    callback_id,
+                    &mut w,
+                    &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                    nmhdr.nmhdr.idFrom as WindowID,
+                ) {
+                    Ok(x) => x,
+                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(x) => callback_error(c, x),
+                }
+            }
+            WM_NULL => match c.notifications(callback_id, &mut w, WindowNotify::Null) {
+                Ok(_) => 0,
+                Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                Err(x) => callback_error(c, x),
+            },
+            WM_LBUTTONDOWN => {
+                match c.mouse_msg(
+                    callback_id,
+                    &mut w,
+                    MouseMsg::Button {
+                        button_type: MouseButton::Left,
+                        state: ButtonState::Down,
+                        is_nc: false,
+                        pos: Point(
+                            (param2 & 0xFFFF) as u16 as i32,
+                            (param2 >> 16) as u16 as i32,
+                        ),
+                    },
+                ) {
+                    Ok(_) => 0,
+                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(x) => callback_error(c, x),
+                }
+            }
+            WM_LBUTTONUP => {
+                match c.mouse_msg(
+                    callback_id,
+                    &mut w,
+                    MouseMsg::Button {
+                        button_type: MouseButton::Left,
+                        state: ButtonState::Up,
+                        is_nc: false,
+                        pos: Point(
+                            (param2 & 0xFFFF) as u16 as i32,
+                            (param2 >> 16) as u16 as i32,
+                        ),
+                    },
+                ) {
+                    Ok(_) => 0,
+                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(x) => callback_error(c, x),
+                }
+            }
+            _ => {
+                //println!("msg:{}", msg);
+                default_handler(w, msg, param1, param2)
+            }
+        }
     }
 }
 fn callback_error(cb: &mut Box<CallBackObj>, err: MessageReceiverError) -> isize {
@@ -208,4 +238,35 @@ fn callback_error(cb: &mut Box<CallBackObj>, err: MessageReceiverError) -> isize
         Ok(x) => x,
         Err(err) => err.code() as isize,
     }
+}
+pub unsafe extern "system" fn subclass_porc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+    uidsubclass: usize,
+    dwrefdata: usize,
+) -> LRESULT {
+    unsafe {
+        let c = &mut *(dwrefdata as *mut Box<CallBackObj>);
+        let w = Window { handle: hwnd };
+        let rusult = LRESULT(msg_handler(
+            c,
+            w,
+            msg,
+            wparam,
+            lparam,
+            uidsubclass,
+            subclass_porc_default_handler,
+        ));
+        if msg == WM_DESTROY {
+            let _ = Box::from_raw(dwrefdata as *mut Box<CallBackObj>);
+            //删除子类化时也需要销毁
+            //这里是窗口关闭时销毁
+        };
+        rusult
+    }
+}
+fn subclass_porc_default_handler(p1: Window, p2: u32, p3: usize, p4: isize) -> isize {
+    unsafe { DefSubclassProc(p1.handle, p2, WPARAM(p3), LPARAM(p4)).0 }
 }

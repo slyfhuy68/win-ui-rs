@@ -28,14 +28,10 @@ struct Mycb {
 }
 static mut ICON_STATE: bool = false;
 fn get_state() -> bool {
-    unsafe {
-        ICON_STATE
-    }
+    unsafe { ICON_STATE }
 }
-fn set_state(state:bool) {
-    unsafe {
-        ICON_STATE = state
-    }
+fn set_state(state: bool) {
+    unsafe { ICON_STATE = state }
 }
 use crate::BrushC;
 const BUTTON_01: WindowID = 1u16;
@@ -58,6 +54,7 @@ impl MessageReceiver for Mycb {
     }
     fn create(
         &mut self,
+        _id: usize,
         window: &mut Window,
         _name: &str,
         _class: WindowClass,
@@ -250,6 +247,7 @@ impl MessageReceiver for Mycb {
     }
     fn control_message(
         &mut self,
+        _id: usize,
         _window: &mut Window,
         msg: &mut RawMessage,
         id: WindowID,
@@ -260,30 +258,36 @@ impl MessageReceiver for Mycb {
                 use ImageTextViewMsgType::*;
                 let msg = msg.get_control_msg::<ImageTextView>()?;
                 match msg.get_data() {
-                    Clicked => {
+                    Clicked | DoubleClicked => {
                         println!("hi");
                         if get_state() {
-                            controls.finder.change_content(ViewContent::Icon({
-                                set_state(false);
-                                Icon::load_from_module(
-                                    ExecutableFile::from_current_file().unwrap(),
-                                    Right(2),
-                                    None,
-                                    true,
-                                )
-                                .unwrap()
-                            })).unwrap();
+                            controls
+                                .finder
+                                .change_content(ViewContent::Icon({
+                                    set_state(false);
+                                    Icon::load_from_module(
+                                        ExecutableFile::from_current_file().unwrap(),
+                                        Right(2),
+                                        None,
+                                        true,
+                                    )
+                                    .unwrap()
+                                }))
+                                .unwrap();
                         } else {
-                            controls.finder.change_content(ViewContent::Icon({
-                                set_state(true);
-                                Icon::load_from_module(
-                                    ExecutableFile::from_current_file().unwrap(),
-                                    Right(3),
-                                    None,
-                                    true,
-                                )
-                                .unwrap()
-                            })).unwrap();
+                            controls
+                                .finder
+                                .change_content(ViewContent::Icon({
+                                    set_state(true);
+                                    Icon::load_from_module(
+                                        ExecutableFile::from_current_file().unwrap(),
+                                        Right(3),
+                                        None,
+                                        true,
+                                    )
+                                    .unwrap()
+                                }))
+                                .unwrap();
                         }
                         Ok(0)
                     }

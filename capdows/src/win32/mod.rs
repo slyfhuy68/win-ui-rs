@@ -17,6 +17,8 @@ pub const PROC_KEY_NAME: &'static str = "MalibUserCallback";
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 pub mod brush;
 use brush::*;
+pub mod mouse;
+// use mouse::*;
 pub mod class;
 use class::*;
 pub mod control;

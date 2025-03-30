@@ -57,16 +57,86 @@ pub enum SizingMsgType {
     TopLeft,     //WMSZ_TOPLEFT
     TopRight,    //WMSZ_TOPRIGHT
 }
+//ai开始----
+pub enum MouseMsgMoveType {
+    Move { pos: Point, is_nc: bool },
+    Hover { pos: Point },
+
+    Leave,
+}
+pub enum MouseMsg {
+    Move {
+        mtype: MouseMsgMoveType,
+        is_nc: bool,
+    },
+
+    Button {
+        button_type: MouseButton,
+        state: ButtonState,
+        pos: Point,
+        is_nc: bool,
+    },
+
+    Wheel {
+        delta: i16,
+        is_horizontal: bool,
+        pos: Point,
+    },
+    CaptureLost(Window),
+    // Activate {
+    //     activation: MouseActivateState,
+    // },
+    //
+    // HitTest {
+    //     hit_test_code: HitTestCode,
+    // },//自动响应
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+    X1,
+    X2,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ButtonState {
+    Down,
+    Up,
+    DoubleClick,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MouseActivateState {
+    Activate,
+    Inactive,
+    NoActivate,
+    NoActivateClick,
+}
+//ai结束-----
 pub enum WindowNotify {
     Null, //WM_NULL
 }
+///每个回调的id表示一个窗口的接收器id，如果这是一个子类化接收器，NoProcessed表示调用子类链上一个接收器，id为子类化id，如果不是，那么id为0，NoProcessed表示进行默认处理
 pub trait MessageReceiver {
+    // fn activating()包含WM_MOUSEACTIVATE
+    fn mouse_msg(
+        &mut self,
+        id: usize,
+        window: &mut Window,
+        msg: MouseMsg,
+    ) -> MessageReceiverResult<()> {
+        Err(NoProcessed)
+    }
     fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
         Ok(err.code() as isize)
     }
     ///不常用的wParam与lParam都未使用、处理消息返回零的消息与WM_NULL
     fn notifications(
         &mut self,
+        id: usize,
         window: &mut Window,
         notification_type: WindowNotify,
     ) -> MessageReceiverResult<()> {
@@ -74,33 +144,16 @@ pub trait MessageReceiver {
     }
     fn control_message(
         &mut self,
+        id: usize,
         window: &mut Window,
         msg: &mut RawMessage,
-        id: WindowID,
+        wnd_id: WindowID,
     ) -> MessageReceiverResult<isize> {
-        Err(NoProcessed)
-    }
-    fn activate_app(&mut self, window: &mut Window, state: bool) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    } //WM_ACTIVATEAPP
-    fn cancel_mode(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn child_activate(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn close(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn insufficient_memory(
-        &mut self,
-        window: &mut Window,
-        percent: u16,
-    ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     fn create(
         &mut self,
+        id: usize,
         window: &mut Window,
         name: &str,
         class: WindowClass,
@@ -111,164 +164,13 @@ pub trait MessageReceiver {
     ) -> MessageReceiverResult<bool> {
         Err(NoProcessed)
     } //true 0 false -1
-    fn destroy(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
+    fn destroy(&mut self, id: usize, window: &mut Window) -> MessageReceiverResult<()> {
         unsafe { PostQuitMessage(0) };
         Ok(())
     }
-    fn enable(&mut self, window: &mut Window, state: bool) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn enter_size_move(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn exit_size_move(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn get_icon(
-        &mut self,
-        window: &mut Window,
-        itype: GetIconMsgiType,
-        dpi: i64,
-    ) -> MessageReceiverResult<Icon> {
-        Err(NoProcessed)
-    }
-    fn get_min_max_info(
-        &mut self,
-        window: &mut Window,
-        info: &mut MinMaxInfo,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    // fn change_input_lang(&mut self,window: &mut Window) -> () {todo!()}
-    // fn change_input_lang_reques(&mut self,window: &mut Window) -> () {todo!()}
-    fn moved(&mut self, window: &mut Window, x: i32, y: i32) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn moveing(
-        &mut self,
-        window: &mut Window,
-        pos: (i32, i32, i32, i32),
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    } //未处理返false
-    fn nc_activate(
-        &mut self,
-        window: &mut Window,
-        draw: bool,
-        handle: Option<Option<HANDLE>>,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    } //未处理返true
-    fn nc_calc_size_client_area(
-        &mut self,
-        window: &mut Window,
-        new_window_coordinates: Rectangle,
-        original_window_coordinates: Rectangle,
-        original_work_area_coordinates: Rectangle,
-        z_pos: WindowZpos,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        ptype: WindowPosType,
-    ) -> MessageReceiverResult<Option<WindowSizeCalcType>> /*None:WVR_VALIDRECTS*/ {
-        Err(NoProcessed)
-    }
-    fn nc_crate(
-        &mut self,
-        window: &mut Window,
-        windowname: &str,
-        classname: &str,
-        windows_style: u32,
-        windows_ex_style: u32,
-        x: i32,
-        y: i32,
-        width: i32,
-        height: i32,
-        parent: u32,
-        menu: usize,
-        additional_application_data: usize,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn nc_destroy(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn query_drag_icon(&mut self, window: &mut Window) -> MessageReceiverResult<Option<Cursor>> {
-        Err(NoProcessed)
-    }
-    fn query_open(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn show_state_change(
-        &mut self,
-        window: &mut Window,
-        showing: bool,
-        state: Option<ShowStateChangeState>,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn sized(
-        &mut self,
-        window: &mut Window,
-        stype: SizedMsgType,
-        new_hight: i32,
-        new_width: i32,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn sizeing(
-        &mut self,
-        window: &mut Window,
-        stype: SizingMsgType,
-        coordinates: &mut Rectangle,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn style_changed(
-        &mut self,
-        window: &mut Window,
-        old: WindowType,
-        new: WindowType,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn style_changing(
-        &mut self,
-        window: &mut Window,
-        old: WindowType,
-        new: &mut WindowType,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn theme_changed(&mut self, window: &mut Window) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    // fn user_changed(&mut self, window: Window) -> MessageReceiverResult<()> {
-    //     Err(NoProcessed)
-    // }
-    fn pos_changed(
-        &mut self,
-        window: &mut Window,
-        z_pos: Option<WindowZpos>,
-        xy: Option<Point>,
-        wh: Option<Size>,
-        ptype: WindowPosType,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
-    fn pos_changing(
-        &mut self,
-        window: &mut Window,
-        z_pos: Option<WindowZpos>,
-        xy: Option<Point>,
-        wh: Option<Size>,
-        ptype: WindowPosType,
-    ) -> MessageReceiverResult<()> {
-        Err(NoProcessed)
-    }
     fn class_messages(
         &mut self,
+        id: usize,
         window: &mut Window,
         code: u16,
         msg: RawMessage,
@@ -277,6 +179,7 @@ pub trait MessageReceiver {
     }
     fn applications_messages(
         &mut self,
+        id: usize,
         window: &mut Window,
         code: u16,
         msg: RawMessage,
@@ -285,6 +188,7 @@ pub trait MessageReceiver {
     }
     fn share_messages(
         &mut self,
+        id: usize,
         window: &mut Window,
         code: &str,
         msg: RawMessage,
@@ -293,6 +197,7 @@ pub trait MessageReceiver {
     }
     fn system_reserved_messages(
         &mut self,
+        id: usize,
         window: &mut Window,
         code: u32,
         msg: RawMessage,

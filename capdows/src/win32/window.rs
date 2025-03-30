@@ -322,6 +322,83 @@ impl Window {
     ) -> Option<Window> {
         todo!() //ChildWindowFromPointEx
     }
+    ///移除id为0的默认项会返回ERROR_NOT_SUPPORTED
+    ///警告
+    ///不能跨线程操作接收器
+    pub fn remove_msg_receiver(&mut self, id: usize) -> Result<()> {
+        if id == 0 {
+            return Err(win_error!(ERROR_NOT_SUPPORTED));
+        }
+        unsafe {
+            let ptr = self.get_msg_receiver_mut(id)? as *mut Box<CallBackObj>;
+            if RemoveWindowSubclass(self.handle, Some(subclass_porc), id).into() {
+                let _ = Box::from_raw(ptr);
+                Ok(())
+            } else {
+                return Err(Error::from_win32());
+            }
+        }
+    }
+    pub fn add_msg_receiver(&mut self, id: usize, mssc: Box<CallBackObj>) -> Result<()> {
+        if id == 0 || self.has_receiver_for(id) {
+            return Err(win_error!(ERROR_OBJECT_ALREADY_EXISTS));
+        }
+        unsafe {
+            if SetWindowSubclass(
+                self.handle,
+                Some(subclass_porc),
+                id,
+                Box::into_raw(Box::new(mssc)) as usize,
+            )
+            .into()
+            {
+                Ok(())
+            } else {
+                Err(win_error!(ERROR_INVALID_FUNCTION))
+            }
+        }
+    }
+    pub fn get_msg_receiver(&self, id: usize) -> Result<&Box<CallBackObj>> {
+        unsafe {
+            if id == 0 {
+                return Ok(&*(get_proc(&self)?));
+            };
+            let mut data: usize = 0usize;
+            if GetWindowSubclass(
+                self.handle,
+                Some(subclass_porc),
+                id,
+                Some(&mut data as *mut _),
+            )
+            .into()
+            {
+                Ok(&*(data as *const Box<CallBackObj>))
+            } else {
+                Err(win_error!(ERROR_INVALID_PARAMETER))
+            }
+        }
+    }
+    pub fn get_msg_receiver_mut(&mut self, id: usize) -> Result<&mut Box<CallBackObj>> {
+        unsafe {
+            if id == 0 {
+                return Ok(&mut *(get_proc(&self)?));
+            };
+            let mut data: usize = 0usize;
+            if GetWindowSubclass(self.handle, Some(subclass_porc), id, Some(&mut data)).into() {
+                Ok(&mut *(data as *mut Box<CallBackObj>))
+            } else {
+                Err(win_error!(ERROR_INVALID_PARAMETER))
+            }
+        }
+    }
+    pub fn has_receiver_for(&mut self, id: usize) -> bool {
+        unsafe {
+            if id == 0 {
+                return true;
+            }
+            GetWindowSubclass(self.handle, Some(subclass_porc), id, None).into()
+        }
+    }
     // pub fn force_end(&self) {
     //     unsafe {EndTask(self.handle,false,true)};
     // }
