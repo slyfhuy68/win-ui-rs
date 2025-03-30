@@ -16,6 +16,7 @@ impl Icon {
         module: ExecutableFile,
         id: Either<&str, u16>,
         width: Option<Size>,
+        share: bool,
     ) -> Result<Self> {
         let (pcw, _pcw) = match id {
             Left(l) => str_to_pcwstr(l),
@@ -31,7 +32,11 @@ impl Icon {
                         IMAGE_ICON,
                         cx,
                         cy,
-                        IMAGE_FLAGS::default(),
+                        if share {
+                            IMAGE_FLAGS::default() | LR_SHARED
+                        } else {
+                            IMAGE_FLAGS::default()
+                        },
                     )?
                 }
                 .0,

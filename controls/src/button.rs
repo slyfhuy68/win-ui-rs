@@ -339,6 +339,8 @@ pub enum SplitButtonMsgType {
     GetKeyboardFocus,
     DropDown(Rectangle),
     Draw(usize),
+    #[doc(hidden)]
+    Fffffb21Msg, //4294966049这是什么？
 }
 pub struct SplitButtonMsg {
     hwnd: HWND,
@@ -364,6 +366,7 @@ impl Control for SplitButton {
         Ok(false)
     }
 }
+const BCN_FFFFFB21_MSG: u32 = 4294966049;
 impl ControlMsg for SplitButtonMsg {
     type ControlType = SplitButton;
     unsafe fn from_msg(ptr: usize) -> Result<Self>
@@ -399,7 +402,13 @@ impl ControlMsg for SplitButtonMsg {
                     ))
                 }
                 NM_CUSTOMDRAW => Draw(ptr),
-                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+                BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？
+                _ => {
+                    return {
+                        // println!("cc{:x}", code);
+                        Err(Error::new(ERROR_INVALID_DATA.into(), ""))
+                    };
+                }
             };
             Ok(Self {
                 hwnd: w,

@@ -1,5 +1,5 @@
 use super::*;
-pub type CallBackObj = Box<dyn MessageReceiver + std::marker::Send + std::marker::Sync + 'static>;
+pub type CallBackObj = dyn MessageReceiver + Sync + 'static;
 #[derive(Clone, Eq, PartialEq)]
 pub struct WindowSizeCalcType {
     pub top_align: Option<bool>, //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
@@ -61,6 +61,9 @@ pub enum WindowNotify {
     Null, //WM_NULL
 }
 pub trait MessageReceiver {
+    fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
+        Ok(err.code() as isize)
+    }
     ///不常用的wParam与lParam都未使用、处理消息返回零的消息与WM_NULL
     fn notifications(
         &mut self,
@@ -394,6 +397,7 @@ impl<T: ControlMsg> CustomMessage for T {
                         idFrom: (wparam & 0xffff) as usize,
                         code: ((wparam >> 16) & 0xffff) as u32,
                     };
+                    // println!("dd{}", ((wparam >> 16) & 0xffff) as u32);
                     Self::from_msg(&mut nmhdr as *mut _ as usize)
                 }
                 WM_NOTIFY => Self::from_msg(lparam as usize),

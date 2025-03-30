@@ -50,6 +50,49 @@ pub enum ViewType {
     },
     EnhMetaFile(EnhMetaFile), // SS_ENHMETAFILE
 }
+impl ImageTextViewStyle {
+    pub fn new_icon(icon: Icon) -> Self {
+        ImageTextViewStyle {
+            stype: ViewType::Icon {
+                icon,
+                reasize_control: false,
+                right_just: false,
+            },
+            black_frame: false,
+            black_rect: false,
+            etched_frame: false,
+            etched_horz: false,
+            etched_vert: false,
+            gray_frame: false,
+            gray_rect: false,
+            white_frame: false,
+            white_rect: false,
+            sunken: false,
+            extra_notify: false,
+        }
+    }
+    pub fn new_text(text: &str) -> Self {
+        ImageTextViewStyle {
+            stype: ViewType::Text {
+                text: text.to_string(),
+                align: Alignment::Center,
+                ellipsis: EllipsisType::None,
+                no_prefix: false,
+            },
+            black_frame: false,
+            black_rect: false,
+            etched_frame: false,
+            etched_horz: false,
+            etched_vert: false,
+            gray_frame: false,
+            gray_rect: false,
+            white_frame: false,
+            white_rect: false,
+            sunken: false,
+            extra_notify: false,
+        }
+    }
+}
 impl Into<ViewContent> for ViewType {
     fn into(self) -> ViewContent {
         use ViewType::*;
@@ -478,9 +521,7 @@ impl ImageTextView {
             if SetWindowLongW(hwnd, GWL_STYLE, style) == 0 {
                 return Err(Error::from_win32());
             };
-            if SendMessageW(hwnd, msg, wparam, lparam).0 == 0 {
-                return Err(Error::from_win32());
-            };
+            SendMessageW(hwnd, msg, wparam, lparam);
             Ok(())
         }
     }

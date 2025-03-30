@@ -20,6 +20,11 @@ pub struct ExecutableFile {
     handle: HMODULE,
 }
 impl ExecutableFile {
+    pub fn from_current_file() -> Result<Self> {
+        Ok(Self {
+            handle: unsafe { GetModuleHandleW(PCWSTR::null()) }?.into(),
+        })
+    }
     pub fn open(dir: &str) -> Result<Self> {
         let (pdir, _pdir) = str_to_pcwstr(dir);
         Ok(Self {

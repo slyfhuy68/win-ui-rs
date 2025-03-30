@@ -22,8 +22,9 @@ pub unsafe extern "system" fn window_proc(
             Err(_) => {
                 if msg == WM_NCCREATE {
                     let s = *(param2.0 as *mut CREATESTRUCTW);
-                    let mm = set_proc(&mut window, s.lpCreateParams as *mut CallBackObj);
-                    s.lpCreateParams as *mut CallBackObj
+                    //s.lpCreateParams: *mut Box<CallBackObj>
+                    let mm = set_proc(&mut window, s.lpCreateParams as *mut Box<CallBackObj>);
+                    s.lpCreateParams as *mut Box<CallBackObj>
                 } else {
                     return DefWindowProcW(window_handle, msg, param1, param2);
                 }
@@ -32,16 +33,13 @@ pub unsafe extern "system" fn window_proc(
         if user_callback_ptr.is_null() {
             return DefWindowProcW(window_handle, msg, param1, param2);
         }
-        let user_callback_s = Box::from_raw(user_callback_ptr);
-        // if user_callback_s.0 != PROC_MEMORY_SINGS {
-        //     return DefWindowProcW(window_handle, msg, param1, param2);
-        // };
-        let mut c = user_callback_s;
+        let user_callback_s = &mut *user_callback_ptr;
+        let c = user_callback_s;
+        // println!("{}", std::any::type_name(c));
         pub use MessageReceiverError::*;
         let result = {
             let mut w = window;
             match msg {
-                //unimplemented!()
                 //----------------------------------------------------------------------------------
                 // WM_ACTIVATEAPP => {},
                 // WM_CANCELMODE => {},
@@ -89,16 +87,22 @@ pub unsafe extern "system" fn window_proc(
                             false => -1isize,
                         },
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(x),
+                        Err(x) => {
+                            callback_error(c, x);
+                            -1isize
+                        }
                     }
                 }
                 WM_DESTROY => {
-                    //这里的return不要删，作用是防止回调对象被变成原始指针，销毁窗口时，应该销毁回调对象
-                    return LRESULT(match c.destroy(&mut w) {
+                    let result = match c.destroy(&mut w) {
                         Ok(_) => 0isize,
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(x),
-                    });
+                        Err(x) => callback_error(c, x),
+                    };
+                    let _ = set_proc(&mut w, 0 as *mut Box<CallBackObj>);
+                    let _ = Box::from_raw(user_callback_ptr);
+                    //这里的return不要删，作用是防止回调对象被变成原始指针，销毁窗口时，应该销毁回调对象
+                    result
                 }
                 WM_COMMAND if param2.0 != 0 => {
                     let param2e = param2.0;
@@ -110,7 +114,7 @@ pub unsafe extern "system" fn window_proc(
                     ) {
                         Ok(x) => x,
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(x),
+                        Err(x) => callback_error(c, x),
                     }
                 }
                 WM_NOTIFYFORMAT => {
@@ -125,7 +129,7 @@ pub unsafe extern "system" fn window_proc(
                     ) {
                         Ok(x) => x,
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(x),
+                        Err(x) => callback_error(c, x),
                     }
                 }
                 WM_CTLCOLORSTATIC => {
@@ -145,7 +149,7 @@ pub unsafe extern "system" fn window_proc(
                     ) {
                         Ok(x) => x,
                         Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                        Err(x) => callback_error(x),
+                        Err(x) => callback_error(c, x),
                     }
                 }
                 // WM_DPICHANGED => {},
@@ -165,7 +169,7 @@ pub unsafe extern "system" fn window_proc(
                 WM_NULL => match c.notifications(&mut w, WindowNotify::Null) {
                     Ok(_) => 0,
                     Err(NoProcessed) => DefWindowProcW(window_handle, msg, param1, param2).0,
-                    Err(x) => callback_error(x),
+                    Err(x) => callback_error(c, x),
                 },
                 // WM_QUERYDRAGICON => {},
                 // WM_QUERYOPEN => {},
@@ -185,20 +189,23 @@ pub unsafe extern "system" fn window_proc(
                 }
             }
         };
-        let _ = Box::into_raw(c);
+        // let _ = Box::into_raw(c);
         LRESULT(result)
     }
 }
-fn set_proc(wnd: &mut Window, ptr: *mut CallBackObj) -> Result<()> {
+fn set_proc(wnd: &mut Window, ptr: *mut Box<CallBackObj>) -> Result<()> {
     wnd.set_prop(PROC_KEY_NAME, ptr as usize)
 }
-fn get_proc(wnd: &Window) -> Result<*mut CallBackObj> {
+fn get_proc(wnd: &Window) -> Result<*mut Box<CallBackObj>> {
     match wnd.get_prop(PROC_KEY_NAME) {
-        Ok(x) => Ok(x as *mut CallBackObj),
+        Ok(x) => Ok(x as *mut Box<CallBackObj>),
         Err(x) => Err(x),
     }
 }
-fn callback_error(err: MessageReceiverError) -> isize {
+fn callback_error(cb: &mut Box<CallBackObj>, err: MessageReceiverError) -> isize {
     //println!("{:?}", err);
-    err.code() as isize
+    match cb.error_handler(err) {
+        Ok(x) => x,
+        Err(err) => err.code() as isize,
+    }
 }

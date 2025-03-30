@@ -1,5 +1,7 @@
 use super::*;
 pub struct Edit(HWND);
+unsafe impl Send for Edit {}
+unsafe impl Sync for Edit {}
 pub enum EditType {
     Normal,
     MultiLine,
@@ -43,9 +45,6 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
         if self.lowercase {
             edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32);
         }
-        // if self.multiline {
-        //     edit_style |= WINDOW_STYLE(ES_MULTILINE as u32);
-        // }
         if self.nohide_sel {
             edit_style |= WINDOW_STYLE(ES_NOHIDESEL as u32);
         }
@@ -55,9 +54,6 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
         if self.oem_convert {
             edit_style |= WINDOW_STYLE(ES_OEMCONVERT as u32);
         }
-        // if self.password {
-        //     edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);
-        // }
         if self.readonly {
             edit_style |= WINDOW_STYLE(ES_READONLY as u32);
         }
@@ -160,7 +156,7 @@ impl Control for Edit {
             return Err(Error::from_win32());
         }
         let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
-        //println!("{}", meunasfe);
+        // println!("{}", meunasfe);
         return Ok(meunasfe == "Edit".to_string());
     }
 }
@@ -173,15 +169,13 @@ impl Default for EditStyle {
             center: false,       // ES_CENTER
             left: false,         // ES_LEFT
             lowercase: false,    // ES_LOWERCROLL
-            //multiline: false,     // ES_MULTILINE
-            nohide_sel: false,  // ES_NOHIDESEL
-            number: false,      // ES_NUMBER
-            oem_convert: false, // ES_OEMCONVERT
-            //password: false,      // ES_PASSWORD 不能与multiline组合，未实现限制与multiline组合的功能
-            readonly: false,    // ES_READONLY
-            right: false,       // ES_RIGHT
-            uppercase: false,   // ES_UPPERCASE
-            want_return: false, // ES_WANTRETURN
+            nohide_sel: false,   // ES_NOHIDESEL
+            number: false,       // ES_NUMBER
+            oem_convert: false,  // ES_OEMCONVERT
+            readonly: false,     // ES_READONLY
+            right: false,        // ES_RIGHT
+            uppercase: false,    // ES_UPPERCASE
+            want_return: false,  // ES_WANTRETURN
             etype: EditType::Normal,
         }
     }
@@ -277,12 +271,12 @@ impl Edit {
                 return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
             };
         };
-        let mut buffer: Vec<u16> = vec![0; length + 1];
+        let mut buffer: Vec<u16> = vec![0; length + 2];
         unsafe {
             SendMessageW(
                 self.0,
                 WM_GETTEXT,
-                Some(WPARAM(length)),
+                Some(WPARAM(length + 2)),
                 Some(LPARAM(buffer.as_mut_ptr() as isize)),
             )
             .0;

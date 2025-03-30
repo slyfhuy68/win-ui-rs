@@ -129,7 +129,7 @@ impl WindowClass {
         name: &str,
         wtype: WindowType,
         pos: Option<Rectangle>,
-        msgr: CallBackObj,
+        msgr: Box<CallBackObj>,
     ) -> Result<Window> {
         let (style, ex_style, menu, parent) = wtype.into();
         let (wname, _wnameptr) = str_to_pcwstr(name);
@@ -142,7 +142,7 @@ impl WindowClass {
             Some(x) => x.get_size(),
         };
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
-        let ptr = Box::into_raw(Box::new(msgr)) as usize;
+        let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
         let result = Window {
             handle: unsafe {
                 CreateWindowExW(

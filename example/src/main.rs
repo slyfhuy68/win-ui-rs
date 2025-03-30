@@ -2,9 +2,11 @@ use capdows::win32::allmods::*;
 use capdows::win32::control::Control;
 use capdows_controls::button::*;
 use capdows_controls::check_box::*;
+use capdows_controls::edit::*;
 use capdows_controls::group_box::*;
 use capdows_controls::radio::*;
-// use capdows_controls::view::*;
+use capdows_controls::view::*;
+use either::*;
 struct MyControls {
     a1: RadioButton,
     a2: RadioButton,
@@ -16,11 +18,24 @@ struct MyControls {
     link_button_1: LinkButton,
     split_button: SplitButton,
     g_b: GroupBox,
-    // text_view: TextView,
+    edit: Edit,
+    finder: ImageTextView,
+    text: ImageTextView,
 }
 struct Mycb {
     num: i8,
     controls: Option<MyControls>,
+}
+static mut ICON_STATE: bool = false;
+fn get_state() -> bool {
+    unsafe {
+        ICON_STATE
+    }
+}
+fn set_state(state:bool) {
+    unsafe {
+        ICON_STATE = state
+    }
 }
 use crate::BrushC;
 const BUTTON_01: WindowID = 1u16;
@@ -33,8 +48,14 @@ const RADIO_BUTTON_02_01: WindowID = 3u16;
 const RADIO_BUTTON_02_02: WindowID = 4u16;
 const CHECK_BOX_01: WindowID = 5u16;
 const CHECK_BOX_02: WindowID = 6u16;
-// const TEXT_VIEW_01: WindowID = 6u16;
+const EDIT_01: WindowID = 7u16;
+const VIEW_01: WindowID = 8u16;
+const VIEW_02: WindowID = 8u16;
 impl MessageReceiver for Mycb {
+    fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
+        println!("{:?}", err);
+        Ok(err.code() as isize)
+    }
     fn create(
         &mut self,
         window: &mut Window,
@@ -178,17 +199,51 @@ impl MessageReceiver for Mycb {
             )
             .unwrap(),
             g_b: GroupBox::from_window(g_b).unwrap(),
-            // text_view: TextView::new(
-            //     window,
-            //     "文本11111111112",
-            //     Some(Rectangle::PointSize(Point(15, 75), Size(130, 50))),
-            //     TEXT_VIEW_01,
-            //     Default::default(),
-            //     Default::default(),
-            //     Default::default(),
-            //     true,
-            //     true,
-            // ).unwrap(),
+            edit: Edit::new(
+                window,
+                "编辑框01",
+                Some(Rectangle::PointSize(Point(15, 75), Size(130, 50))),
+                EDIT_01,
+                Default::default(),
+                Default::default(),
+                Default::default(),
+                true,
+                false,
+            )
+            .unwrap(),
+            finder: ImageTextView::new(
+                window,
+                Some(Rectangle::PointSize(Point(200, 100), Size(130, 50))),
+                VIEW_01,
+                {
+                    set_state(true);
+                    ImageTextViewStyle::new_icon(
+                        Icon::load_from_module(
+                            ExecutableFile::from_current_file().unwrap(),
+                            Right(3),
+                            None,
+                            true,
+                        )
+                        .unwrap(),
+                    )
+                },
+                Default::default(),
+                Default::default(),
+                true,
+                false,
+            )
+            .unwrap(),
+            text: ImageTextView::new(
+                window,
+                Some(Rectangle::PointSize(Point(400, 100), Size(130, 50))),
+                VIEW_02,
+                ImageTextViewStyle::new_text("文字"),
+                Default::default(),
+                Default::default(),
+                true,
+                true,
+            )
+            .unwrap(),
         });
         println!("hello from example");
         Ok(true)
@@ -199,8 +254,42 @@ impl MessageReceiver for Mycb {
         msg: &mut RawMessage,
         id: WindowID,
     ) -> MessageReceiverResult<isize> {
-        let controls = &mut self.controls.as_mut().unwrap();
+        let controls = &mut self.controls.as_mut().ok_or(NoProcessed)?;
         match id {
+            VIEW_01 => {
+                use ImageTextViewMsgType::*;
+                let msg = msg.get_control_msg::<ImageTextView>()?;
+                match msg.get_data() {
+                    Clicked => {
+                        println!("hi");
+                        if get_state() {
+                            controls.finder.change_content(ViewContent::Icon({
+                                set_state(false);
+                                Icon::load_from_module(
+                                    ExecutableFile::from_current_file().unwrap(),
+                                    Right(2),
+                                    None,
+                                    true,
+                                )
+                                .unwrap()
+                            })).unwrap();
+                        } else {
+                            controls.finder.change_content(ViewContent::Icon({
+                                set_state(true);
+                                Icon::load_from_module(
+                                    ExecutableFile::from_current_file().unwrap(),
+                                    Right(3),
+                                    None,
+                                    true,
+                                )
+                                .unwrap()
+                            })).unwrap();
+                        }
+                        Ok(0)
+                    }
+                    _ => Err(NoProcessed),
+                }
+            }
             BUTTON_01 => {
                 use ButtonMsgType::*;
                 let msg = msg.get_control_msg::<Button>()?;
@@ -247,7 +336,7 @@ impl MessageReceiver for Mycb {
                 let msg = msg.get_control_msg::<LinkButton>()?;
                 match msg.bm_type {
                     Clicked => {
-                        println!("链接按钮1点了");
+                        println!("链接按钮1点了，文本：{}", controls.edit.get_text()?);
                         Ok(0)
                     }
                     _ => Err(NoProcessed),
