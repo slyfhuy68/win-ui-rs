@@ -1,5 +1,7 @@
 use super::*;
 pub type CallBackObj = dyn MessageReceiver + Sync + 'static;
+use std::any::Any;
+use std::any::TypeId;
 #[derive(Clone, Eq, PartialEq)]
 pub struct WindowSizeCalcType {
     pub top_align: Option<bool>, //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
@@ -217,7 +219,7 @@ pub fn msg_loop() -> () {
 // 不实现Copy、Clone
 pub struct RawMessage(pub u32, pub usize, pub isize);
 impl RawMessage {
-    pub fn get_msg<T: CustomMessage>(&mut self) -> Result<T> {
+    pub fn get_msg<T: UnsafeMessage>(&mut self) -> Result<T> {
         unsafe {
             match T::is_self_msg(&self)? {
                 false => panic!("The type provided does not match the actual message!"),
@@ -231,7 +233,7 @@ impl RawMessage {
     }
 }
 ///注意为此类型实现Clone时，也要克隆指针指向的数据
-pub trait CustomMessage {
+pub trait UnsafeMessage {
     ///给你一个RawMessage,判断是否为自身类型消息
     unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool>;
     ///给你一个RawMessage, 返回一个自身实例(***不检查***)
@@ -239,23 +241,69 @@ pub trait CustomMessage {
     where
         Self: Sized;
     ///转换成RawMessage,self如果存在则RawMessage里的指针（如有）指向的内容一定存在，self被Drop时，应释放指针内容避免内存泄漏
-    unsafe fn into_raw_msg(&mut self) -> Result<RawMessage>;
+    unsafe fn into_raw_msg(&mut self) -> Result<PtrWapper<RawMessage, Option<Box<dyn Any>>>>;
+}
+pub trait CustomMessage: UnsafeMessage {
+    fn into_raw_parts(&mut self) -> Result<(u32, Option<&mut dyn Any>)>;
+    fn from_raw_parts(code: u32, data: Option<&mut dyn Any>) -> Result<Self>
+    where
+        Self: Sized;
+}
+pub(crate) struct AsteriskMutDynAny(pub *mut dyn Any);
+impl<T: CustomMessage + 'static> UnsafeMessage for T {
+    unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool> {
+        unsafe {
+            if ptr.1 == 0 {
+                return Err(win_error!(ERROR_NO_DATA));
+            };
+            Ok((*(ptr.1 as *const TypeId)) == (TypeId::of::<T>()))
+        }
+    }
+    unsafe fn from_raw_msg(ptr: RawMessage) -> Result<Self>
+    where
+        Self: Sized,
+    {
+        unsafe {
+            let RawMessage(code, _, lparam) = ptr;
+            let data = match lparam {
+                0 => None,
+                x => Some(&mut *((*(x as *const AsteriskMutDynAny)).0)),
+            };
+            Self::from_raw_parts(code, data)
+        }
+    }
+    unsafe fn into_raw_msg(&mut self) -> Result<PtrWapper<RawMessage, Option<Box<dyn Any>>>> {
+        let (code, data) = self.into_raw_parts()?;
+        let (wapper, dataa) = match data {
+            Some(x) => {
+                let data = AsteriskMutDynAny(x as &mut _);
+                (&data as *const _ as isize, Some(data))
+            }
+            None => (0isize, None),
+        };
+        let id = TypeId::of::<T>();
+        let datas = (id, dataa);
+        Ok(PtrWapper {
+            ptr: RawMessage(code, &id as *const _ as usize, wapper),
+            owner: Some(Box::new(datas)),
+        })
+    }
 }
 pub trait ShareMessage: CustomMessage {
     ///同一个结构体/枚举表示同一个字符串，注意: 最多同时存在16384（0xFFFF-0xC000+1）个不同的字符串，超出时RegisterWindowMessage将返回0
-    fn get_string(&self) -> String;
+    fn get_string(&self) -> &str;
 }
 
 pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
-impl<T: ControlMsg> CustomMessage for T {
+impl<T: UnsafeControlMsg> UnsafeMessage for T {
     unsafe fn into_raw_msg(&mut self) -> Result<RawMessage> {
         unsafe {
             let ptr = self.into_raw()?;
             Ok(match ptr {
                 Left(l) => {
-                    let handle = self.get_control().to_window().handle;
+                    let handle = self.get_control_unsafe().get_window().handle;
                     let id: WindowID = match GetDlgCtrlID(handle){
                     0 => 0,
                     a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
@@ -266,7 +314,7 @@ impl<T: ControlMsg> CustomMessage for T {
                         handle.0 as isize,
                     )
                 }
-                Right(r) => RawMessage(WM_NOTIFY, 0, r as isize),
+                Right(r) => RawMessage(WM_NOTIFY, 0, r.ptr as isize),
             })
         }
     }
@@ -276,14 +324,14 @@ impl<T: ControlMsg> CustomMessage for T {
             match *msg {
                 WM_COMMAND => {
                     let param2e = HWND((*lparam) as *mut c_void);
-                    T::ControlType::is_self(&param2e)
+                    T::UnsafeControlType::is_self(&(param2e.into()))
                 }
                 WM_NOTIFY => {
                     if *lparam == 0 {
                         return Err(win_error!(ERROR_BAD_ARGUMENTS));
                     }
                     let ptr = (*((*lparam) as *mut NMHDR)).hwndFrom;
-                    T::ControlType::is_self(&ptr)
+                    T::UnsafeControlType::is_self(&(ptr.into()))
                 }
                 _ => Ok(false),
             }
@@ -303,9 +351,9 @@ impl<T: ControlMsg> CustomMessage for T {
                         code: ((wparam >> 16) & 0xffff) as u32,
                     };
                     // println!("dd{}", ((wparam >> 16) & 0xffff) as u32);
-                    Self::from_msg(&mut nmhdr as *mut _ as usize)
+                    Self::from_msg(&mut nmhdr as *mut _ as usize, true)
                 }
-                WM_NOTIFY => Self::from_msg(lparam as usize),
+                WM_NOTIFY => Self::from_msg(lparam as usize, false),
                 _ => Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             }
         }
