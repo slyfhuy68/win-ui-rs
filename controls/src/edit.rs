@@ -220,7 +220,6 @@ impl Edit {
     //     unsafe { SendMessageW(self.0, EM_CANUNDO, Some(WPARAM(0)), Some(LPARAM(0))).0 }
     //             as usize != 0
     // }
-    ///使用AsciiChar::Null禁用密码
     pub fn set_passwrd_char(&mut self, pw_char: Option<char>) -> Result<()> {
         let num = match pw_char {
             Some(x) => {
