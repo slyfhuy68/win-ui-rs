@@ -32,7 +32,7 @@ impl Control for GroupBox {
         // Ok(false)
     }
 }
-impl ControlMsg for GroupBoxMsg {
+impl UnsafeControlMsg for GroupBoxMsg {
     type ControlType = GroupBox;
     unsafe fn from_msg(ptr: usize) -> Result<Self> {
         unsafe {

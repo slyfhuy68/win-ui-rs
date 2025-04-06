@@ -102,7 +102,7 @@ impl<T: ControlMsg> UnsafeControlMsg for T {
         }
     }
     unsafe fn get_control_unsafe(&self) -> &T::ControlType {
-        self.get_control()  as &T::ControlType
+        self.get_control() as &T::ControlType
     }
     unsafe fn get_control_mut_unsafe(&mut self) -> &mut T::ControlType {
         self.get_control_mut() as &mut T::ControlType

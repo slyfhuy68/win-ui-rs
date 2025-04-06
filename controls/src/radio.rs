@@ -69,7 +69,7 @@ impl Control for RadioButton {
         Ok(false)
     }
 }
-impl ControlMsg for RadioButtonMsg {
+impl UnsafeControlMsg for RadioButtonMsg {
     type ControlType = RadioButton;
     unsafe fn from_msg(ptr: usize) -> Result<Self> {
         unsafe {
@@ -171,7 +171,7 @@ impl RadioButton {
         Ok(RadioButton(hwnd))
     }
     pub fn is_checked(&self) -> Result<bool> {
-        if !unsafe { Self::is_self(&self.0) }? {
+        if !unsafe { Self::is_self(&(self.0).into()) }? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         }
         let result =

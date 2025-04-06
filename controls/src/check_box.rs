@@ -7,7 +7,7 @@ unsafe impl Sync for CheckBox {}
 pub struct CheckBoxStyle {
     pub extra_msg: bool,   //BS_NOTIFY
     pub auto: bool,        //if
-    pub three_state: bool, // if
+    pub three_state: bool, //if
     pub flat: bool,        //BS_FLAT
     pub like_button: bool, //BS_PUSHLIKE
     pub left_text: bool,   //BS_LEFTTEXT
@@ -82,7 +82,7 @@ impl Control for CheckBox {
         Ok(false)
     }
 }
-impl ControlMsg for CheckBoxMsg {
+impl UnsafeControlMsg for CheckBoxMsg {
     type ControlType = CheckBox;
     unsafe fn from_msg(ptr: usize) -> Result<Self>
     where
@@ -218,7 +218,7 @@ impl CheckBox {
         Ok(CheckBox(hwnd))
     }
     pub fn is_checked(&self) -> Result<CheckBoxState> {
-        if !unsafe { Self::is_self(&self.0) }? {
+        if !unsafe { Self::is_self(&self.0.into()) }? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         }
         let result =

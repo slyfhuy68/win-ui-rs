@@ -306,7 +306,7 @@ impl Control for ImageTextView {
         return Ok(meunasfe == "Static".to_string());
     }
 }
-impl ControlMsg for ImageTextViewMsg {
+impl UnsafeControlMsg for ImageTextViewMsg {
     type ControlType = ImageTextView;
     unsafe fn from_msg(ptr: usize) -> Result<Self> {
         unsafe {

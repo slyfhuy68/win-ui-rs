@@ -16,8 +16,8 @@
 pub const PROC_KEY_NAME: &'static str = "MalibUserCallback";
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 pub mod brush;
-use std::hash::Hasher;
 use brush::*;
+use std::hash::Hasher;
 pub mod mouse;
 // use mouse::*;
 pub mod class;
@@ -128,7 +128,7 @@ use windows::core::*;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 //                              工具函数
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-pub(crate) struct PtrWapper<T, O = Box<dyn std::any::Any>> {
+pub struct PtrWapper<T, O = Box<dyn std::any::Any>> {
     pub ptr: T,
     pub owner: O,
 }
@@ -155,9 +155,9 @@ pub fn str_to_pcwstr(s: &str) -> (PCWSTR, Vec<u16>) {
     let wide_str_ptr = wide_str.as_ptr();
     return (PCWSTR(wide_str_ptr), wide_str);
 }
-use std::hash::Hash;
 use std::hash::DefaultHasher;
-fn hash<T: Hash>(t: &T) -> u64 {
+use std::hash::Hash;
+pub fn hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
     s.finish()

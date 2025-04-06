@@ -1,10 +1,45 @@
 use super::*;
-pub struct ManuallyDrawButton(HWND);
-unsafe impl Send for ManuallyDrawButton {}
-unsafe impl Sync for ManuallyDrawButton {}
-pub struct ManuallyDrawButtonMsg {
-    hwnd: HWND,
-    pub bm_type: ManuallyDrawButtonMsgType,
+// pub struct ManuallyDrawButton(HWND);
+// unsafe impl Send for ManuallyDrawButton {}
+// unsafe impl Sync for ManuallyDrawButton {}
+// pub struct ManuallyDrawButtonMsg {
+//     hwnd: HWND,
+//     pub bm_type: ManuallyDrawButtonMsgType,
+// }
+define_control! {
+    ManuallyDrawButton,
+    "Button",
+    {
+        match code {
+            BCN_HOTITEMCHANGE => {
+                let data = *(ptr as *mut NMBCHOTITEM);
+                if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
+                    ManuallyDrawButtonMsgType::MouseEntering
+                } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
+                    ManuallyDrawButtonMsgType::MouseLaveing
+                } else {
+                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                }
+            }
+            BN_CLICKED => ManuallyDrawButtonMsgType::Clicked,
+            BN_DBLCLK => ManuallyDrawButtonMsgType::DoubleClicked,
+            BN_KILLFOCUS => ManuallyDrawButtonMsgType::LoseKeyboardFocus,
+            BN_SETFOCUS => ManuallyDrawButtonMsgType::GetKeyboardFocus,
+            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+        }
+    },
+    {
+        if !is_button_window(wnd)? {
+            return Ok(false);
+        }
+        Ok(
+            WINDOW_STYLE(unsafe { GetWindowLongW(*wnd, GWL_STYLE) as u32 })
+                .contains(WINDOW_STYLE(BS_OWNERDRAW as u32)),
+        )
+    },
+    {
+        todo!()
+    }
 }
 pub enum ManuallyDrawButtonMsgType {
     MouseEntering,
@@ -14,6 +49,66 @@ pub enum ManuallyDrawButtonMsgType {
     LoseKeyboardFocus,
     GetKeyboardFocus,
 }
+// impl Control for ManuallyDrawButton {
+//     type MsgType = ManuallyDrawButtonMsg;
+//
+//     unsafe fn force_from_window(wnd: Window) -> Self {
+//         Self(wnd.handle)
+//     }
+//     fn to_window(self) -> Window {
+//         Window { handle: self.0 }
+//     }
+//     unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+//         if !is_button_window(wnd)? {
+//             return Ok(false);
+//         }
+//         Ok(
+//             WINDOW_STYLE(unsafe { GetWindowLongW(*wnd, GWL_STYLE) as u32 })
+//                 .contains(WINDOW_STYLE(BS_OWNERDRAW as u32)),
+//         )
+//     }
+// }
+// impl UnsafeControlMsg for ManuallyDrawButtonMsg {
+//     type ControlType = ManuallyDrawButton;
+//     unsafe fn from_msg(ptr: usize) -> Result<Self>
+//     where
+//         Self: Sized,
+//     {
+//         unsafe {
+//             let nmhdr = *(ptr as *mut NMHDR);
+//             let code = nmhdr.code;
+//             let w = nmhdr.hwndFrom.clone();
+//             let _ = nmhdr;
+//             let bmtype: ManuallyDrawButtonMsgType = match code {
+//                 BCN_HOTITEMCHANGE => {
+//                     let data = *(ptr as *mut NMBCHOTITEM);
+//                     if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
+//                         ManuallyDrawButtonMsgType::MouseEntering
+//                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
+//                         ManuallyDrawButtonMsgType::MouseLaveing
+//                     } else {
+//                         return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+//                     }
+//                 }
+//                 BN_CLICKED => ManuallyDrawButtonMsgType::Clicked,
+//                 BN_DBLCLK => ManuallyDrawButtonMsgType::DoubleClicked,
+//                 BN_KILLFOCUS => ManuallyDrawButtonMsgType::LoseKeyboardFocus,
+//                 BN_SETFOCUS => ManuallyDrawButtonMsgType::GetKeyboardFocus,
+//                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+//             };
+//             Ok(Self {
+//                 hwnd: w,
+//                 bm_type: bmtype,
+//             })
+//         }
+//     }
+//     fn get_control(&self) -> Self::ControlType {
+//         ManuallyDrawButton(self.hwnd)
+//     }
+//     unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+//         todo!()
+//     }
+// }
 impl ManuallyDrawButton {
     pub fn new(
         wnd: &mut Window,
@@ -35,73 +130,14 @@ impl ManuallyDrawButton {
             false,
             None,
         )?;
-        Ok(ManuallyDrawButton(hwnd))
+        Ok(ManuallyDrawButton(hwnd.into()))
     }
 }
-impl Control for ManuallyDrawButton {
-    type MsgType = ManuallyDrawButtonMsg;
 
-    unsafe fn force_from_window(wnd: Window) -> Self {
-        Self(wnd.handle)
-    }
-    fn to_window(self) -> Window {
-        Window { handle: self.0 }
-    }
-    unsafe fn is_self(wnd: &HWND) -> Result<bool> {
-        if !is_button_window(wnd)? {
-            return Ok(false);
-        }
-        Ok(
-            WINDOW_STYLE(unsafe { GetWindowLongW(*wnd, GWL_STYLE) as u32 })
-                .contains(WINDOW_STYLE(BS_OWNERDRAW as u32)),
-        )
-    }
-}
-impl ControlMsg for ManuallyDrawButtonMsg {
-    type ControlType = ManuallyDrawButton;
-    unsafe fn from_msg(ptr: usize) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        unsafe {
-            let nmhdr = *(ptr as *mut NMHDR);
-            let code = nmhdr.code;
-            let w = nmhdr.hwndFrom.clone();
-            let _ = nmhdr;
-            let bmtype: ManuallyDrawButtonMsgType = match code {
-                BCN_HOTITEMCHANGE => {
-                    let data = *(ptr as *mut NMBCHOTITEM);
-                    if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-                        ManuallyDrawButtonMsgType::MouseEntering
-                    } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                        ManuallyDrawButtonMsgType::MouseLaveing
-                    } else {
-                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
-                    }
-                }
-                BN_CLICKED => ManuallyDrawButtonMsgType::Clicked,
-                BN_DBLCLK => ManuallyDrawButtonMsgType::DoubleClicked,
-                BN_KILLFOCUS => ManuallyDrawButtonMsgType::LoseKeyboardFocus,
-                BN_SETFOCUS => ManuallyDrawButtonMsgType::GetKeyboardFocus,
-                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
-            };
-            Ok(Self {
-                hwnd: w,
-                bm_type: bmtype,
-            })
-        }
-    }
-    fn get_control(&self) -> Self::ControlType {
-        ManuallyDrawButton(self.hwnd)
-    }
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
-        todo!()
-    }
-}
 //-----------------------------------按钮-----------------------------------------
-pub struct Button(HWND); //PUSHBUTTON
-unsafe impl Send for Button {}
-unsafe impl Sync for Button {}
+// pub struct Button(HWND); //PUSHBUTTON
+// unsafe impl Send for Button {}
+// unsafe impl Sync for Button {}
 #[derive(Default)]
 pub enum BottonContentPos {
     #[default]
@@ -160,20 +196,34 @@ pub enum ButtonMsgType {
     GetKeyboardFocus,
     Draw(usize),
 }
-pub struct ButtonMsg {
-    hwnd: HWND,
-    pub bm_type: ButtonMsgType,
-}
-impl Control for Button {
-    type MsgType = ButtonMsg;
-
-    unsafe fn force_from_window(wnd: Window) -> Self {
-        Self(wnd.handle)
-    }
-    fn to_window(self) -> Window {
-        Window { handle: self.0 }
-    }
-    unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+// pub struct ButtonMsg {
+//     hwnd: HWND,
+//     pub bm_type: ButtonMsgType,
+// }
+define_control! {
+    Button,
+    "Button",
+    {
+        match code {
+            BCN_HOTITEMCHANGE => {
+                let data = *(ptr as *mut NMBCHOTITEM);
+                if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
+                    MouseEntering
+                } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
+                    MouseLaveing
+                } else {
+                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                }
+            }
+            BN_CLICKED => Clicked,
+            BN_DBLCLK => DoubleClicked,
+            BN_KILLFOCUS => LoseKeyboardFocus,
+            BN_SETFOCUS => GetKeyboardFocus,
+            NM_CUSTOMDRAW => Draw(ptr),
+            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+        }
+    },
+    {
         if !is_button_window(wnd)? {
             return Ok(false);
         }
@@ -187,51 +237,79 @@ impl Control for Button {
             return Ok(true);
         }
         Ok(false)
-    }
-}
-impl ControlMsg for ButtonMsg {
-    type ControlType = Button;
-    unsafe fn from_msg(ptr: usize) -> Result<Self>
-    where
-        Self: Sized,
+    },
     {
-        unsafe {
-            let nmhdr = *(ptr as *mut NMHDR);
-            let code = nmhdr.code;
-            let w = nmhdr.hwndFrom.clone();
-            let _ = nmhdr;
-            use ButtonMsgType::*;
-            let bmtype = match code {
-                BCN_HOTITEMCHANGE => {
-                    let data = *(ptr as *mut NMBCHOTITEM);
-                    if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-                        MouseEntering
-                    } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                        MouseLaveing
-                    } else {
-                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
-                    }
-                }
-                BN_CLICKED => Clicked,
-                BN_DBLCLK => DoubleClicked,
-                BN_KILLFOCUS => LoseKeyboardFocus,
-                BN_SETFOCUS => GetKeyboardFocus,
-                NM_CUSTOMDRAW => Draw(ptr),
-                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
-            };
-            Ok(Self {
-                hwnd: w,
-                bm_type: bmtype,
-            })
-        }
-    }
-    fn get_control(&self) -> Self::ControlType {
-        Button(self.hwnd)
-    }
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
         todo!()
     }
 }
+// impl Control for Button {
+//     type MsgType = ButtonMsg;
+//
+//     unsafe fn force_from_window(wnd: Window) -> Self {
+//         Self(wnd.handle)
+//     }
+//     fn to_window(self) -> Window {
+//         Window { handle: self.0 }
+//     }
+//     unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+//         if !is_button_window(wnd)? {
+//             return Ok(false);
+//         }
+//         let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
+//         if (style & BS_3STATE)==0 && (style & BS_AUTO3STATE)==0 && (style & BS_AUTOCHECKBOX)==0 &&
+//         (style & BS_AUTORADIOBUTTON)==0 && (style & BS_CHECKBOX)==0 && (style & BS_COMMANDLINK)==0 &&
+//         (style & BS_DEFCOMMANDLINK)==0 && (style & BS_DEFSPLITBUTTON)==0 && //(style & BS_DEFPUSHBUTTON)==0 &&
+//         (style & BS_GROUPBOX)==0 && (style & BS_OWNERDRAW)==0 && //(style & BS_PUSHBUTTON)==0 &&
+//         (style & BS_RADIOBUTTON)==0 && (style & BS_SPLITBUTTON)==0
+//         {
+//             return Ok(true);
+//         }
+//         Ok(false)
+//     }
+// }
+// impl UnsafeControlMsg for ButtonMsg {
+//     type ControlType = Button;
+//     unsafe fn from_msg(ptr: usize) -> Result<Self>
+//     where
+//         Self: Sized,
+//     {
+//         unsafe {
+//             let nmhdr = *(ptr as *mut NMHDR);
+//             let code = nmhdr.code;
+//             let w = nmhdr.hwndFrom.clone();
+//             let _ = nmhdr;
+//             use ButtonMsgType::*;
+//             let bmtype = match code {
+//                 BCN_HOTITEMCHANGE => {
+//                     let data = *(ptr as *mut NMBCHOTITEM);
+//                     if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
+//                         MouseEntering
+//                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
+//                         MouseLaveing
+//                     } else {
+//                         return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+//                     }
+//                 }
+//                 BN_CLICKED => Clicked,
+//                 BN_DBLCLK => DoubleClicked,
+//                 BN_KILLFOCUS => LoseKeyboardFocus,
+//                 BN_SETFOCUS => GetKeyboardFocus,
+//                 NM_CUSTOMDRAW => Draw(ptr),
+//                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+//             };
+//             Ok(Self {
+//                 hwnd: w,
+//                 bm_type: bmtype,
+//             })
+//         }
+//     }
+//     fn get_control(&self) -> Self::ControlType {
+//         Button(self.hwnd)
+//     }
+//     unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+//         todo!()
+//     }
+// }
 pub struct ButtonDrawType(pub ButtonAutoDrawType, pub ButtonStyle);
 
 impl Default for ButtonDrawType {
@@ -292,13 +370,13 @@ impl Button {
             no_notify,
             draw,
         )?;
-        Ok(Button(hwnd))
+        Ok(Button(hwnd.into()))
     }
 }
 //------------------------------------------分隔按钮----------------------------------
-pub struct SplitButton(HWND); //SPLITBUTTON
-unsafe impl Send for SplitButton {}
-unsafe impl Sync for SplitButton {}
+// pub struct SplitButton(HWND); //SPLITBUTTON
+// unsafe impl Send for SplitButton {}
+// unsafe impl Sync for SplitButton {}
 pub struct SplitButtonStyle {
     pub extra_msg: bool, //BS_NOTIFY
     pub light: bool,     //if light BS_DEFSPLITBUTTON else BS_SPLITBUTTON
@@ -342,20 +420,48 @@ pub enum SplitButtonMsgType {
     #[doc(hidden)]
     Fffffb21Msg, //4294966049这是什么？
 }
-pub struct SplitButtonMsg {
-    hwnd: HWND,
-    pub bm_type: SplitButtonMsgType,
-}
-impl Control for SplitButton {
-    type MsgType = SplitButtonMsg;
-
-    unsafe fn force_from_window(wnd: Window) -> Self {
-        Self(wnd.handle)
-    }
-    fn to_window(self) -> Window {
-        Window { handle: self.0 }
-    }
-    unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+// pub struct SplitButtonMsg {
+//     hwnd: HWND,
+//     pub bm_type: SplitButtonMsgType,
+// }
+const BCN_FFFFFB21_MSG: u32 = 4294966049;
+define_control! {
+    SplitButton,
+    "Button",
+    {
+        match code {
+            BCN_HOTITEMCHANGE => {
+                let data = *(ptr as *mut NMBCHOTITEM);
+                if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
+                    MouseEntering
+                } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
+                    MouseLaveing
+                } else {
+                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                }
+            }
+            BN_CLICKED => Clicked,
+            BN_DOUBLECLICKED => DoubleClicked,
+            BN_KILLFOCUS => LoseKeyboardFocus,
+            BN_SETFOCUS => GetKeyboardFocus,
+            BCN_DROPDOWN => {
+                let data = (*(ptr as *mut NMBCDROPDOWN)).rcButton;
+                DropDown(Rectangle::Points(
+                    Point(data.left, data.top),
+                    Point(data.right, data.bottom),
+                ))
+            }
+            NM_CUSTOMDRAW => Draw(ptr),
+            BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？
+            _ => {
+                return {
+                    // println!("cc{:x}", code);
+                    Err(Error::new(ERROR_INVALID_DATA.into(), ""))
+                };
+            }
+        }
+    },
+    {
         if !is_button_window(wnd)? {
             return Ok(false);
         }
@@ -364,65 +470,87 @@ impl Control for SplitButton {
             return Ok(true);
         }
         Ok(false)
-    }
-}
-const BCN_FFFFFB21_MSG: u32 = 4294966049;
-impl ControlMsg for SplitButtonMsg {
-    type ControlType = SplitButton;
-    unsafe fn from_msg(ptr: usize) -> Result<Self>
-    where
-        Self: Sized,
+    },
     {
-        unsafe {
-            let nmhdr = *(ptr as *mut NMHDR);
-            let code = nmhdr.code;
-            let w = nmhdr.hwndFrom.clone();
-            let _ = nmhdr;
-            use SplitButtonMsgType::*;
-            let bmtype = match code {
-                BCN_HOTITEMCHANGE => {
-                    let data = *(ptr as *mut NMBCHOTITEM);
-                    if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-                        MouseEntering
-                    } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                        MouseLaveing
-                    } else {
-                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
-                    }
-                }
-                BN_CLICKED => Clicked,
-                BN_DOUBLECLICKED => DoubleClicked,
-                BN_KILLFOCUS => LoseKeyboardFocus,
-                BN_SETFOCUS => GetKeyboardFocus,
-                BCN_DROPDOWN => {
-                    let data = (*(ptr as *mut NMBCDROPDOWN)).rcButton;
-                    DropDown(Rectangle::Points(
-                        Point(data.left, data.top),
-                        Point(data.right, data.bottom),
-                    ))
-                }
-                NM_CUSTOMDRAW => Draw(ptr),
-                BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？
-                _ => {
-                    return {
-                        // println!("cc{:x}", code);
-                        Err(Error::new(ERROR_INVALID_DATA.into(), ""))
-                    };
-                }
-            };
-            Ok(Self {
-                hwnd: w,
-                bm_type: bmtype,
-            })
-        }
-    }
-    fn get_control(&self) -> Self::ControlType {
-        SplitButton(self.hwnd)
-    }
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
         todo!()
     }
 }
+// impl Control for SplitButton {
+//     type MsgType = SplitButtonMsg;
+//
+//     unsafe fn force_from_window(wnd: Window) -> Self {
+//         Self(wnd.handle)
+//     }
+//     fn to_window(self) -> Window {
+//         Window { handle: self.0 }
+//     }
+//     unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+//         if !is_button_window(wnd)? {
+//             return Ok(false);
+//         }
+//         let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
+//         if (style & BS_DEFSPLITBUTTON) != 0 || (style & BS_SPLITBUTTON) != 0 {
+//             return Ok(true);
+//         }
+//         Ok(false)
+//     }
+// }
+// impl UnsafeControlMsg for SplitButtonMsg {
+//     type ControlType = SplitButton;
+//     unsafe fn from_msg(ptr: usize) -> Result<Self>
+//     where
+//         Self: Sized,
+//     {
+//         unsafe {
+//             let nmhdr = *(ptr as *mut NMHDR);
+//             let code = nmhdr.code;
+//             let w = nmhdr.hwndFrom.clone();
+//             let _ = nmhdr;
+//             use SplitButtonMsgType::*;
+//             let bmtype = match code {
+//                 BCN_HOTITEMCHANGE => {
+//                     let data = *(ptr as *mut NMBCHOTITEM);
+//                     if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
+//                         MouseEntering
+//                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
+//                         MouseLaveing
+//                     } else {
+//                         return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+//                     }
+//                 }
+//                 BN_CLICKED => Clicked,
+//                 BN_DOUBLECLICKED => DoubleClicked,
+//                 BN_KILLFOCUS => LoseKeyboardFocus,
+//                 BN_SETFOCUS => GetKeyboardFocus,
+//                 BCN_DROPDOWN => {
+//                     let data = (*(ptr as *mut NMBCDROPDOWN)).rcButton;
+//                     DropDown(Rectangle::Points(
+//                         Point(data.left, data.top),
+//                         Point(data.right, data.bottom),
+//                     ))
+//                 }
+//                 NM_CUSTOMDRAW => Draw(ptr),
+//                 BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？
+//                 _ => {
+//                     return {
+//                         // println!("cc{:x}", code);
+//                         Err(Error::new(ERROR_INVALID_DATA.into(), ""))
+//                     };
+//                 }
+//             };
+//             Ok(Self {
+//                 hwnd: w,
+//                 bm_type: bmtype,
+//             })
+//         }
+//     }
+//     fn get_control(&self) -> Self::ControlType {
+//         SplitButton(self.hwnd)
+//     }
+//     unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+//         todo!()
+//     }
+// }
 pub struct SplitButtonDrawType(pub ButtonAutoDrawType, pub SplitButtonStyle);
 impl Default for SplitButtonDrawType {
     fn default() -> Self {
@@ -482,13 +610,11 @@ impl SplitButton {
             no_notify,
             draw,
         )?;
-        Ok(SplitButton(hwnd))
+        Ok(SplitButton(hwnd.into()))
     }
 }
 //------------------------------------------链接按钮----------------------------------
-pub struct LinkButton(HWND); //COMMANDLINK
-unsafe impl Send for LinkButton {}
-unsafe impl Sync for LinkButton {}
+// pub struct LinkButton(HWND); //COMMANDLINK
 pub struct LinkButtonStyle {
     pub extra_msg: bool, //BS_NOTIFY
     pub light: bool,     //if light BS_DEFCOMMANDLINK else BS_COMMANDLINK
@@ -520,19 +646,31 @@ impl Default for LinkButtonStyle {
         }
     }
 }
-pub struct LinkButtonMsg {
-    hwnd: HWND,
-    pub bm_type: ButtonMsgType,
-}
-impl Control for LinkButton {
-    type MsgType = LinkButtonMsg;
-    unsafe fn force_from_window(wnd: Window) -> Self {
-        Self(wnd.handle)
-    }
-    fn to_window(self) -> Window {
-        Window { handle: self.0 }
-    }
-    unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+pub type LinkButtonMsgType = ButtonMsgType;
+define_control! {
+    LinkButton,
+    "Button",
+    {
+        match code {
+            BCN_HOTITEMCHANGE => {
+                let data = *(ptr as *mut NMBCHOTITEM);
+                if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
+                    MouseEntering
+                } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
+                    MouseLaveing
+                } else {
+                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                }
+            }
+            BN_CLICKED => Clicked,
+            BN_DOUBLECLICKED => DoubleClicked,
+            BN_KILLFOCUS => LoseKeyboardFocus,
+            BN_SETFOCUS => GetKeyboardFocus,
+            NM_CUSTOMDRAW => Draw(ptr),
+            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+        }
+    },
+    {
         if !is_button_window(wnd)? {
             return Ok(false);
         }
@@ -541,51 +679,47 @@ impl Control for LinkButton {
             return Ok(true);
         }
         Ok(false)
-    }
+    },
+    { todo!()}
 }
-impl ControlMsg for LinkButtonMsg {
-    type ControlType = LinkButton;
-    unsafe fn from_msg(ptr: usize) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        unsafe {
-            let nmhdr = *(ptr as *mut NMHDR);
-            let code = nmhdr.code;
-            let w = nmhdr.hwndFrom.clone();
-            let _ = nmhdr;
-            use ButtonMsgType::*;
-            let bmtype = match code {
-                BCN_HOTITEMCHANGE => {
-                    let data = *(ptr as *mut NMBCHOTITEM);
-                    if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-                        MouseEntering
-                    } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                        MouseLaveing
-                    } else {
-                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
-                    }
-                }
-                BN_CLICKED => Clicked,
-                BN_DOUBLECLICKED => DoubleClicked,
-                BN_KILLFOCUS => LoseKeyboardFocus,
-                BN_SETFOCUS => GetKeyboardFocus,
-                NM_CUSTOMDRAW => Draw(ptr),
-                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
-            };
-            Ok(Self {
-                hwnd: w,
-                bm_type: bmtype,
-            })
-        }
-    }
-    fn get_control(&self) -> Self::ControlType {
-        LinkButton(self.hwnd)
-    }
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
-        todo!()
-    }
-}
+// pub struct LinkButtonMsg {
+//     hwnd: HWND,
+//     pub bm_type: ButtonMsgType,
+// }
+// impl Control for LinkButton {
+//     type MsgType = LinkButtonMsg;
+//     unsafe fn force_from_window(wnd: Window) -> Self {
+//         Self(wnd.handle)
+//     }
+//     fn to_window(self) -> Window {
+//         Window { handle: self.0 }
+//     }
+//     unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+//         if !is_button_window(wnd)? {
+//             return Ok(false);
+//         }
+//         let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
+//         if (style & BS_DEFCOMMANDLINK) != 0 || (style & BS_COMMANDLINK) != 0 {
+//             return Ok(true);
+//         }
+//         Ok(false)
+//     }
+// }
+// impl UnsafeControlMsg for LinkButtonMsg {
+//     type ControlType = LinkButton;
+//     unsafe fn from_msg(ptr: usize) -> Result<Self>
+//     where
+//         Self: Sized,
+//     {
+//         unsafe
+//     }
+//     fn get_control(&self) -> Self::ControlType {
+//         LinkButton(self.hwnd)
+//     }
+//     unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+//         todo!()
+//     }
+// }
 pub struct LinkButtonDrawType(pub ButtonAutoDrawType, pub LinkButtonStyle);
 impl Default for LinkButtonDrawType {
     fn default() -> Self {
@@ -645,14 +779,14 @@ impl LinkButton {
             no_notify,
             draw,
         )?;
-        Ok(LinkButton(hwnd))
+        Ok(LinkButton(hwnd.into()))
     }
     pub fn get_note(&self) -> Result<String> {
         let length =
-            unsafe { SendMessageW(self.0, BCM_GETNOTELENGTH, Some(WPARAM(0)), Some(LPARAM(0))).0 }
+            unsafe { SendMessageW(self.0.into(), BCM_GETNOTELENGTH, Some(WPARAM(0)), Some(LPARAM(0))).0 }
                 as usize;
         if length == 0 {
-            if !unsafe { Self::is_self(&self.0) }? {
+            if !unsafe { Self::is_self(&self.0.into()) }? {
                 return Ok(String::new());
             } else {
                 return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
@@ -661,7 +795,7 @@ impl LinkButton {
         let mut buffer: Vec<u16> = vec![0; length + 1];
         unsafe {
             SendMessageW(
-                self.0,
+                self.0.into(),
                 BCM_GETNOTE,
                 Some(WPARAM(length)),
                 Some(LPARAM(buffer.as_mut_ptr() as isize)),
@@ -671,14 +805,14 @@ impl LinkButton {
         Ok(String::from_utf16_lossy(&buffer[..length]))
     }
     pub fn set_note(&mut self, note: &str) -> Result<()> {
-        if !unsafe { Self::is_self(&self.0) }? {
+        if !unsafe { Self::is_self(&self.0.into()) }? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         };
         let (note_ptr, _note_u16) = str_to_pcwstr(note);
 
         if unsafe {
             SendMessageW(
-                self.0,
+                self.0.into(),
                 BCM_SETNOTE,
                 Some(WPARAM(0)),
                 Some(LPARAM(note_ptr.0 as isize)),

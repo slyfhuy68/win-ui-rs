@@ -1,7 +1,6 @@
 use super::*;
 pub type CallBackObj = dyn MessageReceiver + Sync + 'static;
 use std::any::Any;
-use std::any::TypeId;
 #[derive(Clone, Eq, PartialEq)]
 pub struct WindowSizeCalcType {
     pub top_align: Option<bool>, //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
@@ -249,46 +248,48 @@ pub trait CustomMessage: UnsafeMessage {
     where
         Self: Sized;
 }
-pub(crate) struct AsteriskMutDynAny(pub *mut dyn Any);
-impl<T: CustomMessage + 'static> UnsafeMessage for T {
-    unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool> {
-        unsafe {
-            if ptr.1 == 0 {
-                return Err(win_error!(ERROR_NO_DATA));
-            };
-            Ok((*(ptr.1 as *const TypeId)) == (TypeId::of::<T>()))
-        }
-    }
-    unsafe fn from_raw_msg(ptr: RawMessage) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        unsafe {
-            let RawMessage(code, _, lparam) = ptr;
-            let data = match lparam {
-                0 => None,
-                x => Some(&mut *((*(x as *const AsteriskMutDynAny)).0)),
-            };
-            Self::from_raw_parts(code, data)
-        }
-    }
-    unsafe fn into_raw_msg(&mut self) -> Result<PtrWapper<RawMessage, Option<Box<dyn Any>>>> {
-        let (code, data) = self.into_raw_parts()?;
-        let (wapper, dataa) = match data {
-            Some(x) => {
-                let data = AsteriskMutDynAny(x as &mut _);
-                (&data as *const _ as isize, Some(data))
-            }
-            None => (0isize, None),
-        };
-        let id = TypeId::of::<T>();
-        let datas = (id, dataa);
-        Ok(PtrWapper {
-            ptr: RawMessage(code, &id as *const _ as usize, wapper),
-            owner: Some(Box::new(datas)),
-        })
-    }
-}
+// pub(crate) struct AsteriskMutDynAny(pub *mut dyn Any);
+// impl<T: CustomMessage + 'static> UnsafeMessage for T {
+//     unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool> {
+//         unsafe {
+//             if ptr.1 == 0 {
+//                 return Err(win_error!(ERROR_NO_DATA));
+//             };
+//             Ok((*(ptr.1 as *const TypeId)) == (TypeId::of::<T>()))
+//         }
+//     }
+//     unsafe fn from_raw_msg(ptr: RawMessage) -> Result<Self>
+//     where
+//         Self: Sized,
+//     {
+//         unsafe {
+//             let RawMessage(code, _, lparam) = ptr;
+//             let data = match lparam {
+//                 0 => None,
+//                 x => Some(&mut *((*(x as *const AsteriskMutDynAny)).0)),
+//             };
+//             Self::from_raw_parts(code, data)
+//         }
+//     }
+//     unsafe fn into_raw_msg(&mut self) -> Result<PtrWapper<RawMessage, Option<Box<dyn Any>>>> {
+//         let (code, data) = self.into_raw_parts()?;
+//         let (wapper, dataa) = match data {
+//             Some(x) => {
+//                 let data = AsteriskMutDynAny(x as &mut _);
+//                 (&data as *const _ as isize, Some(data))
+//             }
+//             None => (0isize, None),
+//         };
+//         let id = TypeId::of::<T>();
+//         let datas = (id, dataa);
+//         Ok(PtrWapper {
+//             ptr: RawMessage(code, &id as *const _ as usize, wapper),
+//             owner: Some(Box::new(datas)),
+//         })
+//     }
+// }
+// 注释掉了，原因见https://github.com/rust-lang/rust/issues/31844
+// 和https://internals.rust-lang.org/t/priorities-for-trait-implementations
 pub trait ShareMessage: CustomMessage {
     ///同一个结构体/枚举表示同一个字符串，注意: 最多同时存在16384（0xFFFF-0xC000+1）个不同的字符串，超出时RegisterWindowMessage将返回0
     fn get_string(&self) -> &str;
@@ -298,23 +299,26 @@ pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
 impl<T: UnsafeControlMsg> UnsafeMessage for T {
-    unsafe fn into_raw_msg(&mut self) -> Result<RawMessage> {
+    unsafe fn into_raw_msg(&mut self) -> Result<PtrWapper<RawMessage, Option<Box<dyn Any>>>> {
         unsafe {
             let ptr = self.into_raw()?;
-            Ok(match ptr {
-                Left(l) => {
-                    let handle = self.get_control_unsafe().get_window().handle;
-                    let id: WindowID = match GetDlgCtrlID(handle){
+            Ok(PtrWapper {
+                ptr: match ptr {
+                    Left(l) => {
+                        let handle = self.get_control_unsafe().get_window().handle;
+                        let id: WindowID = match GetDlgCtrlID(handle){
                     0 => 0,
                     a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
                 };
-                    RawMessage(
-                        WM_COMMAND,
-                        ((l as usize) << 16) | (id as usize),
-                        handle.0 as isize,
-                    )
-                }
-                Right(r) => RawMessage(WM_NOTIFY, 0, r.ptr as isize),
+                        RawMessage(
+                            WM_COMMAND,
+                            ((l as usize) << 16) | (id as usize),
+                            handle.0 as isize,
+                        )
+                    }
+                    Right(r) => RawMessage(WM_NOTIFY, 0, r.ptr as isize),
+                },
+                owner: None,
             })
         }
     }

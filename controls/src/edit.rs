@@ -107,7 +107,7 @@ pub enum EditMsgType {
     ///当`Edit`即将重新绘制自身时，在显示文本之前，将会收到此消息。 这样就可以根据需要调整编辑`Edit`控件的大小。
     Update,
 }
-impl ControlMsg for EditMsg {
+impl UnsafeControlMsg for EditMsg {
     type ControlType = Edit;
     unsafe fn from_msg(ptr: usize) -> Result<Self> {
         unsafe {
@@ -214,7 +214,7 @@ impl Edit {
         Ok(result)
     }
     // fn can_undo(&self) -> Result<bool>{
-    //     if !unsafe { Self::is_self(&self.0) }? {
+    //     if !unsafe { Self::is_self(&self.0.into()) }? {
     //         return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
     //     };
     //     unsafe { SendMessageW(self.0, EM_CANUNDO, Some(WPARAM(0)), Some(LPARAM(0))).0 }
@@ -233,7 +233,7 @@ impl Edit {
             None => 0usize,
         };
 
-        if !unsafe { Self::is_self(&self.0) }? {
+        if !unsafe { Self::is_self(&self.0.into()) }? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         };
         unsafe {
@@ -248,7 +248,7 @@ impl Edit {
         Ok(())
     }
     pub fn get_passwrd_char(&mut self) -> Result<char> {
-        if !unsafe { Self::is_self(&self.0) }? {
+        if !unsafe { Self::is_self(&self.0.into()) }? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         };
         match char::from_u32(unsafe {
@@ -264,7 +264,7 @@ impl Edit {
             unsafe { SendMessageW(self.0, WM_GETTEXTLENGTH, Some(WPARAM(0)), Some(LPARAM(0))).0 }
                 as usize;
         if length == 0 {
-            if !unsafe { Self::is_self(&self.0) }? {
+            if !unsafe { Self::is_self(&self.0.into()) }? {
                 return Ok(String::new());
             } else {
                 return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
@@ -283,7 +283,7 @@ impl Edit {
         Ok(String::from_utf16_lossy(&buffer[..length]))
     }
     pub fn set_text(&mut self, text: &str) -> Result<()> {
-        if !unsafe { Self::is_self(&self.0) }? {
+        if !unsafe { Self::is_self(&(self.0).into()) }? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         };
         let (text_ptr, _text_u16) = str_to_pcwstr(text);
