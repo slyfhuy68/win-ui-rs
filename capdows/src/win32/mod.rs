@@ -16,6 +16,7 @@
 pub const PROC_KEY_NAME: &'static str = "MalibUserCallback";
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 pub mod brush;
+use std::hash::Hasher;
 use brush::*;
 pub mod mouse;
 // use mouse::*;
@@ -153,6 +154,13 @@ pub fn str_to_pcwstr(s: &str) -> (PCWSTR, Vec<u16>) {
     let wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
     let wide_str_ptr = wide_str.as_ptr();
     return (PCWSTR(wide_str_ptr), wide_str);
+}
+use std::hash::Hash;
+use std::hash::DefaultHasher;
+fn hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }
 #[macro_export]
 macro_rules! win_error {

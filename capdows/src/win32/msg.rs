@@ -324,14 +324,14 @@ impl<T: UnsafeControlMsg> UnsafeMessage for T {
             match *msg {
                 WM_COMMAND => {
                     let param2e = HWND((*lparam) as *mut c_void);
-                    T::UnsafeControlType::is_self(&(param2e.into()))
+                    T::ControlType::is_self(&(param2e.into()))
                 }
                 WM_NOTIFY => {
                     if *lparam == 0 {
                         return Err(win_error!(ERROR_BAD_ARGUMENTS));
                     }
                     let ptr = (*((*lparam) as *mut NMHDR)).hwndFrom;
-                    T::UnsafeControlType::is_self(&(ptr.into()))
+                    T::ControlType::is_self(&(ptr.into()))
                 }
                 _ => Ok(false),
             }

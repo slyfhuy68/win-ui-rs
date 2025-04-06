@@ -36,30 +36,29 @@ impl<T: Control> From<T> for Window {
         ctl.to_window()
     }
 }
+pub trait ControlMsgType {
+    type ControlType: Control;
+}
 ///表示lParam不为零的WM_COMMAND消息和表示lParam不为零的WM_NOTIFY消息
-pub trait UnsafeControlMsg: UnsafeMessage {
-    ///关联的控件类型
-    type UnsafeControlType: Control;
+pub trait UnsafeControlMsg: UnsafeMessage + ControlMsgType {
     ///Left:WM_COMMAND的WPARAM的HIWORD, Right:指向 NMHDR 结构或将 NMHDR 结构作为其第一个成员的较大的未实现Unpin的结构的指针, WM_NOTIFY
     unsafe fn into_raw(&mut self) -> Result<Either<u16, PtrWapper<*mut NMHDR>>>;
     ///获取发送消息的控件
-    unsafe fn get_control_unsafe(&self) -> &Self::UnsafeControlType;
-    unsafe fn get_control_mut_unsafe(&mut self) -> &mut Self::UnsafeControlType;
+    unsafe fn get_control_unsafe(&self) -> &Self::ControlType;
+    unsafe fn get_control_mut_unsafe(&mut self) -> &mut Self::ControlType;
     ///给你一个指向 NMHDR 结构或将 NMHDR 结构作为其第一个成员的较大结构的指针。返回一个自身实例(不检查)
     unsafe fn from_msg(ptr: usize, command: bool) -> Result<Self>
     where
         Self: Sized;
     unsafe fn is_self(ptr: usize) -> Result<bool> {
         unsafe {
-            Self::UnsafeControlType::is_self(&Window {
+            Self::ControlType::is_self(&Window {
                 handle: (*(ptr as *mut NMHDR)).hwndFrom,
             })
         }
     }
 }
-pub trait ControlMsg: UnsafeControlMsg + CustomMessage + ClassMessage {
-    ///关联的控件类型
-    type ControlType: Control;
+pub trait ControlMsg: UnsafeControlMsg {
     fn into_raw_control_msg(&mut self) -> Result<(u16, Option<&mut dyn Any>)>;
     ///获取发送消息的控件
     fn get_control(&self) -> &Self::ControlType;
@@ -75,7 +74,6 @@ pub struct DefaultNMHDR {
     pub data: *mut dyn Any,
 }
 impl<T: ControlMsg> UnsafeControlMsg for T {
-    type UnsafeControlType = T::ControlType;
     unsafe fn into_raw(&mut self) -> Result<Either<u16, PtrWapper<*mut NMHDR>>> {
         let handle = self.get_control().get_window().handle;
         let id = self.get_control().get_id() as usize;
@@ -103,11 +101,11 @@ impl<T: ControlMsg> UnsafeControlMsg for T {
             })),
         }
     }
-    unsafe fn get_control_unsafe(&self) -> &T::UnsafeControlType {
-        self.get_control()
+    unsafe fn get_control_unsafe(&self) -> &T::ControlType {
+        self.get_control()  as &T::ControlType
     }
-    unsafe fn get_control_mut_unsafe(&mut self) -> &mut T::UnsafeControlType {
-        self.get_control_mut()
+    unsafe fn get_control_mut_unsafe(&mut self) -> &mut T::ControlType {
+        self.get_control_mut() as &mut T::ControlType
     }
     //ptr:指向DefaultNMHDR的指针
     unsafe fn from_msg(ptr: usize, command: bool) -> Result<Self>
