@@ -260,22 +260,17 @@ pub enum ImageTextViewMsgType {
     Enable,         //WM_COMMAND
     Colour(HANDLE), //WM_CTLCOLORSTATIC
 }
-pub struct ImageTextViewMsg {
-    hwnd: HWND,
-    bm_type: ImageTextViewMsgType,
-    ptr: usize,
-}
-impl Drop for ImageTextViewMsg {
-    fn drop(&mut self) {
-        unsafe {
-            if self.ptr != 0 {
-                if let ImageTextViewMsgType::Colour(_) = self.bm_type {
-                    drop(Box::from_raw(self.ptr as *mut NMHDRSTATIC));
-                }
-            }
-        }
-    }
-}
+// impl Drop for ImageTextViewMsg {
+//     fn drop(&mut self) {
+//         unsafe {
+//             if self.ptr != 0 {
+//                 if let ImageTextViewMsgType::Colour(_) = self.bm_type {
+//                     drop(Box::from_raw(self.ptr as *mut NMHDRSTATIC));
+//                 }
+//             }
+//         }
+//     }
+// }
 impl ImageTextViewMsg {
     pub fn get_data(&self) -> &ImageTextViewMsgType {
         &self.bm_type
@@ -288,34 +283,11 @@ impl ImageTextViewMsg {
         }
     }
 }
-impl Control for ImageTextView {
-    type MsgType = ImageTextViewMsg;
-    fn to_window(self) -> Window {
-        Window { handle: self.0 }
-    }
-    unsafe fn force_from_window(wnd: Window) -> Self {
-        Self(wnd.handle)
-    }
-    unsafe fn is_self(wnd: &HWND) -> Result<bool> {
-        let mut array1 = vec![0u16; 8];
-        if unsafe { GetClassNameW(*wnd, &mut array1[..]) } == 0 {
-            return Err(Error::from_win32());
-        }
-        let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
-        //println!("{}", meunasfe);
-        return Ok(meunasfe == "Static".to_string());
-    }
-}
-impl UnsafeControlMsg for ImageTextViewMsg {
-    type ControlType = ImageTextView;
-    unsafe fn from_msg(ptr: usize) -> Result<Self> {
-        unsafe {
-            let nmhdr = *(ptr as *mut NMHDR);
-            let code = nmhdr.code;
-            let w = nmhdr.hwndFrom.clone();
-            let _ = nmhdr;
-            use ImageTextViewMsgType::*;
-            let bmtype = match code {
+define_control!{
+    ImageTextView, 
+    "STATIC", 
+    unsafe {
+        match code {
                 STN_CLICKED => Clicked,
                 STN_DBLCLK => DoubleClicked,
                 STN_DISABLE => Disable,
@@ -325,42 +297,97 @@ impl UnsafeControlMsg for ImageTextViewMsg {
                     Colour(nmhdr)
                 }
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
-            };
-            Ok(Self {
-                hwnd: w,
-                bm_type: bmtype,
-                ptr: 0,
-            })
+            }
+    }, 
+    {
+        let mut array1 = vec![0u16; 8];
+        if unsafe { GetClassNameW(*wnd, &mut array1[..]) } == 0 {
+            return Err(Error::from_win32());
         }
-    }
-    fn get_control(&self) -> Self::ControlType {
-        ImageTextView(self.hwnd)
-    }
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
-        unsafe {
-            use ImageTextViewMsgType::*;
-            Ok(match self.bm_type {
-                Clicked => Left(STN_CLICKED as u16),
-                DoubleClicked => Left(STN_DBLCLK as u16),
-                Disable => Left(STN_DISABLE as u16),
-                Enable => Left(STN_ENABLE as u16),
-                Colour(h) => {
-                    let stk = Box::new(NMHDRSTATIC {
-                    nmhdr:NMHDR {
-                        hwndFrom: self.hwnd,
-                        idFrom: match GetDlgCtrlID(self.hwnd){0 => 0,a => a.try_into().expect("The control ID exceeds the WindowID::MAX,the GetDlgCtrlID returned an invalid value.")},
-                        code: WM_CTLCOLORSTATIC,
-                    },
-                    DC:h,
-                });
-                    self.ptr = Box::into_raw(stk) as usize;
-                    Right(self.ptr as *mut NMHDR)
-                }
-            })
-        }
-    }
+        let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
+        //println!("{}", meunasfe);
+        return Ok(meunasfe == "Static".to_string());
+    }, 
+    {todo!()}
 }
-
+// pub struct ImageTextViewMsg {
+//     hwnd: HWND,
+//     bm_type: ImageTextViewMsgType,
+//     ptr: usize,
+// }
+// impl Control for ImageTextView {
+//     type MsgType = ImageTextViewMsg;
+//     fn to_window(self) -> Window {
+//         Window { handle: self.0 }
+//     }
+//     unsafe fn force_from_window(wnd: Window) -> Self {
+//         Self(wnd.handle)
+//     }
+//     unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+//         let mut array1 = vec![0u16; 8];
+//         if unsafe { GetClassNameW(*wnd, &mut array1[..]) } == 0 {
+//             return Err(Error::from_win32());
+//         }
+//         let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
+//         //println!("{}", meunasfe);
+//         return Ok(meunasfe == "Static".to_string());
+//     }
+// }
+// impl UnsafeControlMsg for ImageTextViewMsg {
+//     type ControlType = ImageTextView;
+//     unsafe fn from_msg(ptr: usize) -> Result<Self> {
+//         unsafe {
+//             let nmhdr = *(ptr as *mut NMHDR);
+//             let code = nmhdr.code;
+//             let w = nmhdr.hwndFrom.clone();
+//             let _ = nmhdr;
+//             use ImageTextViewMsgType::*;
+//             let bmtype = match code {
+//                 STN_CLICKED => Clicked,
+//                 STN_DBLCLK => DoubleClicked,
+//                 STN_DISABLE => Disable,
+//                 STN_ENABLE => Enable,
+//                 WM_CTLCOLORSTATIC => {
+//                     let nmhdr = (*(ptr as *mut NMHDRSTATIC)).DC;
+//                     Colour(nmhdr)
+//                 }
+//                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+//             };
+//             Ok(Self {
+//                 hwnd: w,
+//                 bm_type: bmtype,
+//                 ptr: 0,
+//             })
+//         }
+//     }
+//     fn get_control(&self) -> Self::ControlType {
+//         ImageTextView(self.hwnd)
+//     }
+//     unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+//         unsafe {
+//             use ImageTextViewMsgType::*;
+//             Ok(match self.bm_type {
+//                 Clicked => Left(STN_CLICKED as u16),
+//                 DoubleClicked => Left(STN_DBLCLK as u16),
+//                 Disable => Left(STN_DISABLE as u16),
+//                 Enable => Left(STN_ENABLE as u16),
+//                 Colour(h) => {
+//                     let stk = Box::new(NMHDRSTATIC {
+//                     nmhdr:NMHDR {
+//                         hwndFrom: self.hwnd,
+//                         idFrom: match GetDlgCtrlID(self.hwnd){0 => 0,a => a.try_into().expect("The control ID exceeds the WindowID::MAX,the GetDlgCtrlID returned an invalid value.")},
+//                         code: WM_CTLCOLORSTATIC,
+//                     },
+//                     DC:h,
+//                 });
+//                     self.ptr = Box::into_raw(stk) as usize;
+//                     Right(self.ptr as *mut NMHDR)
+//                 }
+//             })
+//         }
+//     }
+// }
+//
 impl ImageTextView {
     pub fn new(
         wnd: &mut Window,

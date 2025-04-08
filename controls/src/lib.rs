@@ -125,91 +125,9 @@ fn is_some_window(wnd: &Window, class: &'static str) -> Result<bool> {
     }
     let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
     //println!("{}", meunasfe);
-    return Ok(meunasfe == class.to_string());
+    return Ok(meunasfe.to_lowercase() == class.to_lowercase().to_string());
 }
 fn is_button_window(wnd: &HWND) -> Result<bool> {
-    is_some_window(Window {handle: wnd}, "Button")
+    is_some_window(Window { handle: wnd }, "Button")
 }
-use paste::paste;
-//ai宏
-#[doc(hidden)]
-#[macro_export]
-macro_rules! define_control {
-    ($prefix:ident, $class_name:literal , $from_msg_impl:block , $is_self_impl:block , $into_raw_impl:block ) => {
-        pub struct $prefix(Window);
-        unsafe impl Send for $prefix {}
-        unsafe impl Sync for $prefix {}
-        impl Control for $prefix {
-            paste! {
-            type MsgType = [<$prefix Msg>];
-            }
-            unsafe fn force_from_window(wnd: Window) -> Self
-            where
-                Self: Sized,
-            {
-                Self(wnd)
-            }
-            fn to_window(self) -> Window {
-                self.0
-            }
-            fn get_window(&self) -> &Window {
-                &self.0
-            }
-            fn get_window_mut(&mut self) -> &mut Window {
-                &mut self.0
-            }
-            fn is_self(wnd: &Window) -> Result<bool> {
-                $is_self_impl
-            }
-            fn get_class(&self) -> WindowClass {
-                WindowClass {
-                    name: Some((w!($class_name), Vec::new())),
-                    atom: PCWSTR::null(),
-                    handle_instance: None,
-                }
-            }
-        }
-        paste! {
-        pub struct [<$prefix Msg>]{
-            hwnd: $prefix,
-            pub bm_type: [<$prefix MsgType>],
-        }
-        
-        impl ControlMsgType for [<$prefix Msg>] {
-            type ControlType = $prefix;
-        }
-        impl UnsafeControlMsg for [<$prefix Msg>] {
-            unsafe fn into_raw(&mut self) -> Result<Either<u16, PtrWapper<*mut NMHDR>>> {
-                #[allow(unused_imports)]
-                use [<$prefix MsgType>]::*;
-                #[allow(unused_unsafe)]
-                unsafe { $into_raw_impl }
-            }
-            unsafe fn get_control_unsafe(&self) -> &Self::ControlType {
-                &self.hwnd
-            }
-            unsafe fn get_control_mut_unsafe(&mut self) -> &mut Self::ControlType {
-                &mut self.hwnd
-            }
-            unsafe fn from_msg(ptr: usize, _command: bool) -> Result<Self>
-            where
-                Self: Sized,
-            {
-                #[allow(unused_imports)]
-                use [<$prefix MsgType>]::*;
-                unsafe {
-                    let nmhdr = *(ptr as *mut NMHDR);
-                    let code = nmhdr.code;
-                    let w = nmhdr.hwndFrom.clone();
-                    let _ = nmhdr;
-                    let bmtype = $from_msg_impl;
-                    Ok(Self {
-                        hwnd: $prefix(w.into()),
-                        bm_type: bmtype,
-                    })
-                }
-            }
-        }
-        }
-    };
-}
+use capdows_macros::define_control;

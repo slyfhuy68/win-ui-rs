@@ -81,10 +81,10 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
         (edit_style, pass)
     }
 }
-pub struct EditMsg {
-    hwnd: HWND,
-    pub bm_type: EditMsgType,
-}
+// pub struct EditMsg {
+//     hwnd: HWND,
+//     pub bm_type: EditMsgType,
+// }
 pub enum EditMsgType {
     ///如果系统上安装了双向语言（例如阿拉伯语或希伯来语），则用户可以使用 `CTRL+左SHIFT`（从左到右）和 `Ctrl+右SHIFT`（从右到左）更改Edit控件方向。更改完毕后会收到此消息。
     ///true代表改变为从左到右，false代表改变为从右到左。
@@ -107,16 +107,11 @@ pub enum EditMsgType {
     ///当`Edit`即将重新绘制自身时，在显示文本之前，将会收到此消息。 这样就可以根据需要调整编辑`Edit`控件的大小。
     Update,
 }
-impl UnsafeControlMsg for EditMsg {
-    type ControlType = Edit;
-    unsafe fn from_msg(ptr: usize) -> Result<Self> {
-        unsafe {
-            let nmhdr = *(ptr as *mut NMHDR);
-            let code = nmhdr.code;
-            let w = nmhdr.hwndFrom.clone();
-            let _ = nmhdr;
-            use EditMsgType::*;
-            let bmtype = match code {
+define_control!{
+    Edit, 
+    "Edit", 
+    {
+        match code {
                 EN_ALIGN_LTR_EC => DirectionChanged(true),
                 EN_ALIGN_RTL_EC => DirectionChanged(false),
                 EN_CHANGE => TextChanged,
@@ -128,39 +123,65 @@ impl UnsafeControlMsg for EditMsg {
                 EN_MAXTEXT => MaxText,
                 EN_UPDATE => Update,
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
-            };
-            Ok(Self {
-                hwnd: w,
-                bm_type: bmtype,
-            })
-        }
-    }
-    fn get_control(&self) -> Self::ControlType {
-        Edit(self.hwnd)
-    }
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
-        todo!()
-    }
+            }
+    }, 
+    {is_some_window(wnd, "Edit")}, 
+    {todo!()}
 }
-impl Control for Edit {
-    type MsgType = EditMsg;
-    fn to_window(self) -> Window {
-        Window { handle: self.0 }
-    }
-    unsafe fn force_from_window(wnd: Window) -> Self {
-        Self(wnd.handle)
-    }
-    unsafe fn is_self(wnd: &HWND) -> Result<bool> {
-        let mut array1 = vec![0u16; 8];
-        if unsafe { GetClassNameW(*wnd, &mut array1[..]) } == 0 {
-            return Err(Error::from_win32());
-        }
-        let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
-        // println!("{}", meunasfe);
-        return Ok(meunasfe == "Edit".to_string());
-    }
-}
-
+// impl UnsafeControlMsg for EditMsg {
+//     type ControlType = Edit;
+//     unsafe fn from_msg(ptr: usize) -> Result<Self> {
+//         unsafe {
+//             let nmhdr = *(ptr as *mut NMHDR);
+//             let code = nmhdr.code;
+//             let w = nmhdr.hwndFrom.clone();
+//             let _ = nmhdr;
+//             use EditMsgType::*;
+//             let bmtype = match code {
+//                 EN_ALIGN_LTR_EC => DirectionChanged(true),
+//                 EN_ALIGN_RTL_EC => DirectionChanged(false),
+//                 EN_CHANGE => TextChanged,
+//                 EN_ERRSPACE => NoEnoughMemory,
+//                 EN_HSCROLL => Scroll(false),
+//                 EN_VSCROLL => Scroll(true),
+//                 EN_KILLFOCUS => LoseKeyboardFocus,
+//                 EN_SETFOCUS => GetKeyboardFocus,
+//                 EN_MAXTEXT => MaxText,
+//                 EN_UPDATE => Update,
+//                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+//             };
+//             Ok(Self {
+//                 hwnd: w,
+//                 bm_type: bmtype,
+//             })
+//         }
+//     }
+//     fn get_control(&self) -> Self::ControlType {
+//         Edit(self.hwnd)
+//     }
+//     unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
+//         todo!()
+//     }
+// }
+// impl Control for Edit {
+//     type MsgType = EditMsg;
+//     fn to_window(self) -> Window {
+//         Window { handle: self.0 }
+//     }
+//     unsafe fn force_from_window(wnd: Window) -> Self {
+//         Self(wnd.handle)
+//     }
+//     unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+//         let mut array1 = vec![0u16; 8];
+//         if unsafe { GetClassNameW(*wnd, &mut array1[..]) } == 0 {
+//             return Err(Error::from_win32());
+//         }
+//         let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
+//         // println!("{}", meunasfe);
+//         return Ok(meunasfe == "Edit".to_string());
+//     }
+// }
+//
 impl Default for EditStyle {
     fn default() -> Self {
         Self {
