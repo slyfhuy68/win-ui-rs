@@ -46,9 +46,9 @@ impl Default for RadioButtonStyle {
         }
     }
 }
-define_control!{
-    RadioButton, 
-    "Button", 
+define_control! {
+    RadioButton,
+    "Button",
     {match code {
         BCN_HOTITEMCHANGE => {
             let data = *(ptr as *mut NMBCHOTITEM);
@@ -66,7 +66,7 @@ define_control!{
         BN_SETFOCUS => GetKeyboardFocus,
         NM_CUSTOMDRAW => Draw(ptr),
         _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
-    }}, 
+    }},
     {
         if !is_button_window(wnd)? {
             return Ok(false);
@@ -76,7 +76,7 @@ define_control!{
             return Ok(true);
         }
         Ok(false)
-    }, 
+    },
     {
         todo!()
     }

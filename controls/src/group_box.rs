@@ -2,19 +2,19 @@ use super::*;
 // pub struct GroupBox(HWND);
 // unsafe impl Send for GroupBox {}
 // unsafe impl Sync for GroupBox {}
-pub enum GroupBoxMsgType{
-    Draw(usize)
+pub enum GroupBoxMsgType {
+    Draw(usize),
 }
 // pub struct GroupBoxMsg(pub usize, HWND);
-define_control!{
-    GroupBox, 
-    "Button", 
+define_control! {
+    GroupBox,
+    "Button",
     {
         match code {
             NM_CUSTOMDRAW => Draw(ptr),
             _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
         }
-    }, 
+    },
     {
         if !is_button_window(wnd)? {
             return Ok(false);
@@ -23,7 +23,7 @@ define_control!{
             WINDOW_STYLE(unsafe { GetWindowLongW(*wnd, GWL_STYLE) as u32 })
                 .contains(WINDOW_STYLE(BS_GROUPBOX as u32)),
         )
-    }, 
+    },
    { todo!()}
 }
 // impl Control for GroupBox {

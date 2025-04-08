@@ -126,7 +126,7 @@ pub enum ButtonMsgType {
     GetKeyboardFocus,
     Draw(usize),
 }
-define_control!{
+define_control! {
     Button,
     "Button",
     unsafe {

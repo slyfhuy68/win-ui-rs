@@ -283,9 +283,9 @@ impl ImageTextViewMsg {
         }
     }
 }
-define_control!{
-    ImageTextView, 
-    "STATIC", 
+define_control! {
+    ImageTextView,
+    "STATIC",
     unsafe {
         match code {
                 STN_CLICKED => Clicked,
@@ -298,7 +298,7 @@ define_control!{
                 }
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             }
-    }, 
+    },
     {
         let mut array1 = vec![0u16; 8];
         if unsafe { GetClassNameW(*wnd, &mut array1[..]) } == 0 {
@@ -307,7 +307,7 @@ define_control!{
         let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
         //println!("{}", meunasfe);
         return Ok(meunasfe == "Static".to_string());
-    }, 
+    },
     {todo!()}
 }
 // pub struct ImageTextViewMsg {

@@ -107,9 +107,9 @@ pub enum EditMsgType {
     ///当`Edit`即将重新绘制自身时，在显示文本之前，将会收到此消息。 这样就可以根据需要调整编辑`Edit`控件的大小。
     Update,
 }
-define_control!{
-    Edit, 
-    "Edit", 
+define_control! {
+    Edit,
+    "Edit",
     {
         match code {
                 EN_ALIGN_LTR_EC => DirectionChanged(true),
@@ -124,8 +124,8 @@ define_control!{
                 EN_UPDATE => Update,
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             }
-    }, 
-    {is_some_window(wnd, "Edit")}, 
+    },
+    {is_some_window(wnd, "Edit")},
     {todo!()}
 }
 // impl UnsafeControlMsg for EditMsg {

@@ -1,8 +1,9 @@
+//AI辅助编写
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    parse_macro_input, Block, Ident, LitStr, parse::Parse, parse::ParseStream, Result as SynResult,
-    Token,
+    Block, Ident, LitStr, Result as SynResult, Token, parse::Parse, parse::ParseStream,
+    parse_macro_input,
 };
 
 struct DefineControlArgs {

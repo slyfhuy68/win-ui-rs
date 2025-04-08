@@ -56,8 +56,8 @@ impl Default for CheckBoxStyle {
         }
     }
 }
-define_control!{
-    CheckBox, 
+define_control! {
+    CheckBox,
     "Button",
     {
          match code {
@@ -78,7 +78,7 @@ define_control!{
             NM_CUSTOMDRAW => Draw(ptr),
             _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
         }
-    }, 
+    },
     {
         if !is_button_window(wnd)? {
             return Ok(false);
@@ -91,7 +91,7 @@ define_control!{
             return Ok(true);
         }
         Ok(false)
-    }, 
+    },
     {todo!()}
 }
 // pub struct CheckBoxMsg {
