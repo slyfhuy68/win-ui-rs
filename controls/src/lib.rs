@@ -12,6 +12,13 @@ pub mod edit;
 pub mod group_box;
 pub mod radio;
 pub mod view;
+use either::*;
+fn style_of(wnd: &Window) -> WINDOW_STYLE {
+    WINDOW_STYLE(style_of_raw(wnd) as u32)
+}
+fn style_of_raw(wnd: &Window) -> i32 {
+    unsafe { GetWindowLongW(wnd.handle, GWL_STYLE) as i32 }
+}
 fn new_control(
     wnd: &mut Window,
     control_name: &'static str,
@@ -23,7 +30,7 @@ fn new_control(
     control_style_ms: WINDOW_STYLE,
     font: bool,
     no_notify: bool,
-) -> Result<HWND> {
+) -> Result<Window> {
     let mut xx: WINDOW_EX_STYLE = style_ex.into();
     let (mut yy, zz) = style.into();
     if no_notify {
@@ -71,7 +78,7 @@ fn new_control(
             )?;
         };
     };
-    Ok(hwnd)
+    Ok(hwnd.into())
 }
 fn new_button(
     wnd: &mut Window,
@@ -84,8 +91,8 @@ fn new_button(
     font: bool,
     no_notify: bool,
     draw: Option<Either<Bitmap, Icon>>,
-) -> Result<HWND> {
-    let hwnd = new_control(
+) -> Result<Window> {
+    let wnd = new_control(
         wnd,
         "BUTTON",
         name,
@@ -101,13 +108,13 @@ fn new_button(
         Some(x) => unsafe {
             let _ = match x {
                 Left(b) => PostMessageW(
-                    Some(hwnd),
+                    Some(wnd.handle),
                     BM_SETIMAGE,
                     WPARAM(IMAGE_BITMAP.0 as usize),
                     LPARAM(b.handle.0 as isize),
                 ),
                 Right(c) => PostMessageW(
-                    Some(hwnd),
+                    Some(wnd.handle),
                     BM_SETIMAGE,
                     WPARAM(IMAGE_ICON.0 as usize),
                     LPARAM(c.handle.0 as isize),
@@ -116,14 +123,18 @@ fn new_button(
         },
         None => {}
     };
-    Ok(hwnd)
+    Ok(wnd)
 }
-fn is_button_window(wnd: &HWND) -> Result<bool> {
+fn is_some_window(wnd: &Window, class: &'static str) -> Result<bool> {
     let mut array1 = vec![0u16; 8];
-    if unsafe { GetClassNameW(*wnd, &mut array1[..]) } == 0 {
+    if unsafe { GetClassNameW(wnd.clone().into(), &mut array1[..]) } == 0 {
         return Err(Error::from_win32());
     }
     let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
     //println!("{}", meunasfe);
-    return Ok(meunasfe == "Button".to_string());
+    return Ok(meunasfe.to_lowercase() == class.to_lowercase().to_string());
 }
+fn is_button_window(wnd: &Window) -> Result<bool> {
+    is_some_window(wnd, "Button")
+}
+use capdows_macros::define_control;

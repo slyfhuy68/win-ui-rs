@@ -1,13 +1,9 @@
-use super::button::*;
 use super::*;
-#[derive(Clone)]
-pub struct CheckBox(HWND); //PUSHBUTTON
-unsafe impl Send for CheckBox {}
-unsafe impl Sync for CheckBox {}
+use button::*;
 pub struct CheckBoxStyle {
     pub extra_msg: bool,   //BS_NOTIFY
     pub auto: bool,        //if
-    pub three_state: bool, // if
+    pub three_state: bool, //if
     pub flat: bool,        //BS_FLAT
     pub like_button: bool, //BS_PUSHLIKE
     pub left_text: bool,   //BS_LEFTTEXT
@@ -56,23 +52,35 @@ impl Default for CheckBoxStyle {
         }
     }
 }
-pub struct CheckBoxMsg {
-    hwnd: HWND,
-    pub bm_type: ButtonMsgType,
-}
-impl Control for CheckBox {
-    type MsgType = CheckBoxMsg;
-    fn to_window(self) -> Window {
-        Window { handle: self.0 }
-    }
-    unsafe fn force_from_window(wnd: Window) -> Self {
-        Self(wnd.handle)
-    }
-    unsafe fn is_self(wnd: &HWND) -> Result<bool> {
+pub use button::ButtonMsgType as CheckBoxMsgType;
+define_control! {
+    CheckBox,
+    "Button",
+    {
+         match code {
+            BCN_HOTITEMCHANGE => {
+                let data = *(ptr as *mut NMBCHOTITEM);
+                if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
+                    MouseEntering
+                } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
+                    MouseLeaving
+                } else {
+                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                }
+            }
+            BN_CLICKED => Clicked,
+            BN_DBLCLK => DoubleClicked,
+            BN_KILLFOCUS => LoseKeyboardFocus,
+            BN_SETFOCUS => GetKeyboardFocus,
+            NM_CUSTOMDRAW => Draw(ptr),
+            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+        }
+    },
+    {
         if !is_button_window(wnd)? {
             return Ok(false);
         }
-        let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
+        let style = style_of_raw(wnd);
         if (style & BS_CHECKBOX) != 0 || (style & BS_AUTOCHECKBOX) != 0 {
             return Ok(true);
         }
@@ -80,48 +88,8 @@ impl Control for CheckBox {
             return Ok(true);
         }
         Ok(false)
-    }
-}
-impl ControlMsg for CheckBoxMsg {
-    type ControlType = CheckBox;
-    unsafe fn from_msg(ptr: usize) -> Result<Self>
-    where
-        Self: Sized,
+    },
     {
-        unsafe {
-            let nmhdr = *(ptr as *mut NMHDR);
-            let code = nmhdr.code;
-            let w = nmhdr.hwndFrom.clone();
-            let _ = nmhdr;
-            use ButtonMsgType::*;
-            let bmtype = match code {
-                BCN_HOTITEMCHANGE => {
-                    let data = *(ptr as *mut NMBCHOTITEM);
-                    if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-                        MouseEntering
-                    } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                        MouseLaveing
-                    } else {
-                        return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
-                    }
-                }
-                BN_CLICKED => Clicked,
-                BN_DBLCLK => DoubleClicked,
-                BN_KILLFOCUS => LoseKeyboardFocus,
-                BN_SETFOCUS => GetKeyboardFocus,
-                NM_CUSTOMDRAW => Draw(ptr),
-                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
-            };
-            Ok(Self {
-                hwnd: w,
-                bm_type: bmtype,
-            })
-        }
-    }
-    fn get_control(&self) -> Self::ControlType {
-        CheckBox(self.hwnd)
-    }
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
         todo!()
     }
 }
@@ -176,21 +144,6 @@ impl std::fmt::Display for CheckBoxState {
 }
 pub use CheckBoxState::*;
 impl CheckBox {
-    // fn is_check_box(&self) -> bool {
-    // 	self.is_sure_check_box() | self.is_3state()
-    // }
-    // fn is_sure_check_box(&self) -> bool {
-    //     let style = WINDOW_STYLE(unsafe {
-    //         GetWindowLongW(self.0, GWL_STYLE) as u32
-    //     });
-    //     style.contains(WINDOW_STYLE(BS_AUTOCHECKBOX as u32)) | style.contains(WINDOW_STYLE(BS_CHECKBOX as u32))
-    // }
-    // fn is_3state(&self) -> bool {
-    //     let style = WINDOW_STYLE(unsafe {
-    //         GetWindowLongW(self.0, GWL_STYLE) as u32
-    //     });
-    //     style.contains(WINDOW_STYLE(BS_AUTO3STATE as u32)) | style.contains(WINDOW_STYLE(BS_3STATE as u32))
-    // }
     pub fn new(
         wnd: &mut Window,
         name: &str,
@@ -218,11 +171,11 @@ impl CheckBox {
         Ok(CheckBox(hwnd))
     }
     pub fn is_checked(&self) -> Result<CheckBoxState> {
-        if !unsafe { Self::is_self(&self.0) }? {
+        if !Self::is_self(&self.0)? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         }
         let result =
-            unsafe { SendMessageW(self.0, BM_GETCHECK, Some(WPARAM(0)), Some(LPARAM(0))).0 };
+            unsafe { SendMessageW(self.0.handle, BM_GETCHECK, Some(WPARAM(0)), Some(LPARAM(0))).0 };
         match DLG_BUTTON_CHECK_STATE(match result.try_into() {
             Ok(x) => x,
             Err(_) => return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), "")),

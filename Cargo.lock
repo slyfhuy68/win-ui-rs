@@ -15,6 +15,7 @@ name = "capdows_controls"
 version = "0.0.1"
 dependencies = [
  "capdows",
+ "capdows_macros",
  "either",
  "embed-resource",
  "windows",
@@ -28,6 +29,15 @@ dependencies = [
  "capdows_controls",
  "capdows_resource",
  "either",
+]
+
+[[package]]
+name = "capdows_macros"
+version = "0.0.1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

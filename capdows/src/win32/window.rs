@@ -323,8 +323,8 @@ impl Window {
         todo!() //ChildWindowFromPointEx
     }
     ///移除id为0的默认项会返回ERROR_NOT_SUPPORTED
-    ///警告
-    ///不能跨线程操作接收器
+    ///# 警告
+    ///不能操作其它线程创建的窗口的接收器
     pub fn remove_msg_receiver(&mut self, id: usize) -> Result<()> {
         if id == 0 {
             return Err(win_error!(ERROR_NOT_SUPPORTED));

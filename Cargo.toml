@@ -3,7 +3,7 @@ resolver = "3"
 members = [
     "capdows",
     "controls",
-    "example",
+    "example", "macros",
     "res"
 ]
 [workspace.package]
