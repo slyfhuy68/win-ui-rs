@@ -75,7 +75,8 @@ pub fn define_control(input: TokenStream) -> TokenStream {
             }
 
             fn is_self(wnd: &Window) -> Result<bool> {
-                #is_self_block
+                #[allow(unused_unsafe)]
+                unsafe #is_self_block
             }
 
             fn get_class(&self) -> WindowClass {
@@ -112,7 +113,8 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
         impl UnsafeControlMsg for #msg_name_ident {
             unsafe fn into_raw(&mut self) -> Result<Either<u16, PtrWapper<*mut NMHDR>>> {
-                #into_raw_block
+                #[allow(unused_unsafe)]
+                unsafe #into_raw_block
             }
 
             unsafe fn get_control_unsafe(&self) -> &Self::ControlType {
@@ -130,7 +132,8 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                 let code = nmhdr.code;
                 let w = nmhdr.hwndFrom.clone();
                 let _ = nmhdr;
-                let result = #from_msg_block;
+                #[allow(unused_unsafe)]
+                let result = unsafe #from_msg_block;
                 Ok(Self {
                     control: #control_name(w.into()),
                     msg_type: result,

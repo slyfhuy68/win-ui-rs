@@ -113,7 +113,7 @@ pub mod allmods {
     pub use super::{Error, Result};
 }
 //----------------------------------------------------------------------------------
-pub use either::*;
+use either::*;
 pub use windows::core::{Error, Result, w};
 //----------------------------------------------------------------------------------
 use std::ffi::c_void;

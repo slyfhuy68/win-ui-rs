@@ -1,8 +1,17 @@
 use super::*;
+pub enum ButtonMsgType {
+    MouseEntering,
+    MouseLeaving,
+    Clicked,
+    DoubleClicked,
+    LoseKeyboardFocus,
+    GetKeyboardFocus,
+    Draw(usize),
+}
 define_control! {
     ManuallyDrawButton,
     "Button",
-    unsafe {
+    {
         match code {
             BCN_HOTITEMCHANGE => {
                 let data = *(ptr as *mut NMBCHOTITEM);
@@ -26,7 +35,7 @@ define_control! {
             return Ok(false);
         }
         Ok(
-            WINDOW_STYLE(unsafe { GetWindowLongW(*wnd, GWL_STYLE) as u32 })
+            style_of(wnd)
                 .contains(WINDOW_STYLE(BS_OWNERDRAW as u32)),
         )
     },
@@ -117,19 +126,10 @@ pub enum ButtonAutoDrawType {
     TextOnly(bool),                          //bool:multiple_lines BS_TEXT
     IconAndText(Either<Bitmap, Icon>, bool), //bool:BS_MULTILINE, BS_TEXT BS_ICON
 }
-pub enum ButtonMsgType {
-    MouseEntering,
-    MouseLeaving,
-    Clicked,
-    DoubleClicked,
-    LoseKeyboardFocus,
-    GetKeyboardFocus,
-    Draw(usize),
-}
 define_control! {
     Button,
     "Button",
-    unsafe {
+    {
         match code {
             BCN_HOTITEMCHANGE => {
                 let data = *(ptr as *mut NMBCHOTITEM);
@@ -153,7 +153,7 @@ define_control! {
         if !is_button_window(wnd)? {
             return Ok(false);
         }
-        let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
+        let style = style_of_raw(wnd);
         if (style & BS_3STATE)==0 && (style & BS_AUTO3STATE)==0 && (style & BS_AUTOCHECKBOX)==0 &&
         (style & BS_AUTORADIOBUTTON)==0 && (style & BS_CHECKBOX)==0 && (style & BS_COMMANDLINK)==0 &&
         (style & BS_DEFCOMMANDLINK)==0 && (style & BS_DEFSPLITBUTTON)==0 &&
@@ -279,7 +279,7 @@ const BCN_FFFFFB21_MSG: u32 = 4294966049;
 define_control! {
     SplitButton,
     "Button",
-    unsafe {
+    {
         match code {
             BCN_HOTITEMCHANGE => {
                 let data = *(ptr as *mut NMBCHOTITEM);
@@ -306,7 +306,6 @@ define_control! {
             BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？
             _ => {
                 return {
-                    // println!("cc{:x}", code);
                     Err(Error::new(ERROR_INVALID_DATA.into(), ""))
                 };
             }
@@ -316,7 +315,7 @@ define_control! {
         if !is_button_window(wnd)? {
             return Ok(false);
         }
-        let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
+        let style = style_of_raw(wnd);
         if (style & BS_DEFSPLITBUTTON) != 0 || (style & BS_SPLITBUTTON) != 0 {
             return Ok(true);
         }
@@ -424,7 +423,7 @@ pub use ButtonMsgType as LinkButtonMsgType;
 define_control! {
     LinkButton,
     "Button",
-    unsafe {
+    {
         match code {
             BCN_HOTITEMCHANGE => {
                 let data = *(ptr as *mut NMBCHOTITEM);
@@ -448,13 +447,15 @@ define_control! {
         if !is_button_window(wnd)? {
             return Ok(false);
         }
-        let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
+        let style = style_of_raw(wnd);
         if (style & BS_DEFCOMMANDLINK) != 0 || (style & BS_COMMANDLINK) != 0 {
             return Ok(true);
         }
         Ok(false)
     },
-    { todo!()}
+    {
+        todo!()
+    }
 }
 pub struct LinkButtonDrawType(pub ButtonAutoDrawType, pub LinkButtonStyle);
 impl Default for LinkButtonDrawType {
@@ -520,7 +521,7 @@ impl LinkButton {
     pub fn get_note(&self) -> Result<String> {
         let length = unsafe {
             SendMessageW(
-                self.0.into(),
+                self.0.handle,
                 BCM_GETNOTELENGTH,
                 Some(WPARAM(0)),
                 Some(LPARAM(0)),
@@ -528,7 +529,7 @@ impl LinkButton {
             .0
         } as usize;
         if length == 0 {
-            if !unsafe { Self::is_self(&self.0.into()) }? {
+            if !Self::is_self(&self.0)? {
                 return Ok(String::new());
             } else {
                 return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
@@ -537,7 +538,7 @@ impl LinkButton {
         let mut buffer: Vec<u16> = vec![0; length + 1];
         unsafe {
             SendMessageW(
-                self.0.into(),
+                self.0.handle,
                 BCM_GETNOTE,
                 Some(WPARAM(length)),
                 Some(LPARAM(buffer.as_mut_ptr() as isize)),
@@ -547,14 +548,14 @@ impl LinkButton {
         Ok(String::from_utf16_lossy(&buffer[..length]))
     }
     pub fn set_note(&mut self, note: &str) -> Result<()> {
-        if !unsafe { Self::is_self(&self.0.into()) }? {
+        if !Self::is_self(&self.0)? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         };
         let (note_ptr, _note_u16) = str_to_pcwstr(note);
 
         if unsafe {
             SendMessageW(
-                self.0.into(),
+                self.0.handle,
                 BCM_SETNOTE,
                 Some(WPARAM(0)),
                 Some(LPARAM(note_ptr.0 as isize)),

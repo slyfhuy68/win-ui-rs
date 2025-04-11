@@ -1,9 +1,5 @@
-use super::button::*;
+use button::*;
 use super::*;
-// #[derive(Clone)]
-// pub struct RadioButton(HWND); //PUSHBUTTON
-// unsafe impl Send for RadioButton {}
-// unsafe impl Sync for RadioButton {}
 pub struct RadioButtonStyle {
     pub extra_msg: bool,   //BS_NOTIFY
     pub auto: bool,        //if light BS_AUTORADIOBUTTON else BS_RADIOBUTTON
@@ -46,6 +42,7 @@ impl Default for RadioButtonStyle {
         }
     }
 }
+pub use button::ButtonMsgType as RadioButtonMsgType;
 define_control! {
     RadioButton,
     "Button",
@@ -55,7 +52,7 @@ define_control! {
             if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
                 MouseEntering
             } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                MouseLaveing
+                MouseLeaving
             } else {
                 return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
             }
@@ -71,7 +68,7 @@ define_control! {
         if !is_button_window(wnd)? {
             return Ok(false);
         }
-        let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
+        let style = style_of_raw(wnd);
         if (style & BS_RADIOBUTTON) != 0 || (style & BS_AUTORADIOBUTTON) != 0 {
             return Ok(true);
         }
@@ -81,69 +78,6 @@ define_control! {
         todo!()
     }
 }
-// pub struct RadioButtonMsg {
-//     hwnd: HWND,
-//     pub bm_type: ButtonMsgType,
-// }
-// impl Control for RadioButton {
-//     type MsgType = RadioButtonMsg;
-//     unsafe fn force_from_window(wnd: Window) -> Self {
-//         Self(wnd.handle)
-//     }
-//     fn to_window(self) -> Window {
-//         Window { handle: self.0 }
-//     }
-//     unsafe fn is_self(wnd: &HWND) -> Result<bool> {
-//         if !is_button_window(wnd)? {
-//             return Ok(false);
-//         }
-//         let style = unsafe { GetWindowLongW(*wnd, GWL_STYLE) };
-//         if (style & BS_RADIOBUTTON) != 0 || (style & BS_AUTORADIOBUTTON) != 0 {
-//             return Ok(true);
-//         }
-//         Ok(false)
-//     }
-// }
-// impl UnsafeControlMsg for RadioButtonMsg {
-//     type ControlType = RadioButton;
-//     unsafe fn from_msg(ptr: usize) -> Result<Self> {
-//         unsafe {
-//             let nmhdr = *(ptr as *mut NMHDR);
-//             let code = nmhdr.code;
-//             let w = nmhdr.hwndFrom.clone();
-//             let _ = nmhdr;
-//             use ButtonMsgType::*;
-//             let bmtype = match code {
-//                 BCN_HOTITEMCHANGE => {
-//                     let data = *(ptr as *mut NMBCHOTITEM);
-//                     if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-//                         MouseEntering
-//                     } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-//                         MouseLaveing
-//                     } else {
-//                         return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
-//                     }
-//                 }
-//                 BN_CLICKED => Clicked,
-//                 BN_DBLCLK => DoubleClicked,
-//                 BN_KILLFOCUS => LoseKeyboardFocus,
-//                 BN_SETFOCUS => GetKeyboardFocus,
-//                 NM_CUSTOMDRAW => Draw(ptr),
-//                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
-//             };
-//             Ok(Self {
-//                 hwnd: w,
-//                 bm_type: bmtype,
-//             })
-//         }
-//     }
-//     fn get_control(&self) -> Self::ControlType {
-//         RadioButton(self.hwnd)
-//     }
-//     unsafe fn into_raw(&mut self) -> Result<Either<u16, *mut NMHDR>> {
-//         todo!()
-//     }
-// }
 pub struct RadioButtonDrawType(pub ButtonAutoDrawType, pub RadioButtonStyle);
 impl Default for RadioButtonDrawType {
     fn default() -> Self {
@@ -206,11 +140,11 @@ impl RadioButton {
         Ok(RadioButton(hwnd))
     }
     pub fn is_checked(&self) -> Result<bool> {
-        if !unsafe { Self::is_self(&(self.0).into()) }? {
+        if !Self::is_self(&self.0)? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         }
         let result =
-            unsafe { SendMessageW(self.0, BM_GETCHECK, Some(WPARAM(0)), Some(LPARAM(0))).0 };
+            unsafe { SendMessageW(self.0.handle, BM_GETCHECK, Some(WPARAM(0)), Some(LPARAM(0))).0 };
         match DLG_BUTTON_CHECK_STATE(match result.try_into() {
             Ok(x) => x,
             Err(_) => return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), "")),

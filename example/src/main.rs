@@ -257,7 +257,7 @@ impl MessageReceiver for Mycb {
             VIEW_01 => {
                 use ImageTextViewMsgType::*;
                 let msg = msg.get_control_msg::<ImageTextView>()?;
-                match msg.get_data() {
+                match msg.get_type() {
                     Clicked | DoubleClicked => {
                         println!("hi");
                         if get_state() {
@@ -297,7 +297,7 @@ impl MessageReceiver for Mycb {
             BUTTON_01 => {
                 use ButtonMsgType::*;
                 let msg = msg.get_control_msg::<Button>()?;
-                match msg.bm_type {
+                match msg.get_type() {
                     Clicked => {
                         println!(
                             "按钮1点了a1:{} a2:{} b1:{} b2:{}",
@@ -314,7 +314,7 @@ impl MessageReceiver for Mycb {
             SPLIT_BUTTON_01 => {
                 use SplitButtonMsgType::*;
                 let msg = msg.get_control_msg::<SplitButton>()?;
-                match msg.bm_type {
+                match msg.get_type() {
                     Clicked => {
                         println!(
                             "分割按钮1点了box1:{} box2:{}",
@@ -338,7 +338,7 @@ impl MessageReceiver for Mycb {
             LINK_BUTTON_01 => {
                 use ButtonMsgType::*;
                 let msg = msg.get_control_msg::<LinkButton>()?;
-                match msg.bm_type {
+                match msg.get_type() {
                     Clicked => {
                         println!("链接按钮1点了，文本：{}", controls.edit.get_text()?);
                         Ok(0)

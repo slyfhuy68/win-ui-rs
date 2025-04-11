@@ -1,7 +1,7 @@
 ﻿rust 小 lib  
 AI部分均已标注  
 此lib需要https://internals.rust-lang.org/t/priorities-for-trait-implementations  
-或https://rust-lang.github.io/rfcs/1210-impl-specialization.html 来体验完整功能  
+或https://rust-lang.github.io/rfcs/1210-impl-specialization.html 才能实现完整功能  
 
 # todo
 
