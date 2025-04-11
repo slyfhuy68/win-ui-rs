@@ -1,5 +1,5 @@
-use button::*;
 use super::*;
+use button::*;
 pub struct RadioButtonStyle {
     pub extra_msg: bool,   //BS_NOTIFY
     pub auto: bool,        //if light BS_AUTORADIOBUTTON else BS_RADIOBUTTON
