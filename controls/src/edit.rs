@@ -69,10 +69,9 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
             Password(c) => {
                 edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);
                 pass = Some(c)
-            }
-            // Rich => {
-            //     todo!()
-            // },
+            } // Rich => {
+              //     todo!()
+              // },
         }
         (edit_style, pass)
     }

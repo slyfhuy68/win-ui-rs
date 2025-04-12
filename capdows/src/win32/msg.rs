@@ -60,8 +60,8 @@ pub enum SizingMsgType {
 }
 //ai开始----
 pub enum MouseMsgMoveType {
-    Move { pos: Point, is_nc: bool },
-    Hover { pos: Point },
+    Move(Point),
+    Hover(Point),
 
     Leave,
 }

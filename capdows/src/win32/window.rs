@@ -63,7 +63,6 @@ impl From<WindowPosType> for SET_WINDOW_POS_FLAGS {
     }
 }
 
-// 如果需要从 SET_WINDOW_POS_FLAGS 转换回 WindowPosType，可以这样实现：
 impl From<SET_WINDOW_POS_FLAGS> for WindowPosType {
     fn from(flags: SET_WINDOW_POS_FLAGS) -> Self {
         WindowPosType {
@@ -320,6 +319,16 @@ impl Window {
         skip_transparent: bool,
     ) -> Option<Window> {
         todo!() //ChildWindowFromPointEx
+    }
+    pub fn from_screen_point(point: Point) -> Option<Window> {
+        unsafe {
+            let hwnd = WindowFromPoint(point.into());
+            if hwnd.is_invalid() {
+                None
+            } else {
+                Some(hwnd.into())
+            }
+        }
     }
     ///移除id为0的默认项会返回ERROR_NOT_SUPPORTED
     ///# 警告

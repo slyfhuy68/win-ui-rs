@@ -507,10 +507,12 @@ pub struct NormalWindowExStyles {
     pub right_reading: bool,         //WS_EX_RTLREADING
     pub right: bool,                 //WS_EX_RIGHT
     pub no_redirection_bitmap: bool, //WS_EX_NOREDIRECTIONBITMAP
-    pub no_inherit_layout: bool,     //WS_EX_NOINHERITLAYOUT
     pub no_auto_active: bool,        //WS_EX_NOACTIVATE
     pub left_scrroll_bar: bool,      //WS_EX_LEFTSCROLLBAR
-    pub right_layout: bool,          //WS_EX_LAYOUTRTL
+    ///如果 shell 语言是希伯来语、阿拉伯语或支持阅读顺序对齐的其他语言，则窗口的原点位于右上角。 将水平值递增到左侧。
+    pub right_layout: bool, //WS_EX_LAYOUTRTL
+    ///不将其窗口布局传递给其子窗口
+    pub no_inherit_layout: bool, //WS_EX_NOINHERITLAYOUT
     pub accept_files: bool,          //WS_EX_ACCEPTFILES
     pub app_window: bool,            //WS_EX_APPWINDOW
     pub clint_edge: bool,            //WS_EX_CLIENTEDGE
