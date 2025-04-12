@@ -7,11 +7,11 @@ edition.workspace = true
 
 [dependencies]
 either = "1.14.0"
-embed-resource = "3.0.1"
+embed-resource = "3.0.2"
 
 
 [dependencies.windows]
-version = "0.60.0"
+version = "0.61.1"
 features = [
     "Win32_Storage_FileSystem",
     "Win32_UI_Shell",

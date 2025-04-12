@@ -81,9 +81,8 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
             fn get_class(&self) -> WindowClass {
                 WindowClass {
-                    name: Some((w!(#class_name), Vec::new())),
-                    atom: PCWSTR::null(),
-                    handle_instance: None,
+                    name: w!(#class_name),
+                    owner: None,
                 }
             }
         }

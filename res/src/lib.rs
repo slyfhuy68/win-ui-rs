@@ -38,11 +38,7 @@ impl Add for PreCompilePruduct {
         PreCompilePruduct(format!("{}\n{}", self.0, other.0))
     }
 }
-pub enum ResourceID {
-    StringId(String),
-    NumberId(u16),
-}
-pub use ResourceID::*;
+pub use capdows::win32::core::{NumberId, ResourceID, StringId};
 pub mod image;
 pub mod version;
 #[macro_export]

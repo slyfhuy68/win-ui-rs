@@ -65,7 +65,7 @@ impl ImageTextViewStyle {
             white_frame: false,
             white_rect: false,
             sunken: false,
-            extra_notify: false,
+            // extra_notify: false,
         }
     }
     pub fn new_text(text: &str) -> Self {
@@ -86,7 +86,7 @@ impl ImageTextViewStyle {
             white_frame: false,
             white_rect: false,
             sunken: false,
-            extra_notify: false,
+            // extra_notify: false,
         }
     }
 }
@@ -133,7 +133,7 @@ pub struct ImageTextViewStyle {
     pub white_frame: bool,  // SS_WHITEFRAME
     pub white_rect: bool,   // SS_WHITERECT
     pub sunken: bool,       // SS_SUNKEN
-    pub extra_notify: bool, // SS_NOTIFY
+                            // pub extra_notify: bool, // SS_NOTIFY
 }
 
 impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
@@ -236,8 +236,8 @@ impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
             + (self.gray_rect as u32) * SS_GRAYRECT.0
             + (self.white_frame as u32) * SS_WHITEFRAME.0
             + (self.white_rect as u32) * SS_WHITERECT.0
-            + (self.sunken as u32) * SS_SUNKEN.0
-            + (self.extra_notify as u32) * SS_NOTIFY.0;
+            + (self.sunken as u32) * SS_SUNKEN.0;
+        // + (self.extra_notify as u32) * SS_NOTIFY.0;
 
         (window_style, content_data)
     }

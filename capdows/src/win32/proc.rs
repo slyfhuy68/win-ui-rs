@@ -91,9 +91,8 @@ unsafe fn msg_handler(
                     &s.lpszName.to_string().unwrap_or(String::from("")),
                     match wc {
                         Err(_) => WindowClass {
-                            name: None,
-                            atom: s.lpszClass,
-                            handle_instance: None,
+                            name: s.lpszClass,
+                            owner: None,
                         },
                         Ok(x) => x,
                     },

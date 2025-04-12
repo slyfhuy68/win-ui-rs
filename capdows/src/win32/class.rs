@@ -2,66 +2,18 @@ use super::*;
 use windows::Win32::Graphics::Gdi::HBRUSH;
 #[derive(Clone, PartialEq)]
 pub struct WindowClass {
-    pub name: Option<(PCWSTR, Vec<u16>)>,
-    pub atom: PCWSTR,
-    pub handle_instance: Option<HINSTANCE>,
+    pub name: PCWSTR,
+    pub owner: Option<Vec<u16>>,
 }
-
 impl WindowClass {
     pub fn is_invalid(&self) -> bool {
-        self.name.is_none() && self.atom.is_null()
+        self.name.is_null()
     }
 }
-impl Default for WindowClass {
-    fn default() -> Self {
-        Self {
-            name: None,
-            atom: PCWSTR::null(),
-            handle_instance: None,
-        }
-    }
-}
-// impl std::fmt::Display for WindowClass {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         if self.name.is_null() {
-//             write!(f, "WindowClass(<NULL>)",)
-//         } else {
-//             write!(
-//                 f,
-//                 "WindowClass({})",
-//                 unsafe { self.name.to_string() }.unwrap_or(String::from("<FromUtf16Error>"))
-//             )
-//         }
-//     }
-// }
-// impl Drop for WindowClass {
-//     fn drop(&mut self) {
-//         if self.is_invalid() {
-//             return;
-//         }
-//         if  {
-//             unsafe {
-//                 UnregisterClassW(self.name, self.handle_instance);
-//             }
-//         } else {
-//             unsafe {
-//                 UnregisterClassW(self.atom, self.handle_instance);
-//             }
-//         }
-//     }
-// }
 impl Drop for WindowClass {
     fn drop(&mut self) {
-        if !self.atom.is_null() {
-            unsafe {
-                let _ = UnregisterClassW(self.atom, self.handle_instance);
-            }
-        } else if let Some(x) = &self.name {
-            unsafe {
-                let _ = UnregisterClassW(x.0, self.handle_instance);
-            }
-        } else {
-            return;
+        unsafe {
+            let _ = UnregisterClassW(self.name, None);
         }
     }
 }
@@ -71,11 +23,11 @@ impl WindowClass {
     pub fn register(
         class_name: &str,
         style: WindowClassStyle,
-        default_menu_resource: Option<Either<&str, usize>>,
+        default_menu_resource: Option<ResourceID>,
         icon: Option<Icon>,
         icon_small: Option<Icon>,
         cursor: Option<Cursor>,
-        background_brush: Option<BrushC>,
+        background_brush: Option<ClassBackgroundBrush>,
         class_extra: u8,
         window_extra: u8,
     ) -> Result<Self> {
@@ -89,9 +41,12 @@ impl WindowClass {
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null()) }?.into();
         let background_brush = match background_brush {
             None => HBRUSH(NULL_PTR()),
-            Some(x) => x.__class_into(),
+            Some(x) => x.into(),
         };
-        let (dmr, _dmr_ptr) = _po_to_pcwstr(default_menu_resource);
+        let (dmr, _dmr_ptr) = match default_menu_resource {
+            None => (PCWSTR::null(), None),
+            Some(x) => x.to_pcwstr(),
+        };
         let result = unsafe {
             RegisterClassExW(&WNDCLASSEXW {
                 cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
@@ -112,17 +67,12 @@ impl WindowClass {
             return Err(Error::from_win32());
         };
         Ok(Self {
-            name: Some((class_name, classddd)),
-            atom: PCWSTR(result as *mut u16),
-            handle_instance: Some(hinstance),
+            name: class_name,
+            owner: Some(classddd),
         })
     }
     fn get(&self) -> PCWSTR {
-        if let Some(x) = &self.name {
-            x.0
-        } else {
-            self.atom
-        }
+        self.name
     }
     pub fn create_window(
         &self,

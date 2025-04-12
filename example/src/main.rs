@@ -33,7 +33,6 @@ fn get_state() -> bool {
 fn set_state(state: bool) {
     unsafe { ICON_STATE = state }
 }
-use crate::BrushC;
 const BUTTON_01: WindowID = 1u16;
 const SPLIT_BUTTON_01: WindowID = 2u16;
 const LINK_BUTTON_01: WindowID = 3u16;
@@ -203,7 +202,11 @@ impl MessageReceiver for Mycb {
                 EDIT_01,
                 Default::default(),
                 Default::default(),
-                Default::default(),
+                {
+                    let mut ex_style: NormalWindowExStyles = Default::default();
+                    ex_style.clint_edge = true;
+                    ex_style
+                },
                 true,
                 false,
             )
@@ -358,7 +361,7 @@ fn main() -> Result<()> {
         None,
         None,
         Some(Cursor::from_system(32512)?),
-        Some(BrushC::BtnFace),
+        Some(ClassBackgroundBrush::BtnFace),
         0,
         0,
     )?;

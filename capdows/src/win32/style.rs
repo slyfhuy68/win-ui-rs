@@ -1,18 +1,126 @@
 //本文件几乎都是AI生成的
 use super::*;
+#[derive(Clone, PartialEq)]
+pub enum ClassBackgroundBrush {
+    Brush(super::brush::Brush),
+    ActiveBorder,
+    ActiveCaption,
+    AppWorkspace,
+    Background,
+    BtnFace,
+    BtnShadow,
+    BtnText,
+    CaptionText,
+    GrayText,
+    Highlight,
+    HighlightText,
+    InactiveBorder,
+    InactiveCaption,
+    Menu,
+    MenuText,
+    Scrollbar,
+    Window,
+    WindowFrame,
+    WindowText,
+}
+impl From<HBRUSH> for ClassBackgroundBrush {
+    fn from(ush: HBRUSH) -> Self {
+        match HBRUSH((ush.0 as usize - 1) as *mut c_void) {
+            HBRUSH(val) if val == COLOR_ACTIVEBORDER.0 as *mut c_void => {
+                ClassBackgroundBrush::ActiveBorder
+            }
+            HBRUSH(val) if val == COLOR_ACTIVECAPTION.0 as *mut c_void => {
+                ClassBackgroundBrush::ActiveCaption
+            }
+            HBRUSH(val) if val == COLOR_APPWORKSPACE.0 as *mut c_void => {
+                ClassBackgroundBrush::AppWorkspace
+            }
+            HBRUSH(val) if val == COLOR_BACKGROUND.0 as *mut c_void => {
+                ClassBackgroundBrush::Background
+            }
+            HBRUSH(val) if val == COLOR_BTNFACE.0 as *mut c_void => ClassBackgroundBrush::BtnFace,
+            HBRUSH(val) if val == COLOR_BTNSHADOW.0 as *mut c_void => {
+                ClassBackgroundBrush::BtnShadow
+            }
+            HBRUSH(val) if val == COLOR_BTNTEXT.0 as *mut c_void => ClassBackgroundBrush::BtnText,
+            HBRUSH(val) if val == COLOR_CAPTIONTEXT.0 as *mut c_void => {
+                ClassBackgroundBrush::CaptionText
+            }
+            HBRUSH(val) if val == COLOR_GRAYTEXT.0 as *mut c_void => ClassBackgroundBrush::GrayText,
+            HBRUSH(val) if val == COLOR_HIGHLIGHT.0 as *mut c_void => {
+                ClassBackgroundBrush::Highlight
+            }
+            HBRUSH(val) if val == COLOR_HIGHLIGHTTEXT.0 as *mut c_void => {
+                ClassBackgroundBrush::HighlightText
+            }
+            HBRUSH(val) if val == COLOR_INACTIVEBORDER.0 as *mut c_void => {
+                ClassBackgroundBrush::InactiveBorder
+            }
+            HBRUSH(val) if val == COLOR_INACTIVECAPTION.0 as *mut c_void => {
+                ClassBackgroundBrush::InactiveCaption
+            }
+            HBRUSH(val) if val == COLOR_MENU.0 as *mut c_void => ClassBackgroundBrush::Menu,
+            HBRUSH(val) if val == COLOR_MENUTEXT.0 as *mut c_void => ClassBackgroundBrush::MenuText,
+            HBRUSH(val) if val == COLOR_SCROLLBAR.0 as *mut c_void => {
+                ClassBackgroundBrush::Scrollbar
+            }
+            HBRUSH(val) if val == COLOR_WINDOW.0 as *mut c_void => ClassBackgroundBrush::Window,
+            HBRUSH(val) if val == COLOR_WINDOWFRAME.0 as *mut c_void => {
+                ClassBackgroundBrush::WindowFrame
+            }
+            HBRUSH(val) if val == COLOR_WINDOWTEXT.0 as *mut c_void => {
+                ClassBackgroundBrush::WindowText
+            }
+            HBRUSH(x) => {
+                ClassBackgroundBrush::Brush(HBRUSH((x as usize + 1) as *mut c_void).into())
+            }
+        }
+    }
+}
+impl Into<HBRUSH> for ClassBackgroundBrush {
+    fn into(self) -> HBRUSH {
+        use ClassBackgroundBrush::*;
+        let result = match self {
+            Brush(ush) => {
+                return ush.into();
+            }
+            ActiveBorder => COLOR_ACTIVEBORDER,
+            ActiveCaption => COLOR_ACTIVECAPTION,
+            AppWorkspace => COLOR_APPWORKSPACE,
+            Background => COLOR_BACKGROUND,
+            BtnFace => COLOR_BTNFACE,
+            BtnShadow => COLOR_BTNSHADOW,
+            BtnText => COLOR_BTNTEXT,
+            CaptionText => COLOR_CAPTIONTEXT,
+            GrayText => COLOR_GRAYTEXT,
+            Highlight => COLOR_HIGHLIGHT,
+            HighlightText => COLOR_HIGHLIGHTTEXT,
+            InactiveBorder => COLOR_INACTIVEBORDER,
+            InactiveCaption => COLOR_INACTIVECAPTION,
+            Menu => COLOR_MENU,
+            MenuText => COLOR_MENUTEXT,
+            Scrollbar => COLOR_SCROLLBAR,
+            Window => COLOR_WINDOW,
+            WindowFrame => COLOR_WINDOWFRAME,
+            WindowText => COLOR_WINDOWTEXT,
+        };
+        HBRUSH((result.0 as usize + 1) as *mut c_void)
+    }
+}
+
 #[derive(Clone, PartialEq, Default)]
 pub struct WindowClassStyle {
-    globa: bool,             //CS_GLOBALCLASS
-    no_close_button: bool,   //CS_NOCLOSE
-    ver_draw: bool,          //CS_VREDRAW
-    her_draw: bool,          //CS_HREDRAW
-    dbl_clk_msg: bool,       //CS_DBLCLKS
-    parent_clipping: bool,   //CS_PARENTDC
-    save_bits: bool,         //CS_SAVEBITS
-    byte_ailgn_client: bool, //CS_BYTEALIGNCLIENT
-    byte_ailgn_window: bool, //CS_BYTEALIGNWINDOW
-    drop_shadrow: bool,      //CS_DROPSHADOW
-    dc_type: DCtype,
+    pub globa: bool,             //CS_GLOBALCLASS
+    pub no_close_button: bool,   //CS_NOCLOSE
+    pub ver_draw: bool,          //CS_VREDRAW
+    pub her_draw: bool,          //CS_HREDRAW
+    pub dbl_clk_msg: bool,       //CS_DBLCLKS
+    pub parent_clipping: bool,   //CS_PARENTDC
+    pub save_bits: bool,         //CS_SAVEBITS
+    pub byte_ailgn_client: bool, //CS_BYTEALIGNCLIENT
+    pub byte_ailgn_window: bool, //CS_BYTEALIGNWINDOW
+    pub drop_shadrow: bool,      //CS_DROPSHADOW
+    pub dc_type: DCtype,
 }
 impl From<WNDCLASS_STYLES> for WindowClassStyle {
     fn from(ms_style: WNDCLASS_STYLES) -> Self {
@@ -97,7 +205,7 @@ impl From<WNDCLASS_STYLES> for DCtype {
     }
 }
 //-------------------------------------------------------------------------------
-//static WS_ONLYCAPTION: WINDOW_STYLE = WINDOW_STYLE(4194304u32);
+//const WS_ONLYCAPTION: WINDOW_STYLE = WINDOW_STYLE(4194304u32);
 #[derive(Clone, PartialEq, Default)]
 pub enum WindowSizeState {
     #[default]
@@ -391,24 +499,24 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for ChildWindowStyles {
 #[derive(Clone, PartialEq, Default)]
 pub struct NormalWindowExStyles {
     //https://learn.microsoft.com/zh-cn/windows/win32/winmsg/extended-window-styles
-    edge: bool,                  //WS_EX_WINDOWEDGE
-    transparent: bool,           //WS_EX_TRANSPARENT
-    top_most: bool,              //WS_EX_TOPMOST
-    tool_window: bool,           //WS_EX_TOOLWINDOW
-    static_edge: bool,           //WS_EX_STATICEDGE
-    right_reading: bool,         //WS_EX_RTLREADING
-    right: bool,                 //WS_EX_RIGHT
-    no_redirection_bitmap: bool, //WS_EX_NOREDIRECTIONBITMAP
-    no_inherit_layout: bool,     //WS_EX_NOINHERITLAYOUT
-    no_auto_active: bool,        //WS_EX_NOACTIVATE
-    left_scrroll_bar: bool,      //WS_EX_LEFTSCROLLBAR
-    right_layout: bool,          //WS_EX_LAYOUTRTL
-    accept_files: bool,          //WS_EX_ACCEPTFILES
-    app_window: bool,            //WS_EX_APPWINDOW
-    clint_edge: bool,            //WS_EX_CLIENTEDGE
-    dlg_modal_frame: bool,       //WS_EX_DLGMODALFRAME
-    com_posited: bool,           //WS_EX_COMPOSITED
-                                 //WS_EX_CONTROLPARENT is in style
+    pub edge: bool,                  //WS_EX_WINDOWEDGE
+    pub transparent: bool,           //WS_EX_TRANSPARENT
+    pub top_most: bool,              //WS_EX_TOPMOST
+    pub tool_window: bool,           //WS_EX_TOOLWINDOW
+    pub static_edge: bool,           //WS_EX_STATICEDGE
+    pub right_reading: bool,         //WS_EX_RTLREADING
+    pub right: bool,                 //WS_EX_RIGHT
+    pub no_redirection_bitmap: bool, //WS_EX_NOREDIRECTIONBITMAP
+    pub no_inherit_layout: bool,     //WS_EX_NOINHERITLAYOUT
+    pub no_auto_active: bool,        //WS_EX_NOACTIVATE
+    pub left_scrroll_bar: bool,      //WS_EX_LEFTSCROLLBAR
+    pub right_layout: bool,          //WS_EX_LAYOUTRTL
+    pub accept_files: bool,          //WS_EX_ACCEPTFILES
+    pub app_window: bool,            //WS_EX_APPWINDOW
+    pub clint_edge: bool,            //WS_EX_CLIENTEDGE
+    pub dlg_modal_frame: bool,       //WS_EX_DLGMODALFRAME
+    pub com_posited: bool,           //WS_EX_COMPOSITED
+                                     //WS_EX_CONTROLPARENT is in style
 }
 impl From<WINDOW_EX_STYLE> for NormalWindowExStyles {
     fn from(ms_style: WINDOW_EX_STYLE) -> Self {

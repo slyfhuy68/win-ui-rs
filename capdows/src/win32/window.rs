@@ -262,9 +262,8 @@ impl Window {
         }
         let result1 = PCWSTR(array1.as_ptr());
         Ok(WindowClass {
-            name: Some((result1, array1)),
-            atom: PCWSTR(unsafe { GetClassLongPtrW(self.handle, GCW_ATOM) } as *mut u16),
-            handle_instance: None,
+            name: result1,
+            owner: Some(array1),
         })
     }
     pub fn get_context_help_id(&self) -> Option<u32> {

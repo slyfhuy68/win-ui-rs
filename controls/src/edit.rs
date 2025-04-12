@@ -10,7 +10,6 @@ pub struct EditStyle {
     pub auto_hscroll: bool, // ES_AUTOHSCROLL
     pub auto_vscroll: bool, // ES_AUTOVSCROLL
     pub center: bool,       // ES_CENTER
-    pub left: bool,         // ES_LEFT
     pub lowercase: bool,    // ES_LOWERCROLL
     pub nohide_sel: bool,   // ES_NOHIDESEL
     pub number: bool,       // ES_NUMBER
@@ -35,9 +34,6 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
         }
         if self.center {
             edit_style |= WINDOW_STYLE(ES_CENTER as u32);
-        }
-        if self.left {
-            edit_style |= WINDOW_STYLE(ES_LEFT as u32);
         }
         if self.lowercase {
             edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32);
@@ -74,6 +70,9 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
                 edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);
                 pass = Some(c)
             }
+            // Rich => {
+            //     todo!()
+            // },
         }
         (edit_style, pass)
     }
@@ -131,7 +130,6 @@ impl Default for EditStyle {
             auto_hscroll: false, // ES_AUTOHSCROLL
             auto_vscroll: false, // ES_AUTOVSCROLL
             center: false,       // ES_CENTER
-            left: false,         // ES_LEFT
             lowercase: false,    // ES_LOWERCROLL
             nohide_sel: false,   // ES_NOHIDESEL
             number: false,       // ES_NUMBER

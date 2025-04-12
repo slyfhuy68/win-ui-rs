@@ -44,6 +44,23 @@ pub mod timer;
 pub mod window;
 use window::*;
 pub mod core {
+    use super::*;
+    pub enum ResourceID {
+        StringId(String),
+        NumberId(u16),
+    }
+    pub use ResourceID::*;
+    impl ResourceID {
+        pub fn to_pcwstr(self) -> (PCWSTR, Option<Vec<u16>>) {
+            match self {
+                NumberId(x) => (make_int_resource(x as usize), None),
+                StringId(y) => {
+                    let (pcw, owner) = str_to_pcwstr(&y);
+                    (pcw, Some(owner))
+                }
+            }
+        }
+    }
     pub use crate::win_error;
     #[derive(Debug, Clone)]
     pub struct Point(pub i32, pub i32);
@@ -131,21 +148,6 @@ use windows::core::*;
 pub struct PtrWapper<T, O = Box<dyn std::any::Any>> {
     pub ptr: T,
     pub owner: O,
-}
-fn _po_to_pcwstr(sels: Option<Either<&str, usize>>) -> (PCWSTR, Option<Vec<u16>>) {
-    match sels {
-        None => (PCWSTR::null(), None),
-        Some(x) => _p_to_pcwstr(x),
-    }
-}
-fn _p_to_pcwstr(sels: Either<&str, usize>) -> (PCWSTR, Option<Vec<u16>>) {
-    match sels {
-        Right(x) => (make_int_resource(x), None),
-        Left(y) => {
-            let (pcw, pwc) = str_to_pcwstr(y);
-            (pcw, Some(pwc))
-        }
-    }
 }
 pub fn make_int_resource(i: usize) -> PCWSTR {
     PCWSTR(i as *mut u16)
