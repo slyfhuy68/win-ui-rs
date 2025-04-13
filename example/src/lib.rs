@@ -1,32 +1,40 @@
 use capdows::win32::allmods::*;
+use capdows_controls::view::*;
+use std::sync::LazyLock;
 pub struct WindowFinder(ImageTextView);
 pub struct WindowsFinderMessageReceiver {
     state: bool,
+    currect_wnd: Option<Window>,
 }
-static bitmap1: LazyCell<Bitmap> = LazyCell::new(|| {
+static bitmap1: LazyLock<Icon> = LazyLock::new(|| {
     Icon::load_from_module(
         ExecutableFile::from_current_file().unwrap(),
-        Right(3),
+        NumberId(3),
         None,
         true,
     )
     .unwrap()
 });
-static bitmap2: LazyCell<Bitmap> = LazyCell::new(|| {
+static bitmap2: LazyLock<Icon> = LazyLock::new(|| {
     Icon::load_from_module(
         ExecutableFile::from_current_file().unwrap(),
-        Right(2),
+        NumberId(2),
         None,
         true,
     )
     .unwrap()
 });
-static cursor: LazyCell<Cursor> = LazyCell::new(|| {
-    println!("initializing");
-    92
+static cursor: LazyLock<Cursor> = LazyLock::new(|| {
+    Cursor::load_from_module(
+        ExecutableFile::from_current_file().unwrap(),
+        NumberId(4),
+        None,
+        true,
+    )
+    .unwrap()
 });
 impl WindowFinder {
-    pub fn new(window: Window, pos: Option<Rectangle>, id: WindowID) -> Result<WindowFinder> {
+    pub fn new(window: &mut Window, pos: Option<Rectangle>, id: WindowID) -> Result<WindowFinder> {
         let view = ImageTextView::new(
             window,
             pos,
@@ -39,19 +47,25 @@ impl WindowFinder {
             Default::default(),
             true,
             false,
+        )?;
+        view.get_window_mut().add_msg_receiver(
+            10,
+            Box::new(WindowsFinderMessageReceiver {
+                state: false,
+                currect_wnd: None,
+            }),
         );
-        view.get_window_mut()
-            .add_msg_receiver(10, Box::new(WindowsFinderMessageReceiver { state: false }));
-        Ok(())
+        Ok(Self(view))
     }
 }
-pub enum WindowFinderMsgType {
+pub enum WindowFinderMsgType<'a> {
     Begin,
-    SelChanged(Cow<Window>),
+    SelChanged(Window),
     End,
 }
+use ButtonState::*;
 pub use WindowFinderMsgType::*;
-pub struct WindowFinderMsg(Window, WindowFinderMsgType);
+pub struct WindowFinderMsg<'a>(Window, WindowFinderMsgType<'a>);
 impl MessageReceiver for WindowsFinderMessageReceiver {
     fn mouse_msg(
         &mut self,
@@ -60,20 +74,20 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
         msg: MouseMsg,
     ) -> MessageReceiverResult<()> {
         match msg {
-            Move { mtype, is_nc } => {
+            MouseMsg::Move { mtype, is_nc } => {
                 if !is_nc && self.state {
                     match mtype {
-                        Move(point) => {
+                        MouseMsgMoveType::Move(point) => {
                             let wnd_point =
                                 Window::from_screen_point(point.window_to_screen(window));
-                            if wnd_point != CURRENT_WND {
-                                erase_window_border(CURRENT_WND);
-                                CURRENT_WND = wnd_point;
+                            if Some(wnd_point) != self.currect_wnd {
+                                erase_window_border(self.currect_wnd);
+                                self.currect_wnd = Some(wnd_point);
                                 window.send_to(
                                     window.parent()?,
-                                    WindowFinderMsg(window.clone(), SelChanged),
+                                    WindowFinderMsg(window.copy_handle(), SelChanged),
                                 );
-                                invert_window(CURRENT_WND);
+                                invert_window(self.currect_wnd);
                             }
                             Ok(())
                         }
@@ -83,28 +97,29 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
                     Err(NoProcessed)
                 }
             }
-            Button {
+            MouseMsg::Button {
                 button_type,
                 state,
                 pos,
                 is_nc,
             } => {
                 if !is_nc {
-                    match btype {
+                    match button_type {
                         Left => match state {
                             Down | DoubleClick => {
                                 if window.send_to_result(
                                     window.parent()?,
-                                    WindowFinderMsg(window.clone(), Begin),
-                                ) >= 0
+                                    WindowFinderMsg(copy_handle.clone(), Begin),
+                                ) < 0
+                                //返回大于或等于零表示允许继续查找
                                 {
                                     return Err(NoProcessed);
                                 };
                                 self.state = true;
                                 self.from_window(window)
-                                    .change_content(ViewContent::Icon(bitmap2));
-                                CURRENT_WND = wnd_point;
-                                invert_window(CURRENT_WND);
+                                    .change_content(ViewContent::Icon(*bitmap2));
+                                self.currect_wnd = window;
+                                invert_window(self.currect_wnd);
                                 window.set_apture();
                                 window.send_to(
                                     window.parent()?,
@@ -113,12 +128,25 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
                             }
                             Up => {
                                 if self.state {
-                                    self.state = false;
-                                    EndFindToolDrag(window, wParam, lParam);
-                                    window.send_to(
-                                        window.parent()?,
-                                        WindowFinderMsg(window.clone(), End),
-                                    );
+                                    if let Some(c_wnd) = self.currect_wnd {
+                                        self.state = false;
+                                        {
+                                            window.parent()?;
+                                            InvertWindow(hwndCurrent, fShowHidden);
+                                            ReleaseCapture();
+                                            SetCursor(Cursor::from_system(
+                                                SystemCursor::NormalSelection,
+                                            ));
+                                            self.from_window(window)
+                                                .change_content(ViewContent::Icon(*bitmap1));
+                                        };
+                                        window.send_to(
+                                            window.parent()?,
+                                            WindowFinderMsg(window.clone(), End),
+                                        );
+                                    } else {
+                                        Err(NoProcessed)
+                                    }
                                 } else {
                                     Err(NoProcessed)
                                 }

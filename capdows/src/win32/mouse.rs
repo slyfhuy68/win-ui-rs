@@ -10,14 +10,14 @@ impl Window {
             if result.is_invalid() {
                 None
             } else {
-                Some(Window { handle: result })
+                Some(result.into())
             }
         }
     }
     ///捕获鼠标
     pub fn capture_mouse(&self) {
         unsafe {
-            SetCapture(self.handle);
+            SetCapture(self.handle());
         }
     }
 }

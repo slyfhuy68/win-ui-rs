@@ -14,9 +14,7 @@ pub unsafe extern "system" fn window_proc(
     param2: LPARAM,
 ) -> LRESULT {
     unsafe {
-        let mut window = Window {
-            handle: window_handle,
-        };
+        let mut window = window_handle.into();
         let user_callback_ptr = match get_proc(&window) {
             Ok(x) => x,
             Err(_) => {
@@ -45,12 +43,7 @@ pub unsafe extern "system" fn window_proc(
             windows_porc_default_handler,
         ));
         if msg == WM_DESTROY {
-            let _ = set_proc(
-                &mut Window {
-                    handle: window_handle,
-                },
-                0 as *mut Box<CallBackObj>,
-            );
+            let _ = set_proc(&mut window_handle.into(), 0 as *mut Box<CallBackObj>);
             let _ = Box::from_raw(user_callback_ptr);
         };
         rusult
@@ -66,7 +59,7 @@ pub fn get_proc(wnd: &Window) -> Result<*mut Box<CallBackObj>> {
     }
 }
 fn windows_porc_default_handler(p1: Window, p2: u32, p3: usize, p4: isize) -> isize {
-    unsafe { DefWindowProcW(p1.handle, p2, WPARAM(p3), LPARAM(p4)).0 }
+    unsafe { DefWindowProcW(p1.handle(), p2, WPARAM(p3), LPARAM(p4)).0 }
 }
 unsafe fn msg_handler(
     c: &mut Box<CallBackObj>,
@@ -140,7 +133,7 @@ unsafe fn msg_handler(
                     (param1e & 0xffff) as WindowID,
                 ) {
                     Ok(x) => x,
-                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(NoProcessed) => 0isize,
                     Err(x) => callback_error(c, x),
                 }
             }
@@ -248,7 +241,7 @@ pub unsafe extern "system" fn subclass_porc(
 ) -> LRESULT {
     unsafe {
         let c = &mut *(dwrefdata as *mut Box<CallBackObj>);
-        let w = Window { handle: hwnd };
+        let w = hwnd.into();
         let rusult = LRESULT(msg_handler(
             c,
             w,
@@ -267,5 +260,5 @@ pub unsafe extern "system" fn subclass_porc(
     }
 }
 fn subclass_porc_default_handler(p1: Window, p2: u32, p3: usize, p4: isize) -> isize {
-    unsafe { DefSubclassProc(p1.handle, p2, WPARAM(p3), LPARAM(p4)).0 }
+    unsafe { DefSubclassProc(p1.handle(), p2, WPARAM(p3), LPARAM(p4)).0 }
 }

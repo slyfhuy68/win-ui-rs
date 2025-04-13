@@ -600,7 +600,7 @@ impl Into<WINDOW_EX_STYLE> for NormalWindowExStyles {
         ms_style
     }
 }
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 pub enum WindowType {
     Overlapped {
         style: NormalWindowStyles,
@@ -640,83 +640,85 @@ impl Default for WindowType {
 impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>)> for WindowType {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>) {
         use WindowType::*;
-        match self {
-            Overlapped {
-                style: x,
-                syle_ex: syle_exx,
-                menu: z,
-                onwer: w,
-                is_layered: b,
-            } => {
-                let xx: WINDOW_EX_STYLE = syle_exx.into();
-                let (yy, zz) = x.into();
-                (
-                    yy,
-                    xx | zz,
-                    match z {
-                        Some(x) => Some(x.handle),
-                        None => None,
-                    },
-                    match w {
-                        Some(x) => Some(x.handle),
-                        None => None,
-                    },
-                )
+        unsafe {
+            match self {
+                Overlapped {
+                    style: x,
+                    syle_ex: syle_exx,
+                    menu: z,
+                    onwer: w,
+                    is_layered: b,
+                } => {
+                    let xx: WINDOW_EX_STYLE = syle_exx.into();
+                    let (yy, zz) = x.into();
+                    (
+                        yy,
+                        xx | zz,
+                        match z {
+                            Some(x) => Some(x.handle),
+                            None => None,
+                        },
+                        match w {
+                            Some(x) => Some(x.handle()),
+                            None => None,
+                        },
+                    )
+                }
+                Popup {
+                    style: x,
+                    syle_ex: ms_style,
+                    menu: z,
+                    onwer: w,
+                    is_layered: b,
+                } => {
+                    let mut xx: WINDOW_EX_STYLE = ms_style.into();
+                    let (yy, zz) = x.into();
+                    if b {
+                        xx |= WS_EX_LAYERED;
+                    };
+                    (
+                        yy | WS_POPUP,
+                        xx | zz,
+                        match z {
+                            Some(x) => Some(x.handle),
+                            None => None,
+                        },
+                        match w {
+                            Some(x) => Some(x.handle()),
+                            None => None,
+                        },
+                    )
+                }
+                Child {
+                    style: x,
+                    syle_ex: ms_style,
+                    identifier: z,
+                    parent: w,
+                    is_layered: b,
+                    no_send_notify_to_parent: c,
+                } => {
+                    let mut xx: WINDOW_EX_STYLE = ms_style.into();
+                    let (yy, zz) = x.into();
+                    if b {
+                        xx |= WS_EX_LAYERED;
+                    };
+                    if c {
+                        xx |= WS_EX_NOPARENTNOTIFY;
+                    };
+                    (
+                        yy | WS_CHILD,
+                        xx | zz,
+                        Some(HMENU(z as *mut c_void)),
+                        Some(w.handle()),
+                    )
+                }
+                MessageOnly => (
+                    WINDOW_STYLE(0),
+                    WINDOW_EX_STYLE(0),
+                    None,
+                    Some(HWND_MESSAGE),
+                ),
             }
-            Popup {
-                style: x,
-                syle_ex: ms_style,
-                menu: z,
-                onwer: w,
-                is_layered: b,
-            } => {
-                let mut xx: WINDOW_EX_STYLE = ms_style.into();
-                let (yy, zz) = x.into();
-                if b {
-                    xx |= WS_EX_LAYERED;
-                };
-                (
-                    yy | WS_POPUP,
-                    xx | zz,
-                    match z {
-                        Some(x) => Some(x.handle),
-                        None => None,
-                    },
-                    match w {
-                        Some(x) => Some(x.handle),
-                        None => None,
-                    },
-                )
-            }
-            Child {
-                style: x,
-                syle_ex: ms_style,
-                identifier: z,
-                parent: w,
-                is_layered: b,
-                no_send_notify_to_parent: c,
-            } => {
-                let mut xx: WINDOW_EX_STYLE = ms_style.into();
-                let (yy, zz) = x.into();
-                if b {
-                    xx |= WS_EX_LAYERED;
-                };
-                if c {
-                    xx |= WS_EX_NOPARENTNOTIFY;
-                };
-                (
-                    yy | WS_CHILD,
-                    xx | zz,
-                    Some(HMENU(z as *mut c_void)),
-                    Some(w.handle),
-                )
-            }
-            MessageOnly => (
-                WINDOW_STYLE(0),
-                WINDOW_EX_STYLE(0),
-                None,
-                Some(HWND_MESSAGE),
-            ),
         }
     }
 }
@@ -730,16 +732,14 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>)> for Wind
             Child {
                 style: (style, style_ex).into(),
                 identifier: menu.unwrap_or_default().0 as u16,
-                parent: Window {
-                    handle: w.unwrap_or_default(),
-                },
+                parent: w.unwrap_or_default().into(),
                 is_layered: style_ex.contains(WS_EX_LAYERED),
                 no_send_notify_to_parent: style_ex.contains(WS_EX_NOPARENTNOTIFY),
                 syle_ex: style_ex.into(),
             }
         } else if style.contains(WS_POPUP) {
             let w = match w {
-                Some(x) if !x.is_invalid() => Some(Window { handle: x }),
+                Some(x) if !x.is_invalid() => Some(x.into()),
                 _ => None,
             };
             let menu = match menu {
@@ -758,7 +758,7 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>)> for Wind
             }
         } else {
             let w = match w {
-                Some(x) if !x.is_invalid() => Some(Window { handle: x }),
+                Some(x) if !x.is_invalid() => Some(x.into()),
                 _ => None,
             };
             let menu = match menu {

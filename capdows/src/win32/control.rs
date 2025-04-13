@@ -24,7 +24,7 @@ pub trait Control {
     fn get_window_mut(&mut self) -> &mut Window;
     fn is_self(wnd: &Window) -> Result<bool>;
     fn get_id(&self) -> WindowID {
-        match unsafe {GetDlgCtrlID(self.get_window().handle)}{
+        match unsafe {GetDlgCtrlID(self.get_window().handle())}{
             0 => 0,
             a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
         }
@@ -51,11 +51,7 @@ pub trait UnsafeControlMsg: UnsafeMessage + ControlMsgType {
     where
         Self: Sized;
     unsafe fn is_self(ptr: usize) -> Result<bool> {
-        unsafe {
-            Self::ControlType::is_self(&Window {
-                handle: (*(ptr as *mut NMHDR)).hwndFrom,
-            })
-        }
+        unsafe { Self::ControlType::is_self(&((*(ptr as *mut NMHDR)).hwndFrom.into())) }
     }
 }
 pub trait ControlMsg: UnsafeControlMsg {
@@ -75,7 +71,7 @@ pub struct DefaultNMHDR {
 }
 impl<T: ControlMsg> UnsafeControlMsg for T {
     unsafe fn into_raw(&mut self) -> Result<Either<u16, PtrWapper<*mut NMHDR>>> {
-        let handle = self.get_control().get_window().handle;
+        let handle = unsafe { self.get_control().get_window().handle() };
         let id = self.get_control().get_id() as usize;
         let (code, data) = self.into_raw_control_msg()?;
         if code > 0x7FFF || code < (WM_USER as u16) {

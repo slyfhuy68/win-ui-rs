@@ -1,6 +1,6 @@
 use super::*;
-pub type CallBackObj = dyn MessageReceiver + Sync + 'static;
 use std::any::Any;
+pub type CallBackObj = dyn MessageReceiver + Sync + 'static;
 #[derive(Clone, Eq, PartialEq)]
 pub struct WindowSizeCalcType {
     pub top_align: Option<bool>, //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
@@ -166,7 +166,7 @@ pub trait MessageReceiver {
         Err(NoProcessed)
     } //true 0 false -1
     fn destroy(&mut self, id: usize, window: &mut Window) -> MessageReceiverResult<()> {
-        unsafe { PostQuitMessage(0) };
+        stop_msg_loop();
         Ok(())
     }
     fn class_messages(
@@ -206,7 +206,7 @@ pub trait MessageReceiver {
         Err(NoProcessed) //code = raw_code(大于 0xFFFF) - 0xFFFF，由系统保留
     }
 }
-pub fn msg_loop() -> () {
+pub fn msg_loop() {
     let mut msg = MSG::default();
     unsafe {
         while GetMessageW(&mut msg, None, 0, 0).into() {
@@ -214,6 +214,9 @@ pub fn msg_loop() -> () {
             let _ = DispatchMessageW(&msg);
         }
     }
+}
+pub fn stop_msg_loop() {
+    unsafe { PostQuitMessage(0) };
 }
 // 不实现Copy、Clone
 pub struct RawMessage(pub u32, pub usize, pub isize);
@@ -305,7 +308,7 @@ impl<T: UnsafeControlMsg> UnsafeMessage for T {
             Ok(PtrWapper {
                 ptr: match ptr {
                     Left(l) => {
-                        let handle = self.get_control_unsafe().get_window().handle;
+                        let handle = self.get_control_unsafe().get_window().handle();
                         let id: WindowID = match GetDlgCtrlID(handle){
                     0 => 0,
                     a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),

@@ -3,6 +3,8 @@ use super::*;
 pub struct Icon {
     pub handle: HICON,
 }
+unsafe impl Send for Icon {}
+unsafe impl Sync for Icon {}
 impl Icon {
     pub const unsafe fn null() -> Self {
         Self {
@@ -14,13 +16,13 @@ impl Icon {
     }
     pub fn load_from_module(
         module: ExecutableFile,
-        id: Either<&str, u16>,
+        id: ResourceID,
         width: Option<Size>,
         share: bool,
     ) -> Result<Self> {
         let (pcw, _pcw) = match id {
-            Left(l) => str_to_pcwstr(l),
-            Right(r) => str_to_pcwstr(&("#".to_owned() + &r.to_string())),
+            StringId(l) => str_to_pcwstr(&l),
+            NumberId(r) => str_to_pcwstr(&("#".to_owned() + &r.to_string())),
         };
         let Size(cx, cy) = width.unwrap_or(Size(0, 0));
         Ok(Self {
@@ -54,10 +56,122 @@ impl Into<HICON> for Icon {
         self.handle
     }
 }
+//AI开始--------------
+use std::convert::TryFrom;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum SystemCursor {
+    NormalSelection,     // 32512
+    TextSelection,       // 32513
+    BusyCursor,          // 32514
+    PrecisionSelection,  // 32515
+    AlternateSelection,  // 32516
+    DiagonalResize1,     // 32642
+    DiagonalResize2,     // 32643
+    HorizontalResize,    // 32644
+    VerticalResize,      // 32645
+    MoveCursor,          // 32646
+    Unavailable,         // 32648
+    LinkSelection,       // 32649
+    WorkingInBackground, // 32650
+    HelpSelection,       // 32651
+    LocationSelection,   // 32671
+    PersonSelection,     // 32672
+    PenCursor,           // 32631
+    ScrollNS,            // 32652
+    ScrollEW,            // 32653
+    ScrollAll,           // 32654
+    ScrollN,             // 32655
+    ScrollS,             // 32656
+    ScrollW,             // 32657
+    ScrollE,             // 32658
+    ScrollNW,            // 32659
+    ScrollNE,            // 32660
+    ScrollSW,            // 32661
+    CdArrowCursor,       // 32663
+}
+
+impl Into<u16> for SystemCursor {
+    fn into(self) -> u16 {
+        use SystemCursor::*;
+        match self {
+            NormalSelection => 32512,
+            TextSelection => 32513,
+            BusyCursor => 32514,
+            PrecisionSelection => 32515,
+            AlternateSelection => 32516,
+            DiagonalResize1 => 32642,
+            DiagonalResize2 => 32643,
+            HorizontalResize => 32644,
+            VerticalResize => 32645,
+            MoveCursor => 32646,
+            Unavailable => 32648,
+            LinkSelection => 32649,
+            WorkingInBackground => 32650,
+            HelpSelection => 32651,
+            LocationSelection => 32671,
+            PersonSelection => 32672,
+            PenCursor => 32631,
+            ScrollNS => 32652,
+            ScrollEW => 32653,
+            ScrollAll => 32654,
+            ScrollN => 32655,
+            ScrollS => 32656,
+            ScrollW => 32657,
+            ScrollE => 32658,
+            ScrollNW => 32659,
+            ScrollNE => 32660,
+            ScrollSW => 32661,
+            CdArrowCursor => 32663,
+        }
+    }
+}
+
+impl TryFrom<u16> for SystemCursor {
+    type Error = Error;
+
+    fn try_from(value: u16) -> Result<Self> {
+        use SystemCursor::*;
+        match value {
+            32512 => Ok(NormalSelection),
+            32513 => Ok(TextSelection),
+            32514 => Ok(BusyCursor),
+            32515 => Ok(PrecisionSelection),
+            32516 => Ok(AlternateSelection),
+            32642 => Ok(DiagonalResize1),
+            32643 => Ok(DiagonalResize2),
+            32644 => Ok(HorizontalResize),
+            32645 => Ok(VerticalResize),
+            32646 => Ok(MoveCursor),
+            32648 => Ok(Unavailable),
+            32649 => Ok(LinkSelection),
+            32650 => Ok(WorkingInBackground),
+            32651 => Ok(HelpSelection),
+            32671 => Ok(LocationSelection),
+            32672 => Ok(PersonSelection),
+            32631 => Ok(PenCursor),
+            32652 => Ok(ScrollNS),
+            32653 => Ok(ScrollEW),
+            32654 => Ok(ScrollAll),
+            32655 => Ok(ScrollN),
+            32656 => Ok(ScrollS),
+            32657 => Ok(ScrollW),
+            32658 => Ok(ScrollE),
+            32659 => Ok(ScrollNW),
+            32660 => Ok(ScrollNE),
+            32661 => Ok(ScrollSW),
+            32663 => Ok(CdArrowCursor),
+            _ => Err(win_error!(ERROR_NOT_SUPPORTED)),
+        }
+    }
+}
+//AI结束----------------------------
 #[derive(Clone, PartialEq)]
 pub struct Cursor {
     pub handle: HCURSOR,
 }
+unsafe impl Send for Cursor {}
+unsafe impl Sync for Cursor {}
 impl Cursor {
     pub const unsafe fn null() -> Self {
         Self {
@@ -69,13 +183,13 @@ impl Cursor {
     }
     pub fn load_from_module(
         module: ExecutableFile,
-        id: Either<&str, u16>,
+        id: ResourceID,
         width: Option<Size>,
         share: bool,
     ) -> Result<Self> {
         let (pcw, _pcw) = match id {
-            Left(l) => str_to_pcwstr(l),
-            Right(r) => str_to_pcwstr(&("#".to_owned() + &r.to_string())),
+            StringId(l) => str_to_pcwstr(&l),
+            NumberId(r) => str_to_pcwstr(&("#".to_owned() + &r.to_string())),
         };
         let Size(cx, cy) = width.unwrap_or(Size(0, 0));
         Ok(Self {
@@ -129,7 +243,8 @@ impl Cursor {
     ///| 32661 | ![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAB+SURBVFhH7Y5RCoAwDEN3/0urHS2UuM3NtYKQB/mYqUkKIYQQ8msORZ+xaHY3XL2q0d1rrKAVbp5X624LX4Lh3jPhzTZYggXeRy8EX2DCovrhQp+xaPBNaYVIb4DokxGjAaL0EU8DRKkjZgaI0kbMDhCljKipC+hvhJBFSjkBFEz6BrJLjQwAAAAASUVORK5CYII=) 一个箭头指向西南的滚动光标。 |Y4BCoAwDAP3/0/rWjLYypwTG0HIQZDYrkkRQgghfs0BYL8Fwa5VCR9WYHPAwUGzkLY3m72iHe4VQ/qdOEthFdDPYId5Gn65AuvAD4o7NGbh+G1fLlfhJnqBVbiJWuAu3EQrsBNuohTYDTfRCjwBz4QQgVJO36L6BkIVP2EAAAAASUVORK5CYII=) 一个箭头指向东南的滚动光标。 |
     ///| 32663 | ![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAEdSURBVFhH7ZMBsoMgDAU9ukfzZpRNQkAKzojSTqcukxZJ9G3b/5eHh4dZrOsa6rLWXFJYCIvXtm1SsZ1qDvIpY2QZXgpUIvei4SyN7QnAqMThDVmAtZeow68ING8i3B/sK0vU4T57UkIewrteZkoBebCv4P8BZd/nRgSAvR4prYCkENtSdV9mRgWAaz1uC0DaI8JPwWs5E28dFwDOtLWXgF1QQyDecioc5ME1nNNMApBCPMwEkoTUXQJAj4HuH5stlxgIBwnrQZ8hJGoRjZf+cDhYVB9mdDSLxG1Zl7CYY5jT8fuxiHfoNep2LE4pr9nLxGQsLn/ihF1PpxUmZ8Bej+bRCrH4zwm0MIXP/RQ1Fv89ATCFf/8WrH6JZXkBKJQSEwMUq1cAAAAASUVORK5CYII=)一个箭头 cd 光标。|
 
-    pub fn from_system(id: u16) -> Result<Self> {
+    pub fn from_system(cursor: SystemCursor) -> Result<Self> {
+        let id: u16 = cursor.into();
         Ok(Cursor {
             handle: unsafe { LoadCursorW(None, PCWSTR(id as *mut u16)) }?,
         })
@@ -139,6 +254,8 @@ impl Cursor {
 pub struct Bitmap {
     pub handle: HBITMAP,
 }
+unsafe impl Send for Bitmap {}
+unsafe impl Sync for Bitmap {}
 impl Bitmap {
     pub const unsafe fn null() -> Self {
         Self {

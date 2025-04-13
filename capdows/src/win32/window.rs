@@ -1,8 +1,10 @@
 use super::*;
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Eq, PartialEq)] //不实现Clone
 pub struct Window {
-    pub handle: HWND,
+    handle: HWND,
 }
+unsafe impl Send for Window {}
+unsafe impl Sync for Window {}
 impl From<HWND> for Window {
     fn from(handle: HWND) -> Self {
         Window { handle }
@@ -229,6 +231,30 @@ pub enum WindowAnimateShowType {
     NoActivate(WindowAnimateType),
 }
 impl Window {
+    pub fn parent(&mut self) -> Option<Self> {
+        let hwnd = unsafe { GetAncestor(self.handle, GA_PARENT) };
+        if hwnd.is_invalid() {
+            None
+        } else {
+            Some(hwnd.into())
+        }
+    }
+    pub fn root_parent(&mut self) -> Option<Self> {
+        let hwnd = unsafe { GetAncestor(self.handle, GA_ROOT) };
+        if hwnd.is_invalid() {
+            None
+        } else {
+            Some(hwnd.into())
+        }
+    }
+    pub fn copy_handle(&self) -> Self {
+        Self {
+            handle: self.handle,
+        }
+    }
+    pub unsafe fn handle(&self) -> HWND {
+        self.handle
+    }
     pub fn adjust_window_rect(
         rect: Rectangle,
         wtype: WindowType,

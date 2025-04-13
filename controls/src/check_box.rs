@@ -174,8 +174,15 @@ impl CheckBox {
         if !Self::is_self(&self.0)? {
             return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
         }
-        let result =
-            unsafe { SendMessageW(self.0.handle, BM_GETCHECK, Some(WPARAM(0)), Some(LPARAM(0))).0 };
+        let result = unsafe {
+            SendMessageW(
+                self.0.handle(),
+                BM_GETCHECK,
+                Some(WPARAM(0)),
+                Some(LPARAM(0)),
+            )
+            .0
+        };
         match DLG_BUTTON_CHECK_STATE(match result.try_into() {
             Ok(x) => x,
             Err(_) => return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), "")),

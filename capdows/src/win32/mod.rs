@@ -35,6 +35,8 @@ use module::*;
 pub mod msg;
 use msg::*;
 mod proc;
+// mod raw_impl;
+// use raw_impl::*;
 use proc::*;
 pub mod prop;
 pub mod style;
@@ -80,10 +82,10 @@ pub mod core {
     }
     impl Point {
         ///以窗口左上角为原点  
-        ///以屏幕右、上为正方向，与系统语言方向***无关***，除非创建窗口时指定[`crate::style::NormalWindowExStyles::right_layout`]为true
+        ///以屏幕右、上为正方向，如果创建窗口时指定[`crate::style::NormalWindowExStyles::right_layout`]为false，则与系统语言方向***无关***
         pub fn window_to_screen(&mut self, wnd: &Window) -> Result<Self> {
             let mut point = (*self).into();
-            if unsafe { ClientToScreen(wnd.handle, &mut point) }.0 != 0 {
+            if unsafe { ClientToScreen(wnd.handle(), &mut point) }.0 != 0 {
                 Err(Error::from_win32())
             } else {
                 Ok(point.into())

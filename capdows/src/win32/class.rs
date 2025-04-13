@@ -93,24 +93,23 @@ impl WindowClass {
         };
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
-        let result = Window {
-            handle: unsafe {
-                CreateWindowExW(
-                    ex_style,
-                    cname,
-                    wname,
-                    style,
-                    x,
-                    y,
-                    width,
-                    height,
-                    parent,
-                    menu,
-                    Some(hinstance),
-                    Some(ptr as *const c_void),
-                )?
-            },
-        };
+        let result = unsafe {
+            CreateWindowExW(
+                ex_style,
+                cname,
+                wname,
+                style,
+                x,
+                y,
+                width,
+                height,
+                parent,
+                menu,
+                Some(hinstance),
+                Some(ptr as *const c_void),
+            )?
+        }
+        .into();
         Ok(result)
     }
 }

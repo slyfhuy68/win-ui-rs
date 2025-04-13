@@ -322,8 +322,8 @@ impl ImageTextView {
     //get_content\change_content ai+修改
     pub fn get_content(&self) -> Result<ViewContent> {
         unsafe {
-            let style = WINDOW_STYLE(GetWindowLongW(self.0.handle, GWL_STYLE) as u32);
-            let hwnd = self.0.handle;
+            let hwnd = self.0.handle();
+            let style = WINDOW_STYLE(GetWindowLongW(hwnd, GWL_STYLE) as u32);
             if style.contains(WINDOW_STYLE(SS_BITMAP.0)) {
                 let hbitmap = SendMessageW(
                     hwnd,
@@ -382,7 +382,7 @@ impl ImageTextView {
 
     pub fn change_content(&mut self, content: ViewContent) -> Result<()> {
         unsafe {
-            let hwnd = self.0.handle;
+            let hwnd = self.0.handle();
             let (new_style, msg, wparam, lparam) = match content {
                 ViewContent::Text(text) => {
                     let mut style = GetWindowLongW(hwnd, GWL_STYLE);

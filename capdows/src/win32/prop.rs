@@ -21,7 +21,7 @@ impl Iterator for PropCounter {
 impl Window {
     pub fn prop_iter(&self) -> PropCounter {
         let (send_s, recv) = channel();
-        let self_handle = self.handle.0 as usize;
+        let self_handle = unsafe { self.handle().0 as usize };
         let (result_sender, result_receiver) = channel();
         let join = std::thread::spawn(move || {
             let boxed_recv = Box::new((recv, result_sender));
@@ -82,7 +82,7 @@ impl Window {
     }
     pub fn get_prop(&self, key: &str) -> windows::core::Result<usize> {
         let (name, vecname) = str_to_pcwstr(key);
-        match unsafe { GetPropW(self.handle, name).0 } as usize {
+        match unsafe { GetPropW(self.handle(), name).0 } as usize {
             0 => Err(Error::new(HRESULT(ERROR_NOT_FOUND.0 as i32), "")),
             x => Ok(x),
         }
@@ -91,12 +91,12 @@ impl Window {
         let (name, vecname) = str_to_pcwstr(key);
         match value {
             0 => Err(Error::new(HRESULT(ERROR_INVALID_PARAMETER.0 as i32), "")),
-            x => unsafe { SetPropW(self.handle, name, Some(HANDLE(x as *mut c_void))) },
+            x => unsafe { SetPropW(self.handle(), name, Some(HANDLE(x as *mut c_void))) },
         }
     }
     pub fn remove_prop(&mut self, key: &str, value: usize) -> windows::core::Result<usize> {
         let (name, vecname) = str_to_pcwstr(key);
-        match unsafe { RemovePropW(self.handle, name)?.0 } as usize {
+        match unsafe { RemovePropW(self.handle(), name)?.0 } as usize {
             0 => Err(Error::new(HRESULT(ERROR_NOT_FOUND.0 as i32), "")),
             x => Ok(x),
         }

@@ -199,7 +199,7 @@ impl Edit {
         };
         unsafe {
             SendMessageW(
-                self.0.handle,
+                self.0.handle(),
                 EM_SETPASSWORDCHAR,
                 Some(WPARAM(num)),
                 Some(LPARAM(0)),
@@ -214,7 +214,7 @@ impl Edit {
         };
         match char::from_u32(unsafe {
             SendMessageW(
-                self.0.handle,
+                self.0.handle(),
                 EM_GETPASSWORDCHAR,
                 Some(WPARAM(0)),
                 Some(LPARAM(0)),
@@ -229,7 +229,7 @@ impl Edit {
     pub fn get_text(&self) -> Result<String> {
         let length = unsafe {
             SendMessageW(
-                self.0.handle,
+                self.0.handle(),
                 WM_GETTEXTLENGTH,
                 Some(WPARAM(0)),
                 Some(LPARAM(0)),
@@ -246,7 +246,7 @@ impl Edit {
         let mut buffer: Vec<u16> = vec![0; length + 2];
         unsafe {
             SendMessageW(
-                self.0.handle,
+                self.0.handle(),
                 WM_GETTEXT,
                 Some(WPARAM(length + 2)),
                 Some(LPARAM(buffer.as_mut_ptr() as isize)),
@@ -263,7 +263,7 @@ impl Edit {
 
         if unsafe {
             SendMessageW(
-                self.0.handle,
+                self.0.handle(),
                 WM_SETTEXT,
                 Some(WPARAM(0)),
                 Some(LPARAM(text_ptr.0 as isize)),

@@ -521,7 +521,7 @@ impl LinkButton {
     pub fn get_note(&self) -> Result<String> {
         let length = unsafe {
             SendMessageW(
-                self.0.handle,
+                self.0.handle(),
                 BCM_GETNOTELENGTH,
                 Some(WPARAM(0)),
                 Some(LPARAM(0)),
@@ -538,7 +538,7 @@ impl LinkButton {
         let mut buffer: Vec<u16> = vec![0; length + 1];
         unsafe {
             SendMessageW(
-                self.0.handle,
+                self.0.handle(),
                 BCM_GETNOTE,
                 Some(WPARAM(length)),
                 Some(LPARAM(buffer.as_mut_ptr() as isize)),
@@ -555,7 +555,7 @@ impl LinkButton {
 
         if unsafe {
             SendMessageW(
-                self.0.handle,
+                self.0.handle(),
                 BCM_SETNOTE,
                 Some(WPARAM(0)),
                 Some(LPARAM(note_ptr.0 as isize)),

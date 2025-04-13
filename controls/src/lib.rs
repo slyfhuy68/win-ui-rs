@@ -17,7 +17,7 @@ fn style_of(wnd: &Window) -> WINDOW_STYLE {
     WINDOW_STYLE(style_of_raw(wnd) as u32)
 }
 fn style_of_raw(wnd: &Window) -> i32 {
-    unsafe { GetWindowLongW(wnd.handle, GWL_STYLE) as i32 }
+    unsafe { GetWindowLongW(wnd.handle(), GWL_STYLE) as i32 }
 }
 fn new_control(
     wnd: &mut Window,
@@ -31,29 +31,29 @@ fn new_control(
     font: bool,
     no_notify: bool,
 ) -> Result<Window> {
-    let mut xx: WINDOW_EX_STYLE = style_ex.into();
-    let (mut yy, zz) = style.into();
-    if no_notify {
-        xx |= WS_EX_NOPARENTNOTIFY;
-    };
-    yy |= WS_CHILD | control_style_ms;
-    xx |= zz;
-    let ex_style = xx;
-    let w_style = yy;
-    let id = Some(HMENU(id as *mut c_void));
-    let parent = Some(wnd.handle);
-    let (ptr, _ptr_raw) = str_to_pcwstr(name);
-    let (cptr, _cptr_raw) = str_to_pcwstr(control_name);
-    let (Point(x, y), Size(width, height)) = match pos {
-        None => (
-            Point(CW_USEDEFAULT, CW_USEDEFAULT),
-            Size(CW_USEDEFAULT, CW_USEDEFAULT),
-        ),
-        Some(x) => x.get_size(),
-    };
-    let hinstance = HINSTANCE(unsafe { GetWindowLongW(wnd.handle, GWL_HINSTANCE) as *mut c_void });
-    let hwnd = unsafe {
-        CreateWindowExW(
+    unsafe {
+        let mut xx: WINDOW_EX_STYLE = style_ex.into();
+        let (mut yy, zz) = style.into();
+        if no_notify {
+            xx |= WS_EX_NOPARENTNOTIFY;
+        };
+        yy |= WS_CHILD | control_style_ms;
+        xx |= zz;
+        let ex_style = xx;
+        let w_style = yy;
+        let id = Some(HMENU(id as *mut c_void));
+        let parent = Some(wnd.handle());
+        let (ptr, _ptr_raw) = str_to_pcwstr(name);
+        let (cptr, _cptr_raw) = str_to_pcwstr(control_name);
+        let (Point(x, y), Size(width, height)) = match pos {
+            None => (
+                Point(CW_USEDEFAULT, CW_USEDEFAULT),
+                Size(CW_USEDEFAULT, CW_USEDEFAULT),
+            ),
+            Some(x) => x.get_size(),
+        };
+        let hinstance = HINSTANCE(GetWindowLongW(wnd.handle(), GWL_HINSTANCE) as *mut c_void);
+        let hwnd = CreateWindowExW(
             ex_style,
             cptr,
             ptr,
@@ -66,10 +66,8 @@ fn new_control(
             id,
             Some(hinstance),
             None,
-        )
-    }?;
-    if font {
-        unsafe {
+        )?;
+        if font {
             PostMessageW(
                 Some(hwnd),
                 WM_SETFONT,
@@ -77,8 +75,8 @@ fn new_control(
                 LPARAM(1),
             )?;
         };
-    };
-    Ok(hwnd.into())
+        Ok(hwnd.into())
+    }
 }
 fn new_button(
     wnd: &mut Window,
@@ -108,13 +106,13 @@ fn new_button(
         Some(x) => unsafe {
             let _ = match x {
                 Left(b) => PostMessageW(
-                    Some(wnd.handle),
+                    Some(wnd.handle()),
                     BM_SETIMAGE,
                     WPARAM(IMAGE_BITMAP.0 as usize),
                     LPARAM(b.handle.0 as isize),
                 ),
                 Right(c) => PostMessageW(
-                    Some(wnd.handle),
+                    Some(wnd.handle()),
                     BM_SETIMAGE,
                     WPARAM(IMAGE_ICON.0 as usize),
                     LPARAM(c.handle.0 as isize),
@@ -127,7 +125,7 @@ fn new_button(
 }
 fn is_some_window(wnd: &Window, class: &'static str) -> Result<bool> {
     let mut array1 = vec![0u16; 8];
-    if unsafe { GetClassNameW(wnd.clone().into(), &mut array1[..]) } == 0 {
+    if unsafe { GetClassNameW(wnd.copy_handle().into(), &mut array1[..]) } == 0 {
         return Err(Error::from_win32());
     }
     let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
