@@ -63,6 +63,7 @@ pub mod core {
             }
         }
     }
+    pub use crate::last_error;
     pub use crate::win_error;
     #[derive(Debug, Clone)]
     pub struct Point(pub i32, pub i32);
@@ -197,3 +198,17 @@ macro_rules! win_error {
         Error::new($const.into(), "")
     };
 }
+#[macro_export]
+macro_rules! last_error {
+    ($code:expr) => {{
+        let data = $code;
+        #[allow(unused_unsafe)]
+        let error = unsafe { GetLastError() };
+        if error.is_ok() {
+            Ok(data)
+        } else {
+            Err(win_error!(error))
+        }
+    }};
+}
+pub use std::result::Result as StdResult;

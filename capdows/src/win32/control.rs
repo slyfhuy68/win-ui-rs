@@ -1,15 +1,15 @@
 use super::*;
-use std::any::Any;
+///Windows控件
 pub trait Control {
     type MsgType: UnsafeControlMsg;
     ///应该调用unsafe {Self::is_self(wnd.handle)}检查是否为自身类型的窗口
-    fn from_window(wnd: Window) -> Result<Self>
+    fn from_window(wnd: &Window) -> Result<Self>
     where
         Self: Sized,
     {
         unsafe {
             if Self::is_self(&wnd)? {
-                Ok(Self::force_from_window(wnd))
+                Ok(Self::force_from_window(wnd.copy_handle()))
             } else {
                 Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
             }
@@ -36,16 +36,21 @@ impl<T: Control> From<T> for Window {
         ctl.to_window()
     }
 }
+
 pub trait ControlMsgType {
     type ControlType: Control;
+    fn get_control(&self) -> &Self::ControlType;
+    fn get_control_mut(&mut self) -> &mut Self::ControlType;
 }
+///控件消息
 ///表示lParam不为零的WM_COMMAND消息和表示lParam不为零的WM_NOTIFY消息
-pub trait UnsafeControlMsg: UnsafeMessage + ControlMsgType {
+///对于此trait来说，它的OwnerType必须是NMHDR或将 NMHDR 结构体作为其第一个成员的较大结构体，否则会导致未定义行为
+pub trait UnsafeControlMsg:UnsafeMessage + ControlMsgType {
+    type ControlOwnerType: AsRef<RawMessage>;
     ///Left:WM_COMMAND的WPARAM的HIWORD, Right:指向 NMHDR 结构或将 NMHDR 结构作为其第一个成员的较大的未实现Unpin的结构的指针, WM_NOTIFY
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, PtrWapper<*mut NMHDR>>>;
-    ///获取发送消息的控件
-    unsafe fn get_control_unsafe(&self) -> &Self::ControlType;
-    unsafe fn get_control_mut_unsafe(&mut self) -> &mut Self::ControlType;
+    unsafe fn into_raw(
+        self,
+    ) -> Result<Either<u16, Self::ControlOwnerType>>;
     ///给你一个指向 NMHDR 结构或将 NMHDR 结构作为其第一个成员的较大结构的指针。返回一个自身实例(不检查)
     unsafe fn from_msg(ptr: usize, command: bool) -> Result<Self>
     where
@@ -55,22 +60,36 @@ pub trait UnsafeControlMsg: UnsafeMessage + ControlMsgType {
     }
 }
 pub trait ControlMsg: UnsafeControlMsg {
-    fn into_raw_control_msg(&mut self) -> Result<(u16, Option<&mut dyn Any>)>;
-    ///获取发送消息的控件
-    fn get_control(&self) -> &Self::ControlType;
-    fn get_control_mut(&mut self) -> &mut Self::ControlType;
-    ///建议使用std::borrow::Cow
-    fn from_raw_control_msg(code: u16, data: Option<&mut dyn Any>) -> Result<Self>
+    type ControlMsgDataType;
+    fn into_raw_control_msg(self) -> Result<(u16, Option<Self::ControlMsgDataType>)>;
+    fn from_raw_control_msg(code: u16, data: Option<&mut Self::ControlMsgDataType>) -> Result<Self>
     where
         Self: Sized;
 }
 #[repr(C)]
-pub struct DefaultNMHDR {
-    pub nmhdr: NMHDR,
-    pub data: *mut dyn Any,
+pub struct UnsafeControlMsgDefaultOwner<T> {
+    pub nmhdr: DefaultNMHDR<T>,
+    pub data: RawMessage,
 }
-impl<T: ControlMsg> UnsafeControlMsg for T {
-    unsafe fn into_raw(&mut self) -> Result<Either<u16, PtrWapper<*mut NMHDR>>> {
+#[repr(C)]
+pub struct DefaultNMHDR<T> {
+    pub nmhdr: NMHDR,
+    pub data: T,
+}
+impl<T:ControlMsg> UnsafeOwnerType{
+    type OwnerType = UnsafeControlMsgDefaultOwner<T::ControlMsgDataType>;
+}
+impl<T:ControlMsg> UnsafeOwnerType{
+    type OwnerType = UnsafeControlMsgDefaultOwner<T::ControlMsgDataType>;
+}
+impl<T> UnsafeControlMsg for T 
+where
+T: ControlMsg,
+T: UnsafeOwnerType<OwnerType = DefaultNMHDR<T::ControlMsgDataType>>{
+    type ControlOwnerType = DefaultNMHDR<T::ControlMsgDataType>;
+    unsafe fn into_raw(
+        self,
+    ) -> Result<Either<u16, Self::ControlOwnerType>> {
         let handle = unsafe { self.get_control().get_window().handle() };
         let id = self.get_control().get_id() as usize;
         let (code, data) = self.into_raw_control_msg()?;
@@ -81,27 +100,17 @@ impl<T: ControlMsg> UnsafeControlMsg for T {
         }
         match data {
             None => Ok(Left(code)),
-            Some(data) => Ok(Right({
-                let mut nmhdr = Box::new(DefaultNMHDR {
+            Some(data) => Ok(Right(
+                DefaultNMHDR {
                     nmhdr: NMHDR {
                         hwndFrom: handle,
                         idFrom: id,
                         code: (code as u32) + WM_USER - 1,
                     },
-                    data: data as *mut dyn Any,
-                });
-                PtrWapper {
-                    ptr: nmhdr.as_mut() as *mut DefaultNMHDR as *mut NMHDR,
-                    owner: nmhdr,
+                    data: data,
                 }
-            })),
+            )),
         }
-    }
-    unsafe fn get_control_unsafe(&self) -> &T::ControlType {
-        self.get_control() as &T::ControlType
-    }
-    unsafe fn get_control_mut_unsafe(&mut self) -> &mut T::ControlType {
-        self.get_control_mut() as &mut T::ControlType
     }
     //ptr:指向DefaultNMHDR的指针
     unsafe fn from_msg(ptr: usize, command: bool) -> Result<Self>
@@ -113,10 +122,10 @@ impl<T: ControlMsg> UnsafeControlMsg for T {
                 let msg_ptr = ptr as *const NMHDR;
                 T::from_raw_control_msg(((*(msg_ptr)).code - WM_USER + 1) as u16, None)
             } else {
-                let msg_ptr = ptr as *const DefaultNMHDR;
+                let msg_ptr = ptr as *mut DefaultNMHDR<T::ControlMsgDataType>;
                 T::from_raw_control_msg(
                     ((*(msg_ptr)).nmhdr.code - WM_USER + 1) as u16,
-                    Some(&mut *(*(msg_ptr)).data),
+                    Some(&mut (*(msg_ptr)).data),
                 )
             }
         }

@@ -9,6 +9,7 @@ edition.workspace = true
 
 [dependencies]
 either = "1.14.0"
+tokio = { version = "1.44.2", features = ["rt"] }
 
 
 [dependencies.windows]

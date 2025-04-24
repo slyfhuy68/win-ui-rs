@@ -1,5 +1,4 @@
 use super::*;
-use std::any::Any;
 pub type CallBackObj = dyn MessageReceiver + Sync + 'static;
 #[derive(Clone, Eq, PartialEq)]
 pub struct WindowSizeCalcType {
@@ -218,8 +217,42 @@ pub fn msg_loop() {
 pub fn stop_msg_loop() {
     unsafe { PostQuitMessage(0) };
 }
-// 不实现Copy、Clone
-pub struct RawMessage(pub u32, pub usize, pub isize);
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+#[derive(Copy, Clone)]
+pub struct RawMessage(
+    ///消息代码
+    pub u32, 
+    ///wparam
+    pub usize, 
+    ///lparam
+    pub isize
+);
 impl RawMessage {
     pub fn get_msg<T: UnsafeMessage>(&mut self) -> Result<T> {
         unsafe {
@@ -235,7 +268,8 @@ impl RawMessage {
     }
 }
 ///注意为此类型实现Clone时，也要克隆指针指向的数据
-pub trait UnsafeMessage {
+pub trait UnsafeMessage: UnsafeOwnerType + Send + Sync{
+    type OwnerType: AsRef<RawMessage>;
     ///给你一个RawMessage,判断是否为自身类型消息
     unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool>;
     ///给你一个RawMessage, 返回一个自身实例(***不检查***)
@@ -243,11 +277,12 @@ pub trait UnsafeMessage {
     where
         Self: Sized;
     ///转换成RawMessage,self如果存在则RawMessage里的指针（如有）指向的内容一定存在，self被Drop时，应释放指针内容避免内存泄漏
-    unsafe fn into_raw_msg(&mut self) -> Result<PtrWapper<RawMessage, Option<Box<dyn Any>>>>;
+    unsafe fn into_raw_msg(self) -> Result<Self::OwnerType>;
 }
 pub trait CustomMessage: UnsafeMessage {
-    fn into_raw_parts(&mut self) -> Result<(u32, Option<&mut dyn Any>)>;
-    fn from_raw_parts(code: u32, data: Option<&mut dyn Any>) -> Result<Self>
+    type DataType;
+    fn into_raw_parts(self) -> Result<(u32, Self::DataType)>;
+    fn from_raw_parts(code: u32, data: Self::DataType) -> Result<Self>
     where
         Self: Sized;
 }
@@ -274,7 +309,7 @@ pub trait CustomMessage: UnsafeMessage {
 //             Self::from_raw_parts(code, data)
 //         }
 //     }
-//     unsafe fn into_raw_msg(&mut self) -> Result<PtrWapper<RawMessage, Option<Box<dyn Any>>>> {
+//     unsafe fn into_raw_msg(&mut self) -> Result<Self::OwnerType> {
 //         let (code, data) = self.into_raw_parts()?;
 //         let (wapper, dataa) = match data {
 //             Some(x) => {
@@ -291,8 +326,8 @@ pub trait CustomMessage: UnsafeMessage {
 //         })
 //     }
 // }
-// 注释掉了，原因见https://github.com/rust-lang/rust/issues/31844
-// 和https://internals.rust-lang.org/t/priorities-for-trait-implementations
+// 注释掉了，原因见https://internals.rust-lang.org/t/priorities-for-trait-implementations
+// 和https://github.com/rust-lang/rust/issues/37653#issuecomment-749178040
 pub trait ShareMessage: CustomMessage {
     ///同一个结构体/枚举表示同一个字符串，注意: 最多同时存在16384（0xFFFF-0xC000+1）个不同的字符串，超出时RegisterWindowMessage将返回0
     fn get_string(&self) -> &str;
@@ -302,26 +337,32 @@ pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
 impl<T: UnsafeControlMsg> UnsafeMessage for T {
-    unsafe fn into_raw_msg(&mut self) -> Result<PtrWapper<RawMessage, Option<Box<dyn Any>>>> {
+    unsafe fn into_raw_msg(self) -> Result<Self::OwnerType> {
         unsafe {
+            let handle = self.get_control().get_window().handle();
             let ptr = self.into_raw()?;
-            Ok(PtrWapper {
-                ptr: match ptr {
-                    Left(l) => {
-                        let handle = self.get_control_unsafe().get_window().handle();
+            Ok(match ptr {
+                Left(l) => PtrWapper {
+                    ptr: {
                         let id: WindowID = match GetDlgCtrlID(handle){
-                    0 => 0,
-                    a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
-                };
+                            0 => 0,
+                            a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
+                        };
                         RawMessage(
                             WM_COMMAND,
                             ((l as usize) << 16) | (id as usize),
                             handle.0 as isize,
                         )
-                    }
-                    Right(r) => RawMessage(WM_NOTIFY, 0, r.ptr as isize),
+                    },
+                    owner: None,
                 },
-                owner: None,
+                Right(r) => {
+                    let PtrWapper {ptr, owner} = r;
+                    PtrWapper {
+                        ptr: RawMessage(WM_NOTIFY, 0, &mut owner as isize),
+                        owner: Some(owner),
+                    }
+                }
             })
         }
     }

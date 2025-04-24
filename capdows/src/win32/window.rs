@@ -231,7 +231,7 @@ pub enum WindowAnimateShowType {
     NoActivate(WindowAnimateType),
 }
 impl Window {
-    pub fn parent(&mut self) -> Option<Self> {
+    pub fn parent(&self) -> Option<Self> {
         let hwnd = unsafe { GetAncestor(self.handle, GA_PARENT) };
         if hwnd.is_invalid() {
             None
@@ -239,7 +239,7 @@ impl Window {
             Some(hwnd.into())
         }
     }
-    pub fn root_parent(&mut self) -> Option<Self> {
+    pub fn root_parent(&self) -> Option<Self> {
         let hwnd = unsafe { GetAncestor(self.handle, GA_ROOT) };
         if hwnd.is_invalid() {
             None
@@ -364,7 +364,7 @@ impl Window {
             return Err(win_error!(ERROR_NOT_SUPPORTED));
         }
         unsafe {
-            let ptr = self.get_msg_receiver_mut(id)? as *mut Box<CallBackObj>;
+            let ptr = self.get_msg_receiver_mut(id)? as *mut CallBackObj;
             if RemoveWindowSubclass(self.handle, Some(subclass_porc), id).into() {
                 let _ = Box::from_raw(ptr);
                 Ok(())
@@ -392,10 +392,10 @@ impl Window {
             }
         }
     }
-    pub fn get_msg_receiver(&self, id: usize) -> Result<&Box<CallBackObj>> {
+    pub fn get_msg_receiver(&self, id: usize) -> Result<&CallBackObj> {
         unsafe {
             if id == 0 {
-                return Ok(&*(get_proc(&self)?));
+                return Ok((*(get_proc(&self)?)).as_ref());
             };
             let mut data: usize = 0usize;
             if GetWindowSubclass(
@@ -406,20 +406,20 @@ impl Window {
             )
             .into()
             {
-                Ok(&*(data as *const Box<CallBackObj>))
+                Ok((*(data as *const Box<CallBackObj>)).as_ref())
             } else {
                 Err(win_error!(ERROR_INVALID_PARAMETER))
             }
         }
     }
-    pub fn get_msg_receiver_mut(&mut self, id: usize) -> Result<&mut Box<CallBackObj>> {
+    pub fn get_msg_receiver_mut(&mut self, id: usize) -> Result<&mut CallBackObj> {
         unsafe {
             if id == 0 {
-                return Ok(&mut *(get_proc(&self)?));
+                return Ok((*(get_proc(&self)?)).as_mut());
             };
             let mut data: usize = 0usize;
             if GetWindowSubclass(self.handle, Some(subclass_porc), id, Some(&mut data)).into() {
-                Ok(&mut *(data as *mut Box<CallBackObj>))
+                Ok((*(data as *mut Box<CallBackObj>)).as_mut())
             } else {
                 Err(win_error!(ERROR_INVALID_PARAMETER))
             }
@@ -465,62 +465,103 @@ pub fn allow_set_foreground_window(pid: Option<u32>) -> Result<()> {
 pub fn have_any_popup_window() -> bool {
     unsafe { AnyPopup() }.as_bool()
 }
-// pub struct SetWindowsPosCallbackResult(pub HDWP);
-// pub fn set_windows_pos<F>(mut cb:F, mut num:u16) -> Result<()>//BeginDeferWindowPos/DeferWindowPos/EndDeferWindowPos
-//     where
-//         F: FnMut(Box<dyn FnOnce(Window, Option<WindowZpos>, Option<Point>, Option<Size>, WindowPosType) -> Result<SetWindowsPosCallbackResult>>) -> Result<SetWindowsPosCallbackResult>
-// {
-//     let mut dp1 = unsafe {
-//         BeginDeferWindowPos(num as i32)?
-//         };
-//         while num > 0 {
-//             let defer = move |wnd:Window, p:Option<WindowZpos>, xy:Option<Point>, wh:Option<Size>, t:WindowPosType| -> Result<SetWindowsPosCallbackResult> {
-//                 let mut flag: SET_WINDOW_POS_FLAGS = t.into();
-//                 let Point(x, y) = if let Some(z) = xy {z} else {flag|= SWP_NOREPOSITION;Point(0, 0)};
-//                 let Size(w, h) = if let Some(z) = wh {z} else {flag|= SWP_NOSIZE;Size(0, 0)};
-//                 unsafe{
-//                     Ok(SetWindowsPosCallbackResult(DeferWindowPos(dp1,
-//                         wnd.into(),
-//                         Some(if let Some(x) = p {x.into()} else {flag|= SWP_NOZORDER;HWND(0isize as *mut c_void)}),
-//                         x, y, w, h,
-//                         flag)?))
-//                 }
-//             };
-//             let SetWindowsPosCallbackResult(dp1) = cb(Box::new(defer))?;
-//             num -= 1;
+// use std::fmt;
+// pub struct WindowRawMsgFuture {
+//     join_handle: tokio::task::JoinHandle<Result<isize>>,
+// }
+// impl fmt::Debug for WindowRawMsgFuture {
+//     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         self.join_handle.fmt(fmt)
+//     }
+// }
+// use std::pin::Pin;
+// use std::task::Context;
+// use std::task::Poll;
+// impl Future for WindowRawMsgFuture {
+//     type Output = Result<isize>;
+//     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+//         match self.join_handle.poll(self, cx) {
+//             Poll::Pending => Poll::Pending,
+//             Poll::Ready(Err(_)) => Poll::Ready(Err(win_error!(ERROR_INTERNAL_ERROR))),
+//             Poll::Ready(Ok(x)) => Poll::Ready(x),
 //         }
-//         unsafe {
-//         EndDeferWindowPos(dp1)}
-//
-// }
-//
-// pub fn set_windows_pos<F>(mut cb:F, mut num:u16) -> Result<()>
-// where
-//     F: FnMut(HDWP, Box<dyn FnOnce(Window, Option<WindowZpos>, Option<Point>, Option<Size>, WindowPosType) -> Result<SetWindowsPosCallbackResult>>) -> Result<SetWindowsPosCallbackResult>
-// {
-//     let mut dp1 = unsafe { BeginDeferWindowPos(num as i32)? };
-//
-//     while num > 0 {
-//         // 创建一个闭包，该闭包接收 dp1 并在内部使用它。
-//         let defer = move |wnd:Window, p:Option<WindowZpos>, xy:Option<Point>, wh:Option<Size>, t:WindowPosType| -> Result<SetWindowsPosCallbackResult> {
-//             let mut flag: SET_WINDOW_POS_FLAGS = t.into();
-//             let Point(x, y) = if let Some(z) = xy {z} else {flag|= SWP_NOREPOSITION;Point(0, 0)};
-//             let Size(w, h) = if let Some(z) = wh {z} else {flag|= SWP_NOSIZE;Size(0, 0)};
-//             unsafe {
-//                 Ok(SetWindowsPosCallbackResult(DeferWindowPos(dp1,
-//                     wnd.into(),
-//                     Some(if let Some(x) = p {x.into()} else {flag|= SWP_NOZORDER;HWND(0isize as *mut c_void)}),
-//                     x, y, w, h,
-//                     flag)?))
-//             }
-//         };
-//
-//         // 更新 dp1 为 cb 返回的新 HDWP 值
-//         let SetWindowsPosCallbackResult(dp1) = cb(dp1, Box::new(defer))?;
-//         num -= 1;
-//     }
-//
-//     unsafe {
-//         EndDeferWindowPos(dp1)
 //     }
 // }
+// impl std::panic::RefUnwindSafe for WindowRawMsgFuture {}
+// impl std::panic::UnwindSafe for WindowRawMsgFuture {}
+
+impl Window {
+    pub unsafe fn add_msg_to_queue<C: UnsafeMessage>(&self, msg: C) -> Result<()> {
+        unsafe {
+            let ptr = msg.into_raw_msg()?;
+            let RawMessage(code, wparam, lparam) = ptr.ptr;
+            PostMessageW(Some(self.handle), code, WPARAM(wparam), LPARAM(lparam))
+        }
+    }
+    // pub async unsafe fn send_msg_unsafe_async<C: UnsafeMessage>(&self, msg: C) -> Result<isize> {
+    //     use tokio::task;
+    //     let hwnd = self.handle().0 as usize;
+    //     let ptr = msg.into_raw_msg()?;
+        //    
+    //     /* WindowRawMsgFuture {*/
+    //         let data: StdResult<Result<isize>, tokio::task::JoinError> = /*join_handle: */task::spawn_blocking(move || unsafe {
+    //             let RawMessage(code, wparam, lparam) = ptr.ptr;
+    //             last_error!(
+    //                 SendMessageW(
+    //                     HWND(hwnd as *mut c_void),
+    //                     code,
+    //                     Some(WPARAM(wparam)),
+    //                     Some(LPARAM(lparam))
+    //                 )
+    //                 .0
+    //             )
+    //         })/*,*/.await;
+    //     // }
+    //     match data {
+    //         Err(_) => Err(win_error!(ERROR_INTERNAL_ERROR)),
+    //         Ok(x) => x,
+    //     }
+    // }
+    pub unsafe fn send_msg_unsafe<C: UnsafeMessage>(&self, msg: C) -> Result<isize> {
+        unsafe {
+            let ptr = msg.into_raw_msg()?;
+            let RawMessage(code, wparam, lparam) = ptr.ptr;
+            last_error!(
+                SendMessageW(
+                    self.handle,
+                    code,
+                    Some(WPARAM(wparam)),
+                    Some(LPARAM(lparam))
+                )
+                .0
+            )
+        }
+    }
+}
+impl Window {
+    ///向自己的父窗口发送控件消息（在编写控件时使用，阻塞）
+    pub fn send_control_msg<M: UnsafeControlMsg>(&self, msg: M) -> Result<isize> {
+        unsafe {
+            self.parent()
+                .ok_or(win_error!(ERROR_INVALID_PARAMETER))?
+                .send_msg_unsafe(msg)
+        }
+    }
+    // ///向自己的父窗口发送控件消息（异步版）
+    // pub async fn send_control_msg_async<M: UnsafeControlMsg>(&self, msg: M) -> Result<isize> {
+    //     unsafe {
+    //         self.parent()
+    //             .ok_or(win_error!(ERROR_INVALID_PARAMETER))?
+    //             .send_msg_unsafe_async(msg)
+    //             .await
+    //     }
+    // }
+    ///向自己的父窗口发送控件消息（不获取返回值）
+    pub fn send_control_nofiy<M: UnsafeControlMsg>(&self, msg: M) -> Result<()> {
+        unsafe {
+            self.parent()
+                .ok_or(win_error!(ERROR_INVALID_PARAMETER))?
+                .add_msg_to_queue(msg)
+        }
+    }
+}

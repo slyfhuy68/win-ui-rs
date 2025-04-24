@@ -116,14 +116,6 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                 unsafe #into_raw_block
             }
 
-            unsafe fn get_control_unsafe(&self) -> &Self::ControlType {
-                &self.control
-            }
-
-            unsafe fn get_control_mut_unsafe(&mut self) -> &mut Self::ControlType {
-                &mut self.control
-            }
-
             unsafe fn from_msg(ptr: usize, _command: bool) -> Result<Self> {
                 #[allow(unused_imports)]
                 use #msg_type_name_ident::*;

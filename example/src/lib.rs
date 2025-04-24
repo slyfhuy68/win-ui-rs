@@ -1,12 +1,13 @@
 use capdows::win32::allmods::*;
+use capdows::win32::control::Control;
+use capdows::win32::mouse::release_mouse;
 use capdows_controls::view::*;
 use std::sync::LazyLock;
 pub struct WindowFinder(ImageTextView);
 pub struct WindowsFinderMessageReceiver {
-    state: bool,
     currect_wnd: Option<Window>,
 }
-static bitmap1: LazyLock<Icon> = LazyLock::new(|| {
+static icon_full: LazyLock<Icon> = LazyLock::new(|| {
     Icon::load_from_module(
         ExecutableFile::from_current_file().unwrap(),
         NumberId(3),
@@ -15,7 +16,7 @@ static bitmap1: LazyLock<Icon> = LazyLock::new(|| {
     )
     .unwrap()
 });
-static bitmap2: LazyLock<Icon> = LazyLock::new(|| {
+static icon_empty: LazyLock<Icon> = LazyLock::new(|| {
     Icon::load_from_module(
         ExecutableFile::from_current_file().unwrap(),
         NumberId(2),
@@ -39,10 +40,7 @@ impl WindowFinder {
             window,
             pos,
             id,
-            {
-                set_state(true);
-                ImageTextViewStyle::new_icon(*bitmap1)
-            },
+            ImageTextViewStyle::new_icon(*icon_full),
             Default::default(),
             Default::default(),
             true,
@@ -50,22 +48,19 @@ impl WindowFinder {
         )?;
         view.get_window_mut().add_msg_receiver(
             10,
-            Box::new(WindowsFinderMessageReceiver {
-                state: false,
-                currect_wnd: None,
-            }),
+            Box::new(WindowsFinderMessageReceiver { currect_wnd: None }),
         );
         Ok(Self(view))
     }
 }
-pub enum WindowFinderMsgType<'a> {
+pub enum WindowFinderMsgType {
     Begin,
     SelChanged(Window),
     End,
 }
 use ButtonState::*;
 pub use WindowFinderMsgType::*;
-pub struct WindowFinderMsg<'a>(Window, WindowFinderMsgType<'a>);
+pub struct WindowFinderMsg(Window, WindowFinderMsgType);
 impl MessageReceiver for WindowsFinderMessageReceiver {
     fn mouse_msg(
         &mut self,
@@ -75,23 +70,30 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
     ) -> MessageReceiverResult<()> {
         match msg {
             MouseMsg::Move { mtype, is_nc } => {
-                if !is_nc && self.state {
-                    match mtype {
-                        MouseMsgMoveType::Move(point) => {
-                            let wnd_point =
-                                Window::from_screen_point(point.window_to_screen(window));
-                            if Some(wnd_point) != self.currect_wnd {
-                                erase_window_border(self.currect_wnd);
-                                self.currect_wnd = Some(wnd_point);
-                                window.send_to(
-                                    window.parent()?,
-                                    WindowFinderMsg(window.copy_handle(), SelChanged),
-                                );
-                                invert_window(self.currect_wnd);
+                if !is_nc {
+                    if let Some(_) = self.currect_wnd {
+                        match mtype {
+                            MouseMsgMoveType::Move(point) => {
+                                let wnd_point =
+                                    Window::from_screen_point(point.window_to_screen(window)?);
+                                if wnd_point != self.currect_wnd {
+                                    erase_window_border(self.currect_wnd);
+                                    self.currect_wnd = wnd_point;
+                                    window.send_to(
+                                        window.parent()?,
+                                        WindowFinderMsg(
+                                            window.copy_handle(),
+                                            SelChanged(self.currect_wnd.copy_handle()),
+                                        ),
+                                    );
+                                    draw_window_border(self.currect_wnd);
+                                }
+                                Ok(())
                             }
-                            Ok(())
+                            _ => Err(NoProcessed),
                         }
-                        _ => Err(NoProcessed),
+                    } else {
+                        Err(NoProcessed)
                     }
                 } else {
                     Err(NoProcessed)
@@ -109,44 +111,42 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
                             Down | DoubleClick => {
                                 if window.send_to_result(
                                     window.parent()?,
-                                    WindowFinderMsg(copy_handle.clone(), Begin),
+                                    WindowFinderMsg(window.copy_handle(), Begin),
                                 ) < 0
-                                //返回大于或等于零表示允许继续查找
                                 {
+                                    //返回大于或等于零表示允许继续查找
                                     return Err(NoProcessed);
                                 };
-                                self.state = true;
                                 self.from_window(window)
-                                    .change_content(ViewContent::Icon(*bitmap2));
-                                self.currect_wnd = window;
-                                invert_window(self.currect_wnd);
-                                window.set_apture();
+                                    .change_content(ViewContent::Icon(*icon_empty));
+                                self.currect_wnd = Some(window);
+                                draw_window_border(self.currect_wnd);
+                                window.capture_mouse()?;
                                 window.send_to(
                                     window.parent()?,
-                                    WindowFinderMsg(window.clone(), SelChanged),
+                                    WindowFinderMsg(
+                                        window.copy_handle(),
+                                        SelChanged(window.copy_handle()),
+                                    ),
                                 );
                             }
                             Up => {
-                                if self.state {
-                                    if let Some(c_wnd) = self.currect_wnd {
-                                        self.state = false;
-                                        {
-                                            window.parent()?;
-                                            InvertWindow(hwndCurrent, fShowHidden);
-                                            ReleaseCapture();
-                                            SetCursor(Cursor::from_system(
-                                                SystemCursor::NormalSelection,
-                                            ));
-                                            self.from_window(window)
-                                                .change_content(ViewContent::Icon(*bitmap1));
-                                        };
-                                        window.send_to(
-                                            window.parent()?,
-                                            WindowFinderMsg(window.clone(), End),
-                                        );
-                                    } else {
-                                        Err(NoProcessed)
-                                    }
+                                if let Some(_) = self.currect_wnd {
+                                    {
+                                        window.parent()?;
+                                        erase_window_border(self.currect_wnd);
+                                        release_mouse();
+                                        SetCursor(Cursor::from_system(
+                                            SystemCursor::NormalSelection,
+                                        ));
+                                        self.from_window(window)
+                                            .change_content(ViewContent::Icon(*icon_full));
+                                    };
+                                    window.send_to(
+                                        window.parent()?,
+                                        WindowFinderMsg(window.copy_handle(), End),
+                                    );
+                                    self.currect_wnd = None;
                                 } else {
                                     Err(NoProcessed)
                                 }
