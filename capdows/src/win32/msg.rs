@@ -267,9 +267,12 @@ impl RawMessage {
         self.get_msg::<T::MsgType>()
     }
 }
+pub trait AsMsg {
+    fn as_msg(&self) -> RawMessage;//RawMessage已实现Copy
+}
 ///注意为此类型实现Clone时，也要克隆指针指向的数据
-pub trait UnsafeMessage: UnsafeOwnerType + Send + Sync{
-    type OwnerType: AsRef<RawMessage>;
+pub unsafe trait UnsafeMessage: Send + Sync{
+    type OwnerType: AsMsg;
     ///给你一个RawMessage,判断是否为自身类型消息
     unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool>;
     ///给你一个RawMessage, 返回一个自身实例(***不检查***)
@@ -279,7 +282,7 @@ pub trait UnsafeMessage: UnsafeOwnerType + Send + Sync{
     ///转换成RawMessage,self如果存在则RawMessage里的指针（如有）指向的内容一定存在，self被Drop时，应释放指针内容避免内存泄漏
     unsafe fn into_raw_msg(self) -> Result<Self::OwnerType>;
 }
-pub trait CustomMessage: UnsafeMessage {
+pub trait CustomMessage: /*UnsafeMessage*/Send + Sync {
     type DataType;
     fn into_raw_parts(self) -> Result<(u32, Self::DataType)>;
     fn from_raw_parts(code: u32, data: Self::DataType) -> Result<Self>
@@ -336,14 +339,28 @@ pub trait ShareMessage: CustomMessage {
 pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
-impl<T: UnsafeControlMsg> UnsafeMessage for T {
+pub struct UnsafeControlMsgDefaultOwnerType<D: NotifyMessage>{
+    pub msg: RawMessage, 
+    pub data: Option<D>
+}
+impl<D: NotifyMessage> AsMsg for UnsafeControlMsgDefaultOwnerType<D>{
+    fn as_msg(&self) -> RawMessage{
+        use std::ptr::addr_of;
+        match &self.data{
+            None => self.msg, 
+            Some(d) => RawMessage(self.msg.0, self.msg.1, addr_of!(d) as isize)
+        }
+    }
+}
+unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
+    type OwnerType = UnsafeControlMsgDefaultOwnerType<T::NotifyType>;
     unsafe fn into_raw_msg(self) -> Result<Self::OwnerType> {
         unsafe {
             let handle = self.get_control().get_window().handle();
             let ptr = self.into_raw()?;
             Ok(match ptr {
-                Left(l) => PtrWapper {
-                    ptr: {
+                Left(l) => UnsafeControlMsgDefaultOwnerType {
+                    msg: {
                         let id: WindowID = match GetDlgCtrlID(handle){
                             0 => 0,
                             a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
@@ -354,13 +371,12 @@ impl<T: UnsafeControlMsg> UnsafeMessage for T {
                             handle.0 as isize,
                         )
                     },
-                    owner: None,
+                    data: None,
                 },
                 Right(r) => {
-                    let PtrWapper {ptr, owner} = r;
-                    PtrWapper {
-                        ptr: RawMessage(WM_NOTIFY, 0, &mut owner as isize),
-                        owner: Some(owner),
+                    UnsafeControlMsgDefaultOwnerType {
+                        msg: RawMessage(WM_NOTIFY, 0, 0isize),
+                        data: Some(r),
                     }
                 }
             })
@@ -398,7 +414,6 @@ impl<T: UnsafeControlMsg> UnsafeMessage for T {
                         idFrom: (wparam & 0xffff) as usize,
                         code: ((wparam >> 16) & 0xffff) as u32,
                     };
-                    // println!("dd{}", ((wparam >> 16) & 0xffff) as u32);
                     Self::from_msg(&mut nmhdr as *mut _ as usize, true)
                 }
                 WM_NOTIFY => Self::from_msg(lparam as usize, false),

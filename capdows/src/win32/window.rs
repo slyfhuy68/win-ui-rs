@@ -494,7 +494,7 @@ impl Window {
     pub unsafe fn add_msg_to_queue<C: UnsafeMessage>(&self, msg: C) -> Result<()> {
         unsafe {
             let ptr = msg.into_raw_msg()?;
-            let RawMessage(code, wparam, lparam) = ptr.ptr;
+            let RawMessage(code, wparam, lparam) = ptr.as_msg();
             PostMessageW(Some(self.handle), code, WPARAM(wparam), LPARAM(lparam))
         }
     }
@@ -525,7 +525,7 @@ impl Window {
     pub unsafe fn send_msg_unsafe<C: UnsafeMessage>(&self, msg: C) -> Result<isize> {
         unsafe {
             let ptr = msg.into_raw_msg()?;
-            let RawMessage(code, wparam, lparam) = ptr.ptr;
+            let RawMessage(code, wparam, lparam) = ptr.as_msg();
             last_error!(
                 SendMessageW(
                     self.handle,

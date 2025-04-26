@@ -1,4 +1,7 @@
 use super::*;
+///表示 NMHDR 或将 NMHDR 作为其第一个成员的、#[repr(C)]的较大结构
+pub unsafe trait NotifyMessage{}
+unsafe impl NotifyMessage for NMHDR{}
 ///Windows控件
 pub trait Control {
     type MsgType: UnsafeControlMsg;
@@ -37,20 +40,18 @@ impl<T: Control> From<T> for Window {
     }
 }
 
-pub trait ControlMsgType {
+pub trait ControlMsgType: Send + Sync {
     type ControlType: Control;
     fn get_control(&self) -> &Self::ControlType;
     fn get_control_mut(&mut self) -> &mut Self::ControlType;
 }
 ///控件消息
 ///表示lParam不为零的WM_COMMAND消息和表示lParam不为零的WM_NOTIFY消息
-///对于此trait来说，它的OwnerType必须是NMHDR或将 NMHDR 结构体作为其第一个成员的较大结构体，否则会导致未定义行为
-pub trait UnsafeControlMsg:UnsafeMessage + ControlMsgType {
-    type ControlOwnerType: AsRef<RawMessage>;
+///对于此trait来说，它的OwnerType必须是NMHDR或将 NMHDR 结构体作为其第一个成员的、#[repr(C)]的较大结构体，否则会导致未定义行为
+pub unsafe trait UnsafeControlMsg: /*UnsafeMessage + */ControlMsgType {
+    type NotifyType: NotifyMessage;
     ///Left:WM_COMMAND的WPARAM的HIWORD, Right:指向 NMHDR 结构或将 NMHDR 结构作为其第一个成员的较大的未实现Unpin的结构的指针, WM_NOTIFY
-    unsafe fn into_raw(
-        self,
-    ) -> Result<Either<u16, Self::ControlOwnerType>>;
+    unsafe fn into_raw(self) -> Result<Either<u16, Self::NotifyType>>;
     ///给你一个指向 NMHDR 结构或将 NMHDR 结构作为其第一个成员的较大结构的指针。返回一个自身实例(不检查)
     unsafe fn from_msg(ptr: usize, command: bool) -> Result<Self>
     where
@@ -59,7 +60,7 @@ pub trait UnsafeControlMsg:UnsafeMessage + ControlMsgType {
         unsafe { Self::ControlType::is_self(&((*(ptr as *mut NMHDR)).hwndFrom.into())) }
     }
 }
-pub trait ControlMsg: UnsafeControlMsg {
+pub trait ControlMsg: /*UnsafeControlMsg + */ ControlMsgType{
     type ControlMsgDataType;
     fn into_raw_control_msg(self) -> Result<(u16, Option<Self::ControlMsgDataType>)>;
     fn from_raw_control_msg(code: u16, data: Option<&mut Self::ControlMsgDataType>) -> Result<Self>
@@ -67,29 +68,18 @@ pub trait ControlMsg: UnsafeControlMsg {
         Self: Sized;
 }
 #[repr(C)]
-pub struct UnsafeControlMsgDefaultOwner<T> {
-    pub nmhdr: DefaultNMHDR<T>,
-    pub data: RawMessage,
-}
-#[repr(C)]
 pub struct DefaultNMHDR<T> {
     pub nmhdr: NMHDR,
     pub data: T,
 }
-impl<T:ControlMsg> UnsafeOwnerType{
-    type OwnerType = UnsafeControlMsgDefaultOwner<T::ControlMsgDataType>;
-}
-impl<T:ControlMsg> UnsafeOwnerType{
-    type OwnerType = UnsafeControlMsgDefaultOwner<T::ControlMsgDataType>;
-}
-impl<T> UnsafeControlMsg for T 
+unsafe impl<T> NotifyMessage for DefaultNMHDR<T>{}
+unsafe impl<T> UnsafeControlMsg for T 
 where
-T: ControlMsg,
-T: UnsafeOwnerType<OwnerType = DefaultNMHDR<T::ControlMsgDataType>>{
-    type ControlOwnerType = DefaultNMHDR<T::ControlMsgDataType>;
+T: ControlMsg{
+    type NotifyType = DefaultNMHDR<T::ControlMsgDataType>;
     unsafe fn into_raw(
         self,
-    ) -> Result<Either<u16, Self::ControlOwnerType>> {
+    ) -> Result<Either<u16, Self::NotifyType>> {
         let handle = unsafe { self.get_control().get_window().handle() };
         let id = self.get_control().get_id() as usize;
         let (code, data) = self.into_raw_control_msg()?;
