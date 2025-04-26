@@ -249,6 +249,9 @@ impl Cursor {
             handle: unsafe { LoadCursorW(None, PCWSTR(id as *mut u16)) }?,
         })
     }
+    pub fn apply(self){unsafe {
+        SetCursor(Some(self.into()))};
+    }
 }
 #[derive(Clone, PartialEq)]
 pub struct Bitmap {

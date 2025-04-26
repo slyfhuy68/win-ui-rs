@@ -3,11 +3,12 @@ resolver = "3"
 members = [
     "capdows",
     "controls",
-    "example", "macros",
+    "example", 
+    "macros",
     "res"
 ]
 [workspace.package]
 authors = ["slyfhuy68(github.com)"]
-version = "0.0.2"
+version = "0.0.1"
 license = "MIT OR Apache-2.0"
 edition = "2024"

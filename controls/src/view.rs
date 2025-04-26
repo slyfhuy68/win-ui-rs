@@ -251,10 +251,10 @@ struct NMHDRSTATIC {
     DC: HANDLE,
 }
 pub enum ImageTextViewMsgType {
-    Clicked,        //WM_COMMAND
-    DoubleClicked,  //WM_COMMAND
-    Disable,        //WM_COMMAND
-    Enable,         //WM_COMMAND
+    Clicked,       //WM_COMMAND
+    DoubleClicked, //WM_COMMAND
+    Disable,       //WM_COMMAND
+    Enable,        //WM_COMMAND
     Colour(usize), //WM_CTLCOLORSTATIC
 }
 define_control! {
