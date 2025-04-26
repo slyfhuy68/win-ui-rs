@@ -502,7 +502,7 @@ impl Window {
     //     use tokio::task;
     //     let hwnd = self.handle().0 as usize;
     //     let ptr = msg.into_raw_msg()?;
-        //    
+    //
     //     /* WindowRawMsgFuture {*/
     //         let data: StdResult<Result<isize>, tokio::task::JoinError> = /*join_handle: */task::spawn_blocking(move || unsafe {
     //             let RawMessage(code, wparam, lparam) = ptr.ptr;

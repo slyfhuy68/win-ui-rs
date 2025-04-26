@@ -108,10 +108,17 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
         impl ControlMsgType for #msg_name_ident {
             type ControlType = #control_name;
+                fn get_control(&self) -> &Self::ControlType{
+                    &self.control
+                }
+    fn get_control_mut(&mut self) -> &mut Self::ControlType{
+        &mut self.control
+    }
         }
 
-        impl UnsafeControlMsg for #msg_name_ident {
-            unsafe fn into_raw(&mut self) -> Result<Either<u16, PtrWapper<*mut NMHDR>>> {
+        unsafe impl UnsafeControlMsg for #msg_name_ident {
+            type NotifyType = NMHDR;
+            unsafe fn into_raw(self) -> Result<Either<u16, Self::NotifyType>>{
                 #[allow(unused_unsafe)]
                 unsafe #into_raw_block
             }

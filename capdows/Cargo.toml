@@ -4,8 +4,6 @@ authors.workspace = true
 version.workspace = true
 license.workspace = true
 edition.workspace = true
-[features]
-
 
 [dependencies]
 either = "1.14.0"

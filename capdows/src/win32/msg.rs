@@ -247,11 +247,11 @@ pub fn stop_msg_loop() {
 #[derive(Copy, Clone)]
 pub struct RawMessage(
     ///消息代码
-    pub u32, 
+    pub u32,
     ///wparam
-    pub usize, 
+    pub usize,
     ///lparam
-    pub isize
+    pub isize,
 );
 impl RawMessage {
     pub fn get_msg<T: UnsafeMessage>(&mut self) -> Result<T> {
@@ -268,10 +268,10 @@ impl RawMessage {
     }
 }
 pub trait AsMsg {
-    fn as_msg(&self) -> RawMessage;//RawMessage已实现Copy
+    fn as_msg(&self) -> RawMessage; //RawMessage已实现Copy
 }
 ///注意为此类型实现Clone时，也要克隆指针指向的数据
-pub unsafe trait UnsafeMessage: Send + Sync{
+pub unsafe trait UnsafeMessage: Send + Sync {
     type OwnerType: AsMsg;
     ///给你一个RawMessage,判断是否为自身类型消息
     unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool>;
@@ -339,16 +339,16 @@ pub trait ShareMessage: CustomMessage {
 pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
-pub struct UnsafeControlMsgDefaultOwnerType<D: NotifyMessage>{
-    pub msg: RawMessage, 
-    pub data: Option<D>
+pub struct UnsafeControlMsgDefaultOwnerType<D: NotifyMessage> {
+    pub msg: RawMessage,
+    pub data: Option<D>,
 }
-impl<D: NotifyMessage> AsMsg for UnsafeControlMsgDefaultOwnerType<D>{
-    fn as_msg(&self) -> RawMessage{
+impl<D: NotifyMessage> AsMsg for UnsafeControlMsgDefaultOwnerType<D> {
+    fn as_msg(&self) -> RawMessage {
         use std::ptr::addr_of;
-        match &self.data{
-            None => self.msg, 
-            Some(d) => RawMessage(self.msg.0, self.msg.1, addr_of!(d) as isize)
+        match &self.data {
+            None => self.msg,
+            Some(d) => RawMessage(self.msg.0, self.msg.1, addr_of!(d) as isize),
         }
     }
 }
@@ -373,12 +373,10 @@ unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
                     },
                     data: None,
                 },
-                Right(r) => {
-                    UnsafeControlMsgDefaultOwnerType {
-                        msg: RawMessage(WM_NOTIFY, 0, 0isize),
-                        data: Some(r),
-                    }
-                }
+                Right(r) => UnsafeControlMsgDefaultOwnerType {
+                    msg: RawMessage(WM_NOTIFY, 0, 0isize),
+                    data: Some(r),
+                },
             })
         }
     }

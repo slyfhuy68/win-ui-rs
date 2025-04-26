@@ -255,7 +255,7 @@ pub enum ImageTextViewMsgType {
     DoubleClicked,  //WM_COMMAND
     Disable,        //WM_COMMAND
     Enable,         //WM_COMMAND
-    Colour(HANDLE), //WM_CTLCOLORSTATIC
+    Colour(usize), //WM_CTLCOLORSTATIC
 }
 define_control! {
     ImageTextView,
@@ -267,8 +267,8 @@ define_control! {
                 STN_DISABLE => Disable,
                 STN_ENABLE => Enable,
                 WM_CTLCOLORSTATIC => {
-                    let nmhdr = (*(ptr as *mut NMHDRSTATIC)).DC;
-                    Colour(nmhdr)
+                    let nmhdr = (*(ptr as *mut NMHDRSTATIC)).DC.0;
+                    Colour(nmhdr as usize)
                 }
                 _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
             }

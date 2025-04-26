@@ -1,7 +1,7 @@
 use super::*;
 ///表示 NMHDR 或将 NMHDR 作为其第一个成员的、#[repr(C)]的较大结构
-pub unsafe trait NotifyMessage{}
-unsafe impl NotifyMessage for NMHDR{}
+pub unsafe trait NotifyMessage {}
+unsafe impl NotifyMessage for NMHDR {}
 ///Windows控件
 pub trait Control {
     type MsgType: UnsafeControlMsg;
@@ -72,14 +72,13 @@ pub struct DefaultNMHDR<T> {
     pub nmhdr: NMHDR,
     pub data: T,
 }
-unsafe impl<T> NotifyMessage for DefaultNMHDR<T>{}
-unsafe impl<T> UnsafeControlMsg for T 
+unsafe impl<T> NotifyMessage for DefaultNMHDR<T> {}
+unsafe impl<T> UnsafeControlMsg for T
 where
-T: ControlMsg{
+    T: ControlMsg,
+{
     type NotifyType = DefaultNMHDR<T::ControlMsgDataType>;
-    unsafe fn into_raw(
-        self,
-    ) -> Result<Either<u16, Self::NotifyType>> {
+    unsafe fn into_raw(self) -> Result<Either<u16, Self::NotifyType>> {
         let handle = unsafe { self.get_control().get_window().handle() };
         let id = self.get_control().get_id() as usize;
         let (code, data) = self.into_raw_control_msg()?;
@@ -90,16 +89,14 @@ T: ControlMsg{
         }
         match data {
             None => Ok(Left(code)),
-            Some(data) => Ok(Right(
-                DefaultNMHDR {
-                    nmhdr: NMHDR {
-                        hwndFrom: handle,
-                        idFrom: id,
-                        code: (code as u32) + WM_USER - 1,
-                    },
-                    data: data,
-                }
-            )),
+            Some(data) => Ok(Right(DefaultNMHDR {
+                nmhdr: NMHDR {
+                    hwndFrom: handle,
+                    idFrom: id,
+                    code: (code as u32) + WM_USER - 1,
+                },
+                data: data,
+            })),
         }
     }
     //ptr:指向DefaultNMHDR的指针
