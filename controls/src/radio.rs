@@ -54,7 +54,7 @@ define_control! {
             } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                 MouseLeaving
             } else {
-                return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                return Err(ERROR_MSG_CODE_NOT_SUPPORT);
             }
         }
         BN_CLICKED => Clicked,
@@ -62,7 +62,7 @@ define_control! {
         BN_KILLFOCUS => LoseKeyboardFocus,
         BN_SETFOCUS => GetKeyboardFocus,
         NM_CUSTOMDRAW => Draw(ptr),
-        _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+        _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
     }},
     {
         if !is_button_window(wnd)? {
@@ -141,7 +141,7 @@ impl RadioButton {
     }
     pub fn is_checked(&self) -> Result<bool> {
         if !Self::is_self(&self.0)? {
-            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+            return Err(ERROR_NOT_SUPPORTED);
         }
         let result = unsafe {
             SendMessageW(
@@ -154,12 +154,12 @@ impl RadioButton {
         };
         match DLG_BUTTON_CHECK_STATE(match result.try_into() {
             Ok(x) => x,
-            Err(_) => return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), "")),
+            Err(_) => return Err(ERROR_NOT_SUPPORTED),
         }) {
             BST_CHECKED => Ok(true),
             BST_UNCHECKED => Ok(false),
-            BST_INDETERMINATE => Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), "")),
-            _ => return Err(Error::from_win32()),
+            BST_INDETERMINATE => Err(ERROR_NOT_SUPPORTED),
+            _ => return Err(Error::correct_error()),
         }
     }
 }

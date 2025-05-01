@@ -16,7 +16,7 @@
 pub const PROC_KEY_NAME: &'static str = "MalibUserCallback";
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 pub mod brush;
-use brush::*;
+// use brush::*;
 use std::hash::Hasher;
 pub mod mouse;
 // use mouse::*;
@@ -25,7 +25,7 @@ use class::*;
 pub mod control;
 use control::*;
 pub mod help;
-use help::*;
+// use help::*;
 pub mod image;
 use image::*;
 pub mod menu;
@@ -63,8 +63,10 @@ pub mod core {
             }
         }
     }
+    pub use crate::error::errors::*;
+    pub use crate::error::*;
     pub use crate::last_error;
-    pub use crate::win_error;
+    // pub use crate::win_error;
     #[derive(Debug, Clone)]
     pub struct Point(pub i32, pub i32);
     impl Copy for Point {}
@@ -87,7 +89,7 @@ pub mod core {
         pub fn window_to_screen(&mut self, wnd: &Window) -> Result<Self> {
             let mut point = (*self).into();
             if unsafe { ClientToScreen(wnd.handle(), &mut point) }.0 != 0 {
-                Err(Error::from_win32())
+                Err(correct_error())
             } else {
                 Ok(point.into())
             }
@@ -158,17 +160,30 @@ pub mod allmods {
     pub use super::{Error, Result};
 }
 //----------------------------------------------------------------------------------
+pub use super::error::{Result, WinError as Error, correct_error, errors::*};
 use either::*;
-pub use windows::core::{Error, Result, w};
+#[allow(unused_imports)]
+use windows::core::{Error as wError, Result as wResult, w};
 //----------------------------------------------------------------------------------
 use std::ffi::c_void;
 use std::{os::windows::raw::HANDLE, ptr::null_mut as NULL_PTR, string::*};
-use windows::Win32::Foundation::HANDLE as wHANDLE;
+#[allow(unused_imports)]
+use windows::Win32::Foundation::{
+    APP_LOCAL_DEVICE_ID, COLORREF, CloseHandle, CompareObjectHandles, DECIMAL, DECIMAL_0_0,
+    DECIMAL_1_0, DEVPROPKEY, DUPLICATE_HANDLE_OPTIONS, DuplicateHandle, FILETIME, FLOAT128,
+    FreeLibrary, GENERIC_ACCESS_RIGHTS, GetHandleInformation, GetLastError, GlobalFree,
+    HANDLE as wHANDLE, HANDLE_FLAGS, HANDLE_PTR, HGLOBAL, HINSTANCE, HLOCAL, HLSURF, HMODULE,
+    HRSRC, HSPRITE, HSTR, HUMPD, HWND, LPARAM, LRESULT, LUID, LocalFree, NTSTATUS,
+    NTSTATUS_FACILITY_CODE, NTSTATUS_SEVERITY_CODE, OBJECT_ATTRIBUTE_FLAGS, POINT, POINTL, POINTS,
+    PROPERTYKEY, RECT, RECTL, RtlNtStatusToDosError, SHANDLE_PTR, SIZE, SYSTEMTIME,
+    SetHandleInformation, SetLastError, SetLastErrorEx, SysAddRefString, SysAllocString,
+    SysAllocStringByteLen, SysAllocStringLen, SysFreeString, SysReAllocString, SysReAllocStringLen,
+    SysReleaseString, SysStringByteLen, SysStringLen, UNICODE_STRING, VARIANT_BOOL, WAIT_EVENT,
+    WIN32_ERROR, WPARAM,
+};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
-use windows::Win32::{
-    Foundation::*, Graphics::Gdi::*, UI::Controls::*, UI::Shell::*, UI::WindowsAndMessaging::*,
-};
+use windows::Win32::{Graphics::Gdi::*, UI::Controls::*, UI::Shell::*, UI::WindowsAndMessaging::*};
 use windows::core::*;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 //                              工具函数
@@ -192,23 +207,32 @@ pub fn hash<T: Hash>(t: &T) -> u64 {
     t.hash(&mut s);
     s.finish()
 }
-#[macro_export]
-macro_rules! win_error {
-    ($const:expr) => {
-        Error::new($const.into(), "")
-    };
-}
+// #[macro_export]
+// macro_rules! win_error {
+//     ($const:expr) => {
+//         Error::from_win32($const)
+//     };
+// }
 #[macro_export]
 macro_rules! last_error {
-    ($code:expr) => {{
-        let data = $code;
-        #[allow(unused_unsafe)]
-        let error = unsafe { GetLastError() };
-        if error.is_ok() {
-            Ok(data)
-        } else {
-            Err(win_error!(error))
-        }
-    }};
+    ($code:expr) => {{ WinError::correct_error_data($code) }};
 }
-pub use std::result::Result as StdResult;
+#[macro_export]
+macro_rules! import_foundation {
+    () => {
+        #[allow(unused_imports)]
+        use windows::Win32::Foundation::{
+            APP_LOCAL_DEVICE_ID, COLORREF, CloseHandle, CompareObjectHandles, DECIMAL, DECIMAL_0_0,
+            DECIMAL_1_0, DEVPROPKEY, DUPLICATE_HANDLE_OPTIONS, DuplicateHandle, FILETIME, FLOAT128,
+            FreeLibrary, GENERIC_ACCESS_RIGHTS, GetHandleInformation, GetLastError, GlobalFree,
+            HANDLE as wHANDLE, HANDLE_FLAGS, HANDLE_PTR, HGLOBAL, HINSTANCE, HLOCAL, HLSURF,
+            HMODULE, HRSRC, HSPRITE, HSTR, HUMPD, HWND, LPARAM, LRESULT, LUID, LocalFree, NTSTATUS,
+            NTSTATUS_FACILITY_CODE, NTSTATUS_SEVERITY_CODE, OBJECT_ATTRIBUTE_FLAGS, POINT, POINTL,
+            POINTS, PROPERTYKEY, RECT, RECTL, RtlNtStatusToDosError, SHANDLE_PTR, SIZE, SYSTEMTIME,
+            SetHandleInformation, SetLastError, SetLastErrorEx, SysAddRefString, SysAllocString,
+            SysAllocStringByteLen, SysAllocStringLen, SysFreeString, SysReAllocString,
+            SysReAllocStringLen, SysReleaseString, SysStringByteLen, SysStringLen, UNICODE_STRING,
+            VARIANT_BOOL, WAIT_EVENT, WIN32_ERROR, WPARAM,
+        };
+    };
+}

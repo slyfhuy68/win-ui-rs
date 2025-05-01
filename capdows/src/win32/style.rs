@@ -743,10 +743,7 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>)> for Wind
                 _ => None,
             };
             let menu = match menu {
-                Some(x) if !x.is_invalid() => Some(Menu {
-                    handle: x,
-                    mtype: MenuType::Menu,
-                }),
+                Some(x) if !x.is_invalid() => Some(Menu { handle: x }),
                 _ => None,
             };
             Popup {
@@ -762,10 +759,7 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<HMENU>, Option<HWND>)> for Wind
                 _ => None,
             };
             let menu = match menu {
-                Some(x) if !x.is_invalid() => Some(Menu {
-                    handle: x,
-                    mtype: MenuType::Menu,
-                }),
+                Some(x) if !x.is_invalid() => Some(Menu { handle: x }),
                 _ => None,
             };
             Overlapped {

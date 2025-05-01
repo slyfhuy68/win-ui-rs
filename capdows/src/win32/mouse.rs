@@ -32,11 +32,11 @@ pub fn get_double_click_time() -> Duration {
 ///使用Duration.as_millis, 不足一毫秒将被忽略
 pub fn set_double_click_time(time: Duration) -> Result<()> {
     if time > MAX_DOUBLE_CLICK_TIME {
-        return Err(win_error!(ERROR_INVALID_PARAMETER));
+        return Err(ERROR_TIME_TOO_LONG);
     }
-    unsafe { SetDoubleClickTime(time.as_millis().try_into()?) }
+    unsafe { Ok(SetDoubleClickTime(time.as_millis().try_into()?)?) }
 }
 ///释放***当前线程***中的捕获的鼠标。
 pub fn release_mouse() -> Result<()> {
-    unsafe { ReleaseCapture() }
+    unsafe { Ok(ReleaseCapture()?) }
 }

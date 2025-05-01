@@ -283,7 +283,7 @@ impl Window {
     pub fn get_class(&self) -> Result<WindowClass> {
         let mut array1 = vec![0u16; 255];
         if unsafe { GetClassNameW(self.handle, &mut array1[..]) } == 0 {
-            return Err(Error::empty());
+            return Err(correct_error());
         }
         let result1 = PCWSTR(array1.as_ptr());
         Ok(WindowClass {
@@ -302,7 +302,7 @@ impl Window {
             None => 0,
             Some(x) => x,
         };
-        unsafe { SetWindowContextHelpId(self.handle, help) }
+        unsafe { Ok(SetWindowContextHelpId(self.handle, help)?) }
     }
     pub fn set_z_group(&mut self, pos: WindowZpos, group: WindowZposGroup) -> Result<()> {
         todo!() //SetWindowBand windows未公开api
@@ -357,11 +357,10 @@ impl Window {
         }
     }
     ///移除id为0的默认项会返回ERROR_NOT_SUPPORTED
-    ///# 警告
-    ///不能操作其它线程创建的窗口的接收器
+    ///不支持能操作其它线程创建的窗口的接收器，会返回Err
     pub fn remove_msg_receiver(&mut self, id: usize) -> Result<()> {
         if id == 0 {
-            return Err(win_error!(ERROR_NOT_SUPPORTED));
+            return Err(ERROR_CANNOT_REMOVE_DEFAULT);
         }
         unsafe {
             let ptr = self.get_msg_receiver_mut(id)? as *mut CallBackObj;
@@ -369,13 +368,13 @@ impl Window {
                 let _ = Box::from_raw(ptr);
                 Ok(())
             } else {
-                return Err(Error::from_win32());
+                return Err(correct_error());
             }
         }
     }
     pub fn add_msg_receiver(&mut self, id: usize, mssc: Box<CallBackObj>) -> Result<()> {
         if id == 0 || self.has_receiver_for(id) {
-            return Err(win_error!(ERROR_OBJECT_ALREADY_EXISTS));
+            return Err(ERROR_OBJECT_ALREADY_EXISTS);
         }
         unsafe {
             if SetWindowSubclass(
@@ -388,7 +387,7 @@ impl Window {
             {
                 Ok(())
             } else {
-                Err(win_error!(ERROR_INVALID_FUNCTION))
+                Err(correct_error())
             }
         }
     }
@@ -408,7 +407,7 @@ impl Window {
             {
                 Ok((*(data as *const Box<CallBackObj>)).as_ref())
             } else {
-                Err(win_error!(ERROR_INVALID_PARAMETER))
+                Err(correct_error())
             }
         }
     }
@@ -421,7 +420,7 @@ impl Window {
             if GetWindowSubclass(self.handle, Some(subclass_porc), id, Some(&mut data)).into() {
                 Ok((*(data as *mut Box<CallBackObj>)).as_mut())
             } else {
-                Err(win_error!(ERROR_INVALID_PARAMETER))
+                Err(correct_error())
             }
         }
     }
@@ -440,7 +439,7 @@ impl Window {
     //pub fn find_window(&mut self,class:Option<WindowClass>,title: Option<&str>){}
     pub fn force_redraw(&mut self) -> Result<()> {
         unsafe {
-            SetWindowPos(
+            Ok(SetWindowPos(
                 self.handle,
                 None,
                 0,
@@ -448,7 +447,7 @@ impl Window {
                 0,
                 0,
                 SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER,
-            )
+            )?)
         }
     }
 }
@@ -495,7 +494,12 @@ impl Window {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
-            PostMessageW(Some(self.handle), code, WPARAM(wparam), LPARAM(lparam))
+            Ok(PostMessageW(
+                Some(self.handle),
+                code,
+                WPARAM(wparam),
+                LPARAM(lparam),
+            )?)
         }
     }
     // pub async unsafe fn send_msg_unsafe_async<C: UnsafeMessage>(&self, msg: C) -> Result<isize> {
@@ -543,7 +547,7 @@ impl Window {
     pub fn send_control_msg<M: UnsafeControlMsg>(&self, msg: M) -> Result<isize> {
         unsafe {
             self.parent()
-                .ok_or(win_error!(ERROR_INVALID_PARAMETER))?
+                .ok_or(ERROR_WINDOW_TYPE_NOT_SUPPORT)?
                 .send_msg_unsafe(msg)
         }
     }
@@ -551,7 +555,7 @@ impl Window {
     // pub async fn send_control_msg_async<M: UnsafeControlMsg>(&self, msg: M) -> Result<isize> {
     //     unsafe {
     //         self.parent()
-    //             .ok_or(win_error!(ERROR_INVALID_PARAMETER))?
+    //             .ok_or(ERROR_WINDOW_TYPE_NOT_SUPPORT)?
     //             .send_msg_unsafe_async(msg)
     //             .await
     //     }
@@ -560,7 +564,7 @@ impl Window {
     pub fn send_control_nofiy<M: UnsafeControlMsg>(&self, msg: M) -> Result<()> {
         unsafe {
             self.parent()
-                .ok_or(win_error!(ERROR_INVALID_PARAMETER))?
+                .ok_or(ERROR_WINDOW_TYPE_NOT_SUPPORT)?
                 .add_msg_to_queue(msg)
         }
     }

@@ -161,7 +161,7 @@ impl TryFrom<u16> for SystemCursor {
             32660 => Ok(ScrollNE),
             32661 => Ok(ScrollSW),
             32663 => Ok(CdArrowCursor),
-            _ => Err(win_error!(ERROR_NOT_SUPPORTED)),
+            _ => Err(ERROR_INVALID_RESOURCE_ID),
         }
     }
 }
@@ -249,8 +249,8 @@ impl Cursor {
             handle: unsafe { LoadCursorW(None, PCWSTR(id as *mut u16)) }?,
         })
     }
-    pub fn apply(self){unsafe {
-        SetCursor(Some(self.into()))};
+    pub fn apply(self) {
+        unsafe { SetCursor(Some(self.into())) };
     }
 }
 #[derive(Clone, PartialEq)]

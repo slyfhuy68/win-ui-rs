@@ -12,7 +12,7 @@ define_control! {
     {
         match code {
             NM_CUSTOMDRAW => Draw(ptr),
-            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+            _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
         }
     },
     {

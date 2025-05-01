@@ -5,14 +5,14 @@ impl LangID {
     pub fn new(value: &str) -> Result<Self> {
         let x = value;
         if x.len() != 4 {
-            return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+            return Err(ERROR_INVALID_RESOURCE_ID);
         }
         if x == "0000" {
             return Ok(LangID(0u16));
         }
         let y = match u16::from_str_radix(x, 16) {
             Ok(x) => x,
-            Err(_) => return Err(Error::new(ERROR_INVALID_DATA.into(), "")), //str包含无效数字。
+            Err(_) => return Err(ERROR_INVALID_RESOURCE_ID), //str包含无效数字。
         };
         Ok(LangID(y))
     }
@@ -45,11 +45,12 @@ pub struct StringInfo {
     pub copyright: Option<String>,         //可选
     pub trademarks: Option<String>,        //可选
     pub original_filename: Option<String>, //自动获取文件名带扩展名
-    ///只有在ProductVariant为Variant或Private时才应指定，否则使用时返回Err
+    ///只有在ProductVariant为Variant或Private时才应指定，否则使用时返回ERROR_INVALID_COMBINE
     ///如果在ProductVariant为Variant或Private时不指定，则使用默认说明
     pub special_info: Option<String>,
 }
 impl StringInfo {
+    ///当StringInfo::special_info为Some变体时，如果variants为Standard变体，返回ERROR_INVALID_COMBINE
     fn pre_compile(
         self,
         id: LangID,
@@ -63,7 +64,7 @@ impl StringInfo {
                 Private(s) => format!("VALUE \"PrivateBuild\", \"{}\"", s),
             },
             Some(x) => match variants {
-                Standard => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+                Standard => return Err(ERROR_INVALID_COMBINE),
                 Variant(_) => format!("VALUE \"SpecialBuild\", \"{}\"", x),
                 Private(_) => format!("VALUE \"PrivateBuild\", \"{}\"", x),
             },

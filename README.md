@@ -8,3 +8,4 @@ AI部分均已标注
 - [x] 实现资源嵌入功能
 - [ ] 完成文档化
 - [ ] 为类型实现标准库中的trait
+- [x] 使用在capdows中定义的 Error, Result 而不是windows-rs中的

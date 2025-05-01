@@ -1,10 +1,11 @@
 use super::*;
+use crate::error::Result as eResult;
 use std::sync::mpsc::*;
 use std::thread::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 pub struct PropCounter {
     sender: Option<Sender<bool>>,
-    thread: Option<JoinHandle<windows::core::Result<()>>>,
+    thread: Option<JoinHandle<eResult<()>>>,
     result_receiver: Receiver<Box<(std::result::Result<String, FromUtf16Error>, usize)>>, //wHANDLE)>>
 }
 impl Iterator for PropCounter {
@@ -70,7 +71,7 @@ impl Window {
                     LPARAM(receiver_usize as isize),
                 )
             } {
-                -1 => Err(Error::empty()),
+                -1 => Err(correct_error()),
                 _ => Ok(()),
             }
         });
@@ -80,25 +81,31 @@ impl Window {
             result_receiver: result_receiver,
         }
     }
-    pub fn get_prop(&self, key: &str) -> windows::core::Result<usize> {
+    pub fn get_prop(&self, key: &str) -> eResult<usize> {
         let (name, vecname) = str_to_pcwstr(key);
         match unsafe { GetPropW(self.handle(), name).0 } as usize {
-            0 => Err(Error::new(HRESULT(ERROR_NOT_FOUND.0 as i32), "")),
+            0 => Err(ERROR_NOT_PRESENT),
             x => Ok(x),
         }
     }
-    pub fn set_prop(&mut self, key: &str, value: usize) -> windows::core::Result<()> {
+    pub fn set_prop(&mut self, key: &str, value: usize) -> eResult<()> {
         let (name, vecname) = str_to_pcwstr(key);
         match value {
-            0 => Err(Error::new(HRESULT(ERROR_INVALID_PARAMETER.0 as i32), "")),
-            x => unsafe { SetPropW(self.handle(), name, Some(HANDLE(x as *mut c_void))) },
+            0 => Err(ERROR_NOT_SUPPORT_ZERO),
+            x => unsafe {
+                Ok(SetPropW(
+                    self.handle(),
+                    name,
+                    Some(wHANDLE(x as *mut c_void)),
+                )?)
+            },
         }
     }
-    pub fn remove_prop(&mut self, key: &str, value: usize) -> windows::core::Result<usize> {
+    pub fn remove_prop(&mut self, key: &str, value: usize) -> eResult<()> {
         let (name, vecname) = str_to_pcwstr(key);
         match unsafe { RemovePropW(self.handle(), name)?.0 } as usize {
-            0 => Err(Error::new(HRESULT(ERROR_NOT_FOUND.0 as i32), "")),
-            x => Ok(x),
+            0 => Err(ERROR_NOT_PRESENT),
+            _ => Ok(()),
         }
     }
 }

@@ -79,12 +79,9 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                 unsafe #is_self_block
             }
 
-            fn get_class(&self) -> WindowClass {
-                WindowClass {
-                    name: w!(#class_name),
-                    owner: None,
-                }
-            }
+            fn get_class() -> WindowClass {unsafe{
+                WindowClass::from_str(#class_name)
+            }}
         }
 
         pub struct #msg_name_ident {
@@ -108,12 +105,12 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
         impl ControlMsgType for #msg_name_ident {
             type ControlType = #control_name;
-                fn get_control(&self) -> &Self::ControlType{
-                    &self.control
-                }
-    fn get_control_mut(&mut self) -> &mut Self::ControlType{
-        &mut self.control
-    }
+            fn get_control(&self) -> &Self::ControlType{
+                &self.control
+            }
+            fn get_control_mut(&mut self) -> &mut Self::ControlType{
+                &mut self.control
+            }
         }
 
         unsafe impl UnsafeControlMsg for #msg_name_ident {

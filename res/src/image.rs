@@ -7,7 +7,7 @@ impl Bitmap {
             match self.0 {
                 StringId(y) => {
                     if y.parse::<f32>().is_ok() {
-                        return Err(win_error!(ERROR_INVALID_NAME));
+                        return Err(ERROR_INVALID_STRING_ID);
                     };
                     y
                 }
@@ -25,7 +25,7 @@ impl Icon {
             match self.0 {
                 StringId(y) => {
                     if y.parse::<f32>().is_ok() {
-                        return Err(win_error!(ERROR_INVALID_NAME));
+                        return Err(ERROR_INVALID_STRING_ID);
                     };
                     y
                 }
@@ -43,7 +43,7 @@ impl Cursor {
             match self.0 {
                 StringId(y) => {
                     if y.parse::<f32>().is_ok() {
-                        return Err(win_error!(ERROR_INVALID_NAME));
+                        return Err(ERROR_INVALID_STRING_ID);
                     };
                     y
                 }

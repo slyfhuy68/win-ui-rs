@@ -113,7 +113,7 @@ define_control! {
                 EN_SETFOCUS => GetKeyboardFocus,
                 EN_MAXTEXT => MaxText,
                 EN_UPDATE => Update,
-                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+                _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
             }
     },
     {
@@ -176,7 +176,7 @@ impl Edit {
     }
     // fn can_undo(&self) -> Result<bool>{
     //     if !unsafe { Self::is_self(&self.0.into()) }? {
-    //         return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+    //         return Err(ERROR_NOT_SUPPORTED);
     //     };
     //     unsafe { SendMessageW(self.0, EM_CANUNDO, Some(WPARAM(0)), Some(LPARAM(0))).0 }
     //             as usize != 0
@@ -185,7 +185,7 @@ impl Edit {
         let num = match pw_char {
             Some(x) => {
                 if !x.is_ascii() {
-                    return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+                    return Err(ERROR_NOT_SUPPORTED);
                 }
                 let mut b = [0; 4];
                 x.encode_utf8(&mut b);
@@ -195,7 +195,7 @@ impl Edit {
         };
 
         if !Self::is_self(&self.0)? {
-            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+            return Err(ERROR_NOT_SUPPORTED);
         };
         unsafe {
             SendMessageW(
@@ -210,7 +210,7 @@ impl Edit {
     }
     pub fn get_passwrd_char(&mut self) -> Result<char> {
         if !Self::is_self(&self.0)? {
-            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+            return Err(ERROR_NOT_SUPPORTED);
         };
         match char::from_u32(unsafe {
             SendMessageW(
@@ -223,7 +223,7 @@ impl Edit {
         } as u32)
         {
             Some(x) => Ok(x),
-            None => Err(Error::new(ERROR_NO_UNICODE_TRANSLATION.to_hresult(), "")),
+            None => Err(ERROR_NO_UNICODE_TRANSLATION),
         }
     }
     pub fn get_text(&self) -> Result<String> {
@@ -240,7 +240,7 @@ impl Edit {
             if !Self::is_self(&self.0)? {
                 return Ok(String::new());
             } else {
-                return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+                return Err(ERROR_NOT_SUPPORTED);
             };
         };
         let mut buffer: Vec<u16> = vec![0; length + 2];
@@ -257,7 +257,7 @@ impl Edit {
     }
     pub fn set_text(&mut self, text: &str) -> Result<()> {
         if !Self::is_self(&self.0)? {
-            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+            return Err(ERROR_NOT_SUPPORTED);
         };
         let (text_ptr, _text_u16) = str_to_pcwstr(text);
 
@@ -271,7 +271,7 @@ impl Edit {
         }
         .0 == 0
         {
-            return Err(Error::from_win32());
+            return Err(Error::correct_error());
         }
         Ok(())
     }

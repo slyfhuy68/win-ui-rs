@@ -1,11 +1,13 @@
 use capdows::win32::allmods::*;
 use capdows::win32::control::*;
 use capdows::win32::*;
+capdows::import_foundation!();
 use std::ffi::c_void;
 use windows::Win32::Graphics::Gdi::DEFAULT_GUI_FONT;
 use windows::Win32::Graphics::Gdi::GetStockObject;
-use windows::Win32::{Foundation::*, UI::Controls::*, UI::WindowsAndMessaging::*};
-use windows::core::*;
+use windows::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
+use windows::core::PCWSTR;
+// use windows::core::Result as wResult;
 pub mod button;
 pub mod check_box;
 pub mod edit;
@@ -126,7 +128,7 @@ fn new_button(
 fn is_some_window(wnd: &Window, class: &'static str) -> Result<bool> {
     let mut array1 = vec![0u16; 8];
     if unsafe { GetClassNameW(wnd.copy_handle().into(), &mut array1[..]) } == 0 {
-        return Err(Error::from_win32());
+        return Err(Error::correct_error());
     }
     let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
     //println!("{}", meunasfe);

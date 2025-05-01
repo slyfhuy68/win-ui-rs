@@ -14,7 +14,7 @@ pub trait Control {
             if Self::is_self(&wnd)? {
                 Ok(Self::force_from_window(wnd.copy_handle()))
             } else {
-                Err(Error::new(ERROR_INVALID_WINDOW_HANDLE.into(), ""))
+                Err(ERROR_INVALID_WINDOW_HANDLE)
             }
         }
     }
@@ -32,7 +32,7 @@ pub trait Control {
             a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
         }
     }
-    fn get_class(&self) -> WindowClass;
+    fn get_class() -> WindowClass;
 }
 impl<T: Control> From<T> for Window {
     fn from(ctl: T) -> Window {
@@ -62,15 +62,15 @@ pub unsafe trait UnsafeControlMsg: /*UnsafeMessage + */ControlMsgType {
 }
 pub trait ControlMsg: /*UnsafeControlMsg + */ ControlMsgType{
     type ControlMsgDataType;
-    fn into_raw_control_msg(self) -> Result<(u16, Option<Self::ControlMsgDataType>)>;
-    fn from_raw_control_msg(code: u16, data: Option<&mut Self::ControlMsgDataType>) -> Result<Self>
+    fn into_raw_control_msg(self) -> Result<(u32, Option<Self::ControlMsgDataType>)>;
+    fn from_raw_control_msg(code: u32, data: Option<&mut Self::ControlMsgDataType>, wnd: Window) -> Result<Self>
     where
         Self: Sized;
 }
 #[repr(C)]
 pub struct DefaultNMHDR<T> {
     pub nmhdr: NMHDR,
-    pub data: T,
+    pub data: Option<T>,
 }
 unsafe impl<T> NotifyMessage for DefaultNMHDR<T> {}
 unsafe impl<T> UnsafeControlMsg for T
@@ -82,22 +82,24 @@ where
         let handle = unsafe { self.get_control().get_window().handle() };
         let id = self.get_control().get_id() as usize;
         let (code, data) = self.into_raw_control_msg()?;
-        if code > 0x7FFF || code < (WM_USER as u16) {
-            panic!(
-                "ControlMsg::into_raw_control_msg returned an invalid Msg-code! The msg-code must between 0x0400 and 0x7FFF"
-            )
-        }
-        match data {
-            None => Ok(Left(code)),
-            Some(data) => Ok(Right(DefaultNMHDR {
-                nmhdr: NMHDR {
-                    hwndFrom: handle,
-                    idFrom: id,
-                    code: (code as u32) + WM_USER - 1,
-                },
-                data: data,
-            })),
-        }
+        let mdata = match data {
+            None => {
+                let ucode: std::result::Result<u16, _> = code.try_into();
+                match ucode {
+                    Ok(code) => return Ok(Left(code)),
+                    Err(_) => None,
+                }
+            }
+            Some(data) => Some(data),
+        };
+        Ok(Right(DefaultNMHDR {
+            nmhdr: NMHDR {
+                hwndFrom: handle,
+                idFrom: id,
+                code: code,
+            },
+            data: mdata,
+        }))
     }
     //ptr:指向DefaultNMHDR的指针
     unsafe fn from_msg(ptr: usize, command: bool) -> Result<Self>
@@ -107,12 +109,17 @@ where
         unsafe {
             if command {
                 let msg_ptr = ptr as *const NMHDR;
-                T::from_raw_control_msg(((*(msg_ptr)).code - WM_USER + 1) as u16, None)
+                T::from_raw_control_msg(
+                    ((*(msg_ptr)).code) as u32,
+                    None,
+                    (*(msg_ptr)).hwndFrom.into(),
+                )
             } else {
                 let msg_ptr = ptr as *mut DefaultNMHDR<T::ControlMsgDataType>;
                 T::from_raw_control_msg(
-                    ((*(msg_ptr)).nmhdr.code - WM_USER + 1) as u16,
-                    Some(&mut (*(msg_ptr)).data),
+                    (*(msg_ptr)).nmhdr.code,
+                    (&mut (*(msg_ptr)).data).into(),
+                    (*(msg_ptr)).nmhdr.hwndFrom.into(),
                 )
             }
         }

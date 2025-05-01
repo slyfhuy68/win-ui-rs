@@ -65,7 +65,7 @@ define_control! {
                 } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                     MouseLeaving
                 } else {
-                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                    return Err(ERROR_MSG_CODE_NOT_SUPPORT);
                 }
             }
             BN_CLICKED => Clicked,
@@ -73,7 +73,7 @@ define_control! {
             BN_KILLFOCUS => LoseKeyboardFocus,
             BN_SETFOCUS => GetKeyboardFocus,
             NM_CUSTOMDRAW => Draw(ptr),
-            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+            _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
         }
     },
     {
@@ -172,7 +172,7 @@ impl CheckBox {
     }
     pub fn is_checked(&self) -> Result<CheckBoxState> {
         if !Self::is_self(&self.0)? {
-            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+            return Err(ERROR_NOT_SUPPORTED);
         }
         let result = unsafe {
             SendMessageW(
@@ -185,12 +185,12 @@ impl CheckBox {
         };
         match DLG_BUTTON_CHECK_STATE(match result.try_into() {
             Ok(x) => x,
-            Err(_) => return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), "")),
+            Err(_) => return Err(ERROR_NOT_SUPPORTED),
         }) {
             BST_CHECKED => Ok(Checked),
             BST_UNCHECKED => Ok(UnChecked),
             BST_INDETERMINATE => Ok(Indeterminate),
-            _ => return Err(Error::from_win32()),
+            _ => return Err(Error::correct_error()),
         }
     }
 }

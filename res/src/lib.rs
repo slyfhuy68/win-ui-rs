@@ -10,7 +10,7 @@ use embed_resource::*;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use windows::Win32::Foundation::*;
+capdows::import_foundation!();
 use windows::Win32::Storage::FileSystem::*;
 pub struct PreCompilePruduct(String);
 use std::ops::Add;

@@ -35,7 +35,7 @@ impl From<Error> for MessageReceiverError {
 impl MessageReceiverError {
     pub fn code(&self) -> i32 {
         match self {
-            WinErr(x) => x.code().0,
+            WinErr(x) => x.code(),
             NoProcessed => -255i32,
         }
     }
@@ -390,7 +390,7 @@ unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
                 }
                 WM_NOTIFY => {
                     if *lparam == 0 {
-                        return Err(win_error!(ERROR_BAD_ARGUMENTS));
+                        return Err(ERROR_NULL_POINTER);
                     }
                     let ptr = (*((*lparam) as *mut NMHDR)).hwndFrom;
                     T::ControlType::is_self(&(ptr.into()))
@@ -415,7 +415,7 @@ unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
                     Self::from_msg(&mut nmhdr as *mut _ as usize, true)
                 }
                 WM_NOTIFY => Self::from_msg(lparam as usize, false),
-                _ => Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+                _ => Err(ERROR_MSG_CODE_NOT_SUPPORT),
             }
         }
     }

@@ -248,7 +248,7 @@ struct NMHDRSTATIC {
     #[allow(non_snake_case)]
     nmhdr: NMHDR,
     #[allow(non_snake_case)]
-    DC: HANDLE,
+    DC: wHANDLE,
 }
 pub enum ImageTextViewMsgType {
     Clicked,       //WM_COMMAND
@@ -270,7 +270,7 @@ define_control! {
                     let nmhdr = (*(ptr as *mut NMHDRSTATIC)).DC.0;
                     Colour(nmhdr as usize)
                 }
-                _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+                _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
             }
     },
     {
@@ -376,7 +376,7 @@ impl ImageTextView {
                 };
                 return Ok(ViewContent::Text(text));
             }
-            Err(Error::new(ERROR_NOT_SUPPORTED.into(), ""))
+            Err(ERROR_NOT_SUPPORTED)
         }
     }
 
@@ -397,7 +397,7 @@ impl ImageTextView {
                     )
                     .0 == 0
                     {
-                        return Err(Error::from_win32());
+                        return Err(Error::correct_error());
                     }
                     return Ok(());
                 }
@@ -438,7 +438,7 @@ impl ImageTextView {
             style &= !(SS_BITMAP.0 as i32 | SS_ICON.0 as i32 | SS_ENHMETAFILE.0 as i32);
             style |= new_style;
             if SetWindowLongW(hwnd, GWL_STYLE, style) == 0 {
-                return Err(Error::from_win32());
+                return Err(Error::correct_error());
             };
             SendMessageW(hwnd, msg, wparam, lparam);
             Ok(())

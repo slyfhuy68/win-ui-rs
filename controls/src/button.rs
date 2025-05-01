@@ -20,14 +20,14 @@ define_control! {
                 } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                     ManuallyDrawButtonMsgType::MouseLeaving
                 } else {
-                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                    return Err(ERROR_MSG_CODE_NOT_SUPPORT);
                 }
             }
             BN_CLICKED => ManuallyDrawButtonMsgType::Clicked,
             BN_DBLCLK => ManuallyDrawButtonMsgType::DoubleClicked,
             BN_KILLFOCUS => ManuallyDrawButtonMsgType::LoseKeyboardFocus,
             BN_SETFOCUS => ManuallyDrawButtonMsgType::GetKeyboardFocus,
-            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+            _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
         }
     },
     {
@@ -138,7 +138,7 @@ define_control! {
                 } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                     MouseLeaving
                 } else {
-                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                    return Err(ERROR_MSG_CODE_NOT_SUPPORT);
                 }
             }
             BN_CLICKED => Clicked,
@@ -146,7 +146,7 @@ define_control! {
             BN_KILLFOCUS => LoseKeyboardFocus,
             BN_SETFOCUS => GetKeyboardFocus,
             NM_CUSTOMDRAW => Draw(ptr),
-            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+            _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
         }
     },
     {
@@ -288,7 +288,7 @@ define_control! {
                 } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                     MouseLeaving
                 } else {
-                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                    return Err(ERROR_MSG_CODE_NOT_SUPPORT);
                 }
             }
             BN_CLICKED => Clicked,
@@ -305,9 +305,7 @@ define_control! {
             NM_CUSTOMDRAW => Draw(ptr),
             BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？
             _ => {
-                return {
-                    Err(Error::new(ERROR_INVALID_DATA.into(), ""))
-                };
+                return Err(ERROR_MSG_CODE_NOT_SUPPORT);
             }
         }
     },
@@ -432,7 +430,7 @@ define_control! {
                 } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
                     MouseLeaving
                 } else {
-                    return Err(Error::new(ERROR_INVALID_DATA.into(), ""));
+                    return Err(ERROR_MSG_CODE_NOT_SUPPORT);
                 }
             }
             BN_CLICKED => Clicked,
@@ -440,7 +438,7 @@ define_control! {
             BN_KILLFOCUS => LoseKeyboardFocus,
             BN_SETFOCUS => GetKeyboardFocus,
             NM_CUSTOMDRAW => Draw(ptr),
-            _ => return Err(Error::new(ERROR_INVALID_DATA.into(), "")),
+            _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
         }
     },
     {
@@ -519,6 +517,9 @@ impl LinkButton {
         Ok(LinkButton(hwnd.into()))
     }
     pub fn get_note(&self) -> Result<String> {
+        if !Self::is_self(&self.0)? {
+            return Err(ERROR_NOT_SUPPORTED);
+        }
         let length = unsafe {
             SendMessageW(
                 self.0.handle(),
@@ -529,11 +530,7 @@ impl LinkButton {
             .0
         } as usize;
         if length == 0 {
-            if !Self::is_self(&self.0)? {
-                return Ok(String::new());
-            } else {
-                return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
-            };
+            return Ok(String::new());
         };
         let mut buffer: Vec<u16> = vec![0; length + 1];
         unsafe {
@@ -549,7 +546,7 @@ impl LinkButton {
     }
     pub fn set_note(&mut self, note: &str) -> Result<()> {
         if !Self::is_self(&self.0)? {
-            return Err(Error::new(ERROR_NOT_SUPPORTED.to_hresult(), ""));
+            return Err(ERROR_NOT_SUPPORTED);
         };
         let (note_ptr, _note_u16) = str_to_pcwstr(note);
 
@@ -563,7 +560,7 @@ impl LinkButton {
         }
         .0 == 0
         {
-            return Err(Error::from_win32());
+            return Err(Error::correct_error());
         }
         Ok(())
     }
