@@ -43,7 +43,7 @@ const VIEW_01: WindowID = 8u16;
 const VIEW_02: WindowID = 8u16;
 impl MessageReceiver for Mycb {
     fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
-        println!("发生错误：{:?}", err);
+        println!("发生错误: {:?}", err);
         Ok(err.code() as isize)
     }
     fn create(
