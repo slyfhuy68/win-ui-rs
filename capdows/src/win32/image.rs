@@ -6,6 +6,11 @@ pub struct Icon {
 unsafe impl Send for Icon {}
 unsafe impl Sync for Icon {}
 impl Icon {
+    pub fn copy_handle(&self) -> Self {
+        Self {
+            handle: self.handle,
+        }
+    }
     pub const unsafe fn null() -> Self {
         Self {
             handle: HICON(NULL_PTR()),
@@ -173,6 +178,11 @@ pub struct Cursor {
 unsafe impl Send for Cursor {}
 unsafe impl Sync for Cursor {}
 impl Cursor {
+    pub fn copy_handle(&self) -> Self {
+        Self {
+            handle: self.handle,
+        }
+    }
     pub const unsafe fn null() -> Self {
         Self {
             handle: HCURSOR(NULL_PTR()),
@@ -260,6 +270,11 @@ pub struct Bitmap {
 unsafe impl Send for Bitmap {}
 unsafe impl Sync for Bitmap {}
 impl Bitmap {
+    pub fn copy_handle(&self) -> Self {
+        Self {
+            handle: self.handle,
+        }
+    }
     pub const unsafe fn null() -> Self {
         Self {
             handle: HBITMAP(NULL_PTR()),
@@ -308,6 +323,11 @@ pub struct EnhMetaFile {
     pub handle: HENHMETAFILE,
 }
 impl EnhMetaFile {
+    pub fn copy_handle(&self) -> Self {
+        Self {
+            handle: self.handle,
+        }
+    }
     pub const unsafe fn null() -> Self {
         Self {
             handle: HENHMETAFILE(NULL_PTR()),

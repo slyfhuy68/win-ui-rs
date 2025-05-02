@@ -1,5 +1,5 @@
 use super::*;
-#[derive(Eq, PartialEq)] //不实现Clone
+#[derive(Eq, PartialEq, Debug)] //不实现Clone
 pub struct Window {
     handle: HWND,
 }

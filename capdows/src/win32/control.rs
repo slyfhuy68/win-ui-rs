@@ -92,6 +92,7 @@ where
             }
             Some(data) => Some(data),
         };
+        // println!("{}", code);
         Ok(Right(DefaultNMHDR {
             nmhdr: NMHDR {
                 hwndFrom: handle,
@@ -116,6 +117,7 @@ where
                 )
             } else {
                 let msg_ptr = ptr as *mut DefaultNMHDR<T::ControlMsgDataType>;
+                // println!("{}", (*(msg_ptr)).nmhdr.code);
                 T::from_raw_control_msg(
                     (*(msg_ptr)).nmhdr.code,
                     (&mut (*(msg_ptr)).data).into(),

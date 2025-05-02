@@ -1,12 +1,7 @@
 use capdows::win32::allmods::*;
 use capdows::win32::control::Control;
-use capdows_controls::button::*;
-use capdows_controls::check_box::*;
-use capdows_controls::edit::*;
-use capdows_controls::group_box::*;
-use capdows_controls::radio::*;
-use capdows_controls::view::*;
-use either::*;
+use capdows_controls::{button::*, check_box::*, edit::*, group_box::*, radio::*, view::*};
+use capdows_example::*;
 struct MyControls {
     a1: RadioButton,
     a2: RadioButton,
@@ -19,7 +14,7 @@ struct MyControls {
     split_button: SplitButton,
     g_b: GroupBox,
     edit: Edit,
-    finder: ImageTextView,
+    finder: WindowFinder,
     text: ImageTextView,
 }
 struct Mycb {
@@ -48,7 +43,7 @@ const VIEW_01: WindowID = 8u16;
 const VIEW_02: WindowID = 8u16;
 impl MessageReceiver for Mycb {
     fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
-        println!("{:?}", err);
+        println!("发生错误：{:?}", err);
         Ok(err.code() as isize)
     }
     fn create(
@@ -194,7 +189,7 @@ impl MessageReceiver for Mycb {
                 false,
             )
             .unwrap(),
-            g_b: GroupBox::from_window(g_b).unwrap(),
+            g_b: GroupBox::from_window(&g_b).unwrap(),
             edit: Edit::new(
                 window,
                 "编辑框01",
@@ -211,26 +206,10 @@ impl MessageReceiver for Mycb {
                 false,
             )
             .unwrap(),
-            finder: ImageTextView::new(
+            finder: WindowFinder::new(
                 window,
                 Some(Rectangle::PointSize(Point(200, 100), Size(130, 50))),
                 VIEW_01,
-                {
-                    set_state(true);
-                    ImageTextViewStyle::new_icon(
-                        Icon::load_from_module(
-                            ExecutableFile::from_current_file().unwrap(),
-                            Right(3),
-                            None,
-                            true,
-                        )
-                        .unwrap(),
-                    )
-                },
-                Default::default(),
-                Default::default(),
-                true,
-                false,
             )
             .unwrap(),
             text: ImageTextView::new(
@@ -258,44 +237,46 @@ impl MessageReceiver for Mycb {
         let controls = &mut self.controls.as_mut().ok_or(NoProcessed)?;
         match id {
             VIEW_01 => {
-                use ImageTextViewMsgType::*;
-                let msg = msg.get_control_msg::<ImageTextView>()?;
-                match msg.get_type() {
-                    Clicked | DoubleClicked => {
-                        println!("hi");
-                        if get_state() {
-                            controls
-                                .finder
-                                .change_content(ViewContent::Icon({
-                                    set_state(false);
-                                    Icon::load_from_module(
-                                        ExecutableFile::from_current_file().unwrap(),
-                                        Right(2),
-                                        None,
-                                        true,
-                                    )
-                                    .unwrap()
-                                }))
-                                .unwrap();
-                        } else {
-                            controls
-                                .finder
-                                .change_content(ViewContent::Icon({
-                                    set_state(true);
-                                    Icon::load_from_module(
-                                        ExecutableFile::from_current_file().unwrap(),
-                                        Right(3),
-                                        None,
-                                        true,
-                                    )
-                                    .unwrap()
-                                }))
-                                .unwrap();
-                        }
-                        Ok(0)
-                    }
-                    _ => Err(NoProcessed),
-                }
+                //     use ImageTextViewMsgType::*;
+                let msg = msg.get_control_msg::<WindowFinder>()?;
+                //     match msg.get_type() {
+                //         Clicked | DoubleClicked => {
+                //             println!("hi");
+                //             if get_state() {
+                //                 controls
+                //                     .finder
+                //                     .change_content(ViewContent::Icon({
+                //                         set_state(false);
+                //                         Icon::load_from_module(
+                //                             ExecutableFile::from_current_file().unwrap(),
+                //                             NumberId(2),
+                //                             None,
+                //                             true,
+                //                         )
+                //                         .unwrap()
+                //                     }))
+                //                     .unwrap();
+                //             } else {
+                //                 controls
+                //                     .finder
+                //                     .change_content(ViewContent::Icon({
+                //                         set_state(true);
+                //                         Icon::load_from_module(
+                //                             ExecutableFile::from_current_file().unwrap(),
+                //                             NumberId(3),
+                //                             None,
+                //                             true,
+                //                         )
+                //                         .unwrap()
+                //                     }))
+                //                     .unwrap();
+                //             }
+                //             Ok(0)
+                //         }
+                //         _ => Err(NoProcessed),
+                //     }
+                println!("aaa{:?}", msg.get_type());
+                Err(NoProcessed)
             }
             BUTTON_01 => {
                 use ButtonMsgType::*;
@@ -358,9 +339,19 @@ fn main() -> Result<()> {
         "LibraryTest 中文👅öé English", //日常使用时不建议使用非ANSI字符
         Default::default(),
         None,
-        None,
-        None,
-        Some(Cursor::from_system(32512)?),
+        Some(Icon::load_from_module(
+            ExecutableFile::from_current_file().unwrap(),
+            NumberId(1),
+            None,
+            false,
+        )?),
+        Some(Icon::load_from_module(
+            ExecutableFile::from_current_file().unwrap(),
+            NumberId(1),
+            None,
+            false,
+        )?),
+        Some(Cursor::from_system(SystemCursor::NormalSelection)?),
         Some(ClassBackgroundBrush::BtnFace),
         0,
         0,

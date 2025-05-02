@@ -4,7 +4,7 @@ use capdows::win32::control::ControlMsgType;
 use capdows::win32::mouse::release_mouse;
 use capdows_controls::view::*;
 use std::sync::LazyLock;
-pub struct WindowFinder(ImageTextView);
+pub struct WindowFinder(pub ImageTextView);
 impl Control for WindowFinder {
     type MsgType = WindowFinderMsg;
     unsafe fn force_from_window(wnd: Window) -> Self {
@@ -29,7 +29,7 @@ impl Control for WindowFinder {
 pub struct WindowsFinderMessageReceiver {
     currect_wnd: Option<Window>,
 }
-static icon_full: LazyLock<Icon> = LazyLock::new(|| {
+static ICON_FULL: LazyLock<Icon> = LazyLock::new(|| {
     Icon::load_from_module(
         ExecutableFile::from_current_file().unwrap(),
         NumberId(3),
@@ -38,7 +38,7 @@ static icon_full: LazyLock<Icon> = LazyLock::new(|| {
     )
     .unwrap()
 });
-static icon_empty: LazyLock<Icon> = LazyLock::new(|| {
+static ICON_EMPTY: LazyLock<Icon> = LazyLock::new(|| {
     Icon::load_from_module(
         ExecutableFile::from_current_file().unwrap(),
         NumberId(2),
@@ -47,7 +47,7 @@ static icon_empty: LazyLock<Icon> = LazyLock::new(|| {
     )
     .unwrap()
 });
-static cursor: LazyLock<Cursor> = LazyLock::new(|| {
+static FIND_CURSOR: LazyLock<Cursor> = LazyLock::new(|| {
     Cursor::load_from_module(
         ExecutableFile::from_current_file().unwrap(),
         NumberId(4),
@@ -62,7 +62,7 @@ impl WindowFinder {
             window,
             pos,
             id,
-            ImageTextViewStyle::new_icon(icon_full.clone()),
+            ImageTextViewStyle::new_icon(ICON_FULL.clone()),
             Default::default(),
             Default::default(),
             true,
@@ -71,10 +71,11 @@ impl WindowFinder {
         view.get_window_mut().add_msg_receiver(
             10,
             Box::new(WindowsFinderMessageReceiver { currect_wnd: None }),
-        );
+        )?;
         Ok(Self(view))
     }
 }
+#[derive(Debug)]
 pub enum WindowFinderMsgType {
     BeginFind,
     SelChanged(Option<Window>),
@@ -82,7 +83,12 @@ pub enum WindowFinderMsgType {
 }
 use ButtonState::*;
 pub use WindowFinderMsgType::*;
-pub struct WindowFinderMsg(Window, WindowFinderMsgType);
+pub struct WindowFinderMsg(WindowFinder, WindowFinderMsgType);
+impl WindowFinderMsg {
+    pub fn get_type(&self) -> &WindowFinderMsgType {
+        &self.1
+    }
+}
 use capdows::win32::control::ControlMsg;
 impl ControlMsg for WindowFinderMsg {
     type ControlMsgDataType = Window;
@@ -91,7 +97,10 @@ impl ControlMsg for WindowFinderMsg {
             match self.1 {
                 BeginFind => 114,
                 EndFind => 514,
-                SelChanged(x) => return Ok((114514, x)),
+                SelChanged(x) => {
+                    println!("cccccd");
+                    return Ok((1145, x));
+                }
             },
             None,
         ))
@@ -104,12 +113,16 @@ impl ControlMsg for WindowFinderMsg {
     where
         Self: Sized,
     {
+        println!("ccccc:{}", code);
         Ok(Self(
-            wnd,
+            unsafe { WindowFinder::force_from_window(wnd) },
             match code {
                 114 => BeginFind,
                 514 => EndFind,
-                114514 => SelChanged(data.map(|a| a.copy_handle())),
+                312 => {
+                    println!("ccccc");
+                    SelChanged(data.map(|a| a.copy_handle()))
+                }
                 _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
             },
         ))
@@ -118,10 +131,10 @@ impl ControlMsg for WindowFinderMsg {
 impl ControlMsgType for WindowFinderMsg {
     type ControlType = WindowFinder;
     fn get_control(&self) -> &<Self as ControlMsgType>::ControlType {
-        todo!()
+        &self.0
     }
     fn get_control_mut(&mut self) -> &mut <Self as ControlMsgType>::ControlType {
-        todo!()
+        &mut self.0
     }
 }
 impl MessageReceiver for WindowsFinderMessageReceiver {
@@ -136,17 +149,19 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
                 if !is_nc {
                     if let Some(_) = self.currect_wnd {
                         match mtype {
-                            MouseMsgMoveType::Move(point) => {
+                            MouseMsgMoveType::Move(mut point) => {
                                 let wnd_point =
                                     Window::from_screen_point(point.window_to_screen(window)?);
                                 if wnd_point != self.currect_wnd {
-                                    erase_window_border(self.currect_wnd);
+                                    erase_window_border(&mut self.currect_wnd)?;
                                     self.currect_wnd = wnd_point;
                                     window.send_control_nofiy(WindowFinderMsg(
-                                        window.copy_handle(),
-                                        SelChanged(self.currect_wnd.map(|a| a.copy_handle())),
+                                        unsafe {
+                                            WindowFinder::force_from_window(window.copy_handle())
+                                        },
+                                        SelChanged(option_copy_handle(&self.currect_wnd)),
                                     ))?;
-                                    draw_window_border(self.currect_wnd);
+                                    draw_window_border(&mut self.currect_wnd)?;
                                 }
                                 Ok(())
                             }
@@ -162,45 +177,53 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
             MouseMsg::Button {
                 button_type,
                 state,
-                pos,
                 is_nc,
+                ..
             } => {
                 if !is_nc {
                     match button_type {
-                        Left => match state {
+                        capdows::win32::msg::MouseButton::Left => match state {
                             Down | DoubleClick => {
                                 if window.send_control_msg(WindowFinderMsg(
-                                    window.copy_handle(),
+                                    unsafe {
+                                        WindowFinder::force_from_window(window.copy_handle())
+                                    },
                                     BeginFind,
                                 ))? < 0
                                 {
                                     //返回大于或等于零表示允许继续查找
                                     return Err(NoProcessed);
                                 };
-                                ImageTextView::from_window(&window.copy_handle())?
-                                    .change_content(ViewContent::Icon(*icon_empty));
+                                ImageTextView::from_window(&window.copy_handle())?.change_content(
+                                    ViewContent::Icon((*ICON_EMPTY).copy_handle()),
+                                )?;
                                 self.currect_wnd = Some(window.copy_handle());
-                                draw_window_border(self.currect_wnd);
+                                draw_window_border(&mut self.currect_wnd)?;
                                 window.capture_mouse();
                                 window.send_control_nofiy(WindowFinderMsg(
-                                    window.copy_handle(),
+                                    unsafe {
+                                        WindowFinder::force_from_window(window.copy_handle())
+                                    },
                                     SelChanged(Some(window.copy_handle())),
-                                ));
+                                ))?;
                                 Ok(())
                             }
                             Up => {
                                 if let Some(_) = self.currect_wnd {
                                     {
-                                        erase_window_border(self.currect_wnd);
-                                        release_mouse();
+                                        erase_window_border(&mut self.currect_wnd)?;
+                                        release_mouse()?;
                                         Cursor::from_system(SystemCursor::NormalSelection)?.apply();
-                                        ImageTextView::from_window(window)?
-                                            .change_content(ViewContent::Icon(*icon_full));
+                                        ImageTextView::from_window(window)?.change_content(
+                                            ViewContent::Icon((*ICON_FULL).copy_handle()),
+                                        )?;
                                     };
                                     window.send_control_nofiy(WindowFinderMsg(
-                                        window.copy_handle(),
+                                        unsafe {
+                                            WindowFinder::force_from_window(window.copy_handle())
+                                        },
                                         EndFind,
-                                    ));
+                                    ))?;
                                     self.currect_wnd = None;
                                     Ok(())
                                 } else {
@@ -217,4 +240,10 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
             _ => Err(NoProcessed),
         }
     }
+}
+fn draw_window_border(_wnd: &mut Option<Window>) -> Result<()> {
+    Ok(())
+}
+fn erase_window_border(_wnd: &mut Option<Window>) -> Result<()> {
+    Ok(())
 }

@@ -51,6 +51,7 @@ pub mod core {
         StringId(String),
         NumberId(u16),
     }
+    pub use super::option_copy_handle;
     pub use ResourceID::*;
     impl ResourceID {
         pub fn to_pcwstr(self) -> (PCWSTR, Option<Vec<u16>>) {
@@ -235,4 +236,10 @@ macro_rules! import_foundation {
             VARIANT_BOOL, WAIT_EVENT, WIN32_ERROR, WPARAM,
         };
     };
+}
+pub fn option_copy_handle(wnd: &Option<Window>) -> Option<Window> {
+    match wnd {
+        None => None,
+        Some(wnd) => Some(wnd.copy_handle()),
+    }
 }
