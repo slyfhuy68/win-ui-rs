@@ -1,7 +1,21 @@
 use super::*;
 ///表示 NMHDR 或将 NMHDR 作为其第一个成员的、#[repr(C)]的较大结构
-pub unsafe trait NotifyMessage {}
-unsafe impl NotifyMessage for NMHDR {}
+pub unsafe trait NotifyMessage {
+    fn code(&self) -> u32;
+    fn wnd_from(&self) -> Window;
+    fn id_from(&self) -> WindowID;
+}
+unsafe impl NotifyMessage for NMHDR {
+    fn code(&self) -> u32{
+        self.code
+    }
+    fn wnd_from(&self) -> Window{
+        self.hwndFrom.into()
+    }
+    fn id_from(&self) -> WindowID{
+        self.idFrom as u16
+    }
+}
 ///Windows控件
 pub trait Control {
     type MsgType: UnsafeControlMsg;
@@ -72,7 +86,17 @@ pub struct DefaultNMHDR<T> {
     pub nmhdr: NMHDR,
     pub data: Option<T>,
 }
-unsafe impl<T> NotifyMessage for DefaultNMHDR<T> {}
+unsafe impl<T> NotifyMessage for DefaultNMHDR<T> {
+    fn code(&self) -> u32{
+        self.nmhdr.code
+    }
+    fn wnd_from(&self) -> Window{
+        self.nmhdr.hwndFrom.into()
+    }
+    fn id_from(&self) -> WindowID{
+        self.nmhdr.idFrom as u16
+    }
+}
 unsafe impl<T> UnsafeControlMsg for T
 where
     T: ControlMsg,
@@ -117,7 +141,6 @@ where
                 )
             } else {
                 let msg_ptr = ptr as *mut DefaultNMHDR<T::ControlMsgDataType>;
-                // println!("{}", (*(msg_ptr)).nmhdr.code);
                 T::from_raw_control_msg(
                     (*(msg_ptr)).nmhdr.code,
                     (&mut (*(msg_ptr)).data).into(),

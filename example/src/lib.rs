@@ -98,7 +98,6 @@ impl ControlMsg for WindowFinderMsg {
                 BeginFind => 114,
                 EndFind => 514,
                 SelChanged(x) => {
-                    println!("cccccd");
                     return Ok((1145, x));
                 }
             },
@@ -113,14 +112,12 @@ impl ControlMsg for WindowFinderMsg {
     where
         Self: Sized,
     {
-        println!("ccccc:{}", code);
         Ok(Self(
             unsafe { WindowFinder::force_from_window(wnd) },
             match code {
                 114 => BeginFind,
                 514 => EndFind,
                 312 => {
-                    println!("ccccc");
                     SelChanged(data.map(|a| a.copy_handle()))
                 }
                 _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),

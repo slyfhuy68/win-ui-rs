@@ -1,79 +1,222 @@
 use super::*;
 //--------------------------------------------------------------------------
 #[derive(Clone, PartialEq)]
-pub enum MenuType {
-    Menu,
-    PopupMenu,
-}
-#[derive(Clone, PartialEq)]
 pub struct Menu {
     pub handle: HMENU,
 }
-// pub enum PosOrID {
-//     Identifier(u32), //MF_BYCOMMAND
-//     Position(u32),   //MF_BYPOSITION
-// }
-// pub enum PosesOrIDs<A> {
-//     Identifier(A), //MF_BYCOMMAND
-//     Position(A),   //MF_BYPOSITION
-// }
-// impl PosOrID {
-//     pub fn to_u32(self) -> u32 {
-//         match self {
-//             PosOrID::Identifier(x) => return x,
-//             PosOrID::Position(y) => return y,
-//         }
-//     }
-//     pub fn to_u32_f(self) -> (MENU_ITEM_FLAGS, u32) {
-//         match self {
-//             PosOrID::Identifier(x) => return (MF_BYCOMMAND, x),
-//             PosOrID::Position(y) => return (MF_BYPOSITION, y),
-//         }
-//     }
-//     pub fn to_u32_b(self) -> (bool, u32) {
-//         match self {
-//             PosOrID::Identifier(x) => return (false, x),
-//             PosOrID::Position(y) => return (true, y),
-//         }
-//     }
-// }
-//--------------------------------------------------------------------------
 #[derive(Clone, PartialEq)]
 pub enum MenuItemBitmapIcon {
+    ///位图
     Bitmap(super::image::Bitmap /*位图的句柄*/),
-    SystemIcon(u32), //HBMMENU_SYSTEM
+    ///Windows 系统图标
+    SystemIcon(usize), //HBMMENU_SYSTEM
+    ///在消息接收器的回调中手动绘制。
     CallBack,        //HBMMENU_CALLBACK
+    ///弹出菜单的“关闭”按钮。
     CloseP,          //HBMMENU_POPUP_CLOSE
+    ///菜单栏的“关闭”按钮。
     CloseB,          //HBMMENU_MBAR_CLOSE
+    ///菜单栏的“已禁用关闭”按钮。
     CloseBD,         //HBMMENU_MBAR_CLOSE_D
+    ///弹出菜单的最小化按钮。
     MimimizeP,       //HBMMENU_POPUP_MINIMIZE
+    ///菜单栏的最小化按钮。
     MimimizeB,       //HBMMENU_MBAR_MINIMIZE
+    ///已禁用菜单栏的最小化按钮。
     MimimizeBD,      //HBMMENU_MBAR_MINIMIZE_D
+    ///弹出菜单的最大化按钮。
     MaximizeP,       //HBMMENU_POPUP_MAXIMIZE
+    ///弹出菜单的“还原”按钮。
     RestoreP,        //HBMMENU_POPUP_RESTORE
+    ///菜单栏的“还原”按钮。
     RestoreB,        //HBMMENU_MBAR_RESTORE
+}
+impl From<(HBITMAP, usize)> for MenuItemBitmapIcon {
+    fn from(style: (HBITMAP, usize)) -> Self {
+        todo!()
+    }
+}
+impl Into<(HBITMAP, usize)> for MenuItemBitmapIcon {
+    fn into(self) -> (HBITMAP, usize) {
+        (match self {
+            Bitmap(b) => b.into(),
+            SystemIcon(icon_id) => return (HBMMENU_SYSTEM, icon_id), 
+            CallBack => HBMMENU_CALLBACK, 
+            CloseP => HBMMENU_POPUP_CLOSE,  
+            CloseB => BMMENU_MBAR_CLOSE, 
+            CloseBD => HBMMENU_MBAR_CLOSE_D,  
+            MimimizeP => HBMMENU_POPUP_MINIMIZE,   
+            MimimizeB => HBMMENU_MBAR_MINIMIZE,  
+            MimimizeBD => HBMMENU_MBAR_MINIMIZE_D,
+            MaximizeP => HBMMENU_POPUP_MAXIMIZE,   
+            RestoreP => HBMMENU_POPUP_RESTORE,  
+            RestoreB => HBMMENU_MBAR_RESTORE,       
+        }, 0)
+    }
 }
 #[derive(Clone, PartialEq)]
 pub enum MenuItemDisabledState {
-    Grayed,   //0x00000001L
-    Disabled, //0x00000002L
-    Enabled,  //0x00000000L
+    ///启用
+    Enabled,  //MFS_ENABLED
+    #[doc(hidden)]
+    DisabledNoGrayed, //MF_DISABLED
+    #[doc(hidden)]
+    Grayed,   //MF_GRAYED
+    ///禁用
+    Disabled, //MFS_DISABLED
 }
+
 #[derive(Clone, PartialEq)]
 pub struct MenuItemState {
-    state: MenuItemDisabledState,
-    hilite: bool,  //true MFS_HILITE,false MFS_UNHILITE
-    checked: bool, //true MFS_CHECKED,false MFS_UNCHECKED
+    ///启用状态和灰显状态
+    pub state: MenuItemDisabledState,
+    ///是否高亮显示
+    pub hilite: bool,  //true MFS_HILITE,false MFS_UNHILITE
+    pub checked: bool, //true MFS_CHECKED,false MFS_UNCHECKED
+}
+impl Into<MENU_ITEM_STATE> for MenuItemState {
+    fn into(self) -> MENU_ITEM_STATE {
+        let mtype = MENU_ITEM_TYPE(0);
+        if self.hilite{
+            mtype |= MFS_HILITE;
+        }
+        if self.checked{
+            mtype |= MFS_CHECKED;
+        }
+        match self.state {
+            Enabled => (), 
+            Disabled => mtype |= MFS_DISABLED, 
+            DisabledNoGrayed => mtype |= MENU_ITEM_TYPE(MF_DISABLED.0), 
+            Grayed => mtype |= MENU_ITEM_TYPE(MF_GRAYED.0), 
+        }
+    }
+}
+impl From<MENU_ITEM_STATE> for MenuItemState {
+    fn from(style: MENU_ITEM_STATE) -> Self {
+        todo!()
+    }
 }
 #[derive(Clone, PartialEq)]
 pub enum MenuItemShow {
     Bitmap(
-        super::image::Bitmap, /*dwTypeData地位是位图句柄*/
-    ), //MFT_BITMAP
+        MenuItemBitmapIcon,
+    ), //MFT_BITMAP? | MIIM_BITMAP
     String(
         String, /* dwTypeData 成员是指向以 null 结尾的字符串的指针*/
     ), //MFT_STRING
-    OwnDraw, //MFT_OWNERDRAW
+    OwnDraw(Option<Box<dyn Any>>), //MFT_OWNERDRAW
+}
+impl From<(MENU_ITEM_TYPE, PWSTR, (HBITMAP, usize), u32)> for MenuItemShow {
+    fn from(style: (MENU_ITEM_TYPE, PWSTR, (HBITMAP, usize), u32)) -> Self {
+        todo!()
+    }
+}
+impl Into<(MENU_ITEM_TYPE, PWSTR, (HBITMAP, usize), Option<Vec<u16>>, u32)> for MenuItemShow {
+    fn into(self) -> (MENU_ITEM_TYPE, PWSTR, (HBITMAP, usize), Option<Vec<u16>>, u32) {
+        match self{
+            Bitmap(bitmap) => {
+                let data = bitmap.into(), 
+                (MFT_BITMAP, PWSTR(data.0.0), data, None)
+            }
+            String(string) => {
+                let (pcwstr, buffer) = str_to_pcwstr(string);
+                (MFT_STRING, pcwstr, (HBITMAP(0), 0), Some(buffer), string.len())
+            }
+            OwnDraw(data) => todo!()
+        }
+    }
+}
+pub enum MenuItemBreakType{
+    No, //NULL
+    NewBreakLine, //MFT_MENUBARBREAK
+    NewBreak, //MFT_MENUBREAK
+    
+}
+impl From<(MENU_ITEM_TYPE)> for MenuItemBreakType {
+    fn from(style: MENUITEMINFOW) -> Self {
+        todo!()
+    }
+}
+impl Into<MENU_ITEM_TYPE> for MenuItemBreakType {
+    fn into(self) -> MENU_ITEM_TYPE {
+        match self {
+            No => MENU_ITEM_TYPE(0), 
+            NewBreakLine => MFT_MENUBARBREAK, 
+            NewBreak => MFT_MENUBREAK
+        }
+    }
+}
+pub enum MenuCheckedIcon{
+    CheckMark, 
+    Cullet, //MFT_RADIOCHECK
+    Costom(Bitmap)
+}
+pub struct MenuCheckIcon{
+    pub checked: MenuCheckedIcon, 
+    pub unchecked: Option<Bitmap>, 
+}
+impl From<(MENU_ITEM_TYPE, (HBITMAP, HBITMAP))> for MenuCheckIcon {
+    fn from(style: MENUITEMINFOW) -> Self {
+        todo!()
+    }
+}
+impl Into<(MENU_ITEM_TYPE, (HBITMAP, HBITMAP))> for MenuCheckIcon {
+    fn into(self) -> (MENU_ITEM_TYPE, (HBITMAP, HBITMAP)) {
+        let (itype, checked) = match self.ckecked {
+            CheckMark => (MENU_ITEM_TYPE(0), HBITMAP(NULL_PTR())), 
+            Cullet => (MFT_RADIOCHECK, HBITMAP(NULL_PTR())), 
+            Costom(bitmap) => (MENU_ITEM_TYPE(0), bitmap.into())
+        };
+        let unchecked = match self.unckecked {
+            None => HBITMAP(NULL_PTR()), 
+            Some(bitmap) => bitmap.into()
+        }
+        (itype, (checked, unchecked))
+    }
+}
+#[derive(Clone, PartialEq)]
+pub struct MenuItemStyle {
+    pub mtype: MenuItemShow,
+    pub new_break: MenuItemBreakType,
+    pub righ_to_left: bool,                            //MFT_RIGHTORDER
+    pub right_align_from_this: bool,                    //MFT_RIGHTJUSTIFY
+    pub state: MenuItemState,                          //MIIM_STATE
+    pub checks: MenuCheckIcon,            //MIIM_CHECKMARKS
+}
+impl From<MENUITEMINFOW> for MenuStyle {
+    fn from(style: MENUITEMINFOW) -> Self {
+        todo!()
+    }
+}
+impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuStyle {
+    fn into(self) -> (MENUITEMINFOW, Option<Vec<u16>>) {
+        //(MENU_ITEM_TYPE, PWSTR, (HBITMAP, usize))
+        let (fType, dwTypeData, (hbmpItem, dwItemData), buffer, cch) = self.mtype.into();
+        fType |= self.new_break.into();
+        if self.righ_to_left {
+            fType |= MFT_RIGHTORDER;
+        }
+        if self.right_align_from_this {
+            fType |= MFT_RIGHTJUSTIFY;
+        }
+        let fState = self.state.into();
+        let (ftype2, (hbmpChecked, hbmpUnchecked)) = self.checks.into();
+        fType |= ftype2;
+        (MENUITEMINFOW {
+            cbSize: size_of::<MENUITEMINFOW>() as u32, 
+            fMask: MIIM_FULL, 
+            fType, 
+            fState, 
+            wID: 0, 
+            hSubMenu: Default::default(), 
+            hbmpChecked,
+            hbmpUnchecked,
+            dwItemData,
+            dwTypeData,
+            cch,
+            hbmpItem,
+        }, buffer)
+    }
 }
 #[derive(Clone, PartialEq)]
 pub enum MenuItem {
@@ -84,29 +227,52 @@ pub enum MenuItem {
     Child(MenuItemStyle, Menu /*MIIM_SUBMENU*/),
     Separator, //MFT_SEPARATOR
 }
-#[derive(Clone, PartialEq)]
-pub enum MenuItemBreakType {
-    NoBreak,   //NULL
-    BarBreak,  //MFT_MENUBARBREAK
-    MenuBreak, //MFT_MENUBREAK
+const MIIM_FULL: MENU_ITEM_MASK = MIIM_BITMAP|
+MIIM_CHECKMARKS|
+MIIM_DATA|
+MIIM_FTYPE|
+MIIM_ID|
+MIIM_STATE|
+MIIM_STRING|
+MIIM_SUBMENU|
+MIIM_TYPE;
+impl From<MENUITEMINFOW> for MenuStyle {
+    fn from(style: MENUITEMINFOW) -> Self {
+        todo!()
+    }
 }
-#[derive(Clone, PartialEq)]
-pub struct MenuItemCheckStyle {
-    radio_check: bool,         //MFT_RADIOCHECK
-    unchecked: Option<Bitmap>, //hbmpUnchecked
-    checked: Option<Bitmap>,   //hbmpChecked
-}
-#[derive(Clone, PartialEq)]
-pub struct MenuItemStyle {
-    from: Menu,
-    mtype: MenuItemShow,
-    break_type: MenuItemBreakType,
-    righ_to_rder: bool,                            //MFT_RIGHTORDER
-    right_justify_when_in_menu_bar: bool,          //MFT_RIGHTJUSTIFY
-    state: MenuItemState,                          //MIIM_STATE
-    checks: Option<MenuItemCheckStyle>,            //MIIM_CHECKMARKS
-    icon: Option<MenuItemBitmapIcon /*hbmpItem*/>, //MIIM_BITMAP
-    data: Option<u32 /*dwItemData*/>,              //MIIM_DATA
+impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
+    fn into(self) -> (MENUITEMINFOW, Option<Vec<u16>>) {
+        match self {
+            Normal(style, id) => {
+                let mut result = self.style.into();
+                result.0.wID = match id {
+                    None => 0, 
+                    Some(num) => num
+                };
+                result
+            }
+            Child(style, menu) => {
+                let mut result = self.style.into();
+                result.0.hSubMenu = menu.into();
+                result
+            }
+            Separator => (MENUITEMINFOW{
+                cbSize: size_of::<MENUITEMINFOW>() as u32, 
+                fMask: MIIM_FULL, 
+                fType: MFT_SEPARATOR, 
+                fState: Default::default(), 
+                wID: 0, 
+                hSubMenu: Default::default(), 
+                hbmpChecked: HBITMAP::default(),
+                hbmpUnchecked: HBITMAP::default(),
+                dwItemData: 0,
+                dwTypeData: PWSTR::null(),
+                cch: 0,
+                hbmpItem: HBITMAP::default(),
+            }, None), 
+        }
+    }
 }
 //----------------------------------------------
 #[derive(Clone, PartialEq)]

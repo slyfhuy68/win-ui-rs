@@ -244,7 +244,7 @@ pub fn stop_msg_loop() {
 //----------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------
-#[derive(Copy, Clone)]
+#[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub struct RawMessage(
     ///消息代码
     pub u32,
@@ -260,7 +260,7 @@ impl RawMessage {
                 false => panic!("The type provided does not match the actual message!"),
                 _ => (),
             };
-            T::from_raw_msg(RawMessage(self.0, self.1, self.2))
+            T::from_raw_msg(*self)
         }
     }
     pub fn get_control_msg<T: Control>(&mut self) -> Result<T::MsgType> {
@@ -339,6 +339,7 @@ pub trait ShareMessage: CustomMessage {
 pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
+#[derive(Eq, PartialEq, Debug)]
 pub struct UnsafeControlMsgDefaultOwnerType<D: NotifyMessage> {
     pub msg: RawMessage,
     pub data: Option<D>,
@@ -348,7 +349,11 @@ impl<D: NotifyMessage> AsMsg for UnsafeControlMsgDefaultOwnerType<D> {
         use std::ptr::addr_of;
         match &self.data {
             None => self.msg,
-            Some(d) => RawMessage(self.msg.0, self.msg.1, addr_of!(d) as isize),
+            Some(d) => {
+                let result = RawMessage(self.msg.0, self.msg.1, addr_of!(d) as isize);
+                println!("hello {:?} {} {:?} {}", result, d.code(), d.wnd_from(), d.id_from());
+                result
+            },
         }
     }
 }

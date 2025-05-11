@@ -265,14 +265,14 @@ impl Window {
     pub fn redraw_menu_bar(&mut self) -> Result<()> {
         todo!() //DrawMenuBar
     }
-    pub fn get_menu(&mut self) -> Result<Menu> {
-        todo!() //GetMenu
-    }
     pub fn show(&mut self, stype: ShowWindowType) -> Result<bool> {
         Ok(unsafe { ShowWindow(self.handle, stype.into()) }.into())
     }
+    pub fn get_menu(&mut self) -> Result<Menu> {
+        todo!() //GetMenu
+    }
     pub fn set_menu(&mut self, menu: Option<Menu>) -> Result<()> {
-        todo!() //SetMenu
+        unsafe { SetMenu(self.0, )}
     }
     pub fn get_system_menu(&mut self) -> Menu {
         todo!() //getSystemMenu(__,false)
@@ -530,6 +530,7 @@ impl Window {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
+            println!("xi: {} {} {}", code, wparam, lparam);
             last_error!(
                 SendMessageW(
                     self.handle,

@@ -142,6 +142,7 @@ unsafe fn msg_handler(
             }
             WM_NOTIFY => {
                 let nmhdr_ptr = param2 as *mut NMHDR;
+                    println!("code: {}", (*nmhdr_ptr).code);
                 match c.control_message(
                     callback_id,
                     &mut w,

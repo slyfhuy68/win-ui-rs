@@ -21,13 +21,6 @@ struct Mycb {
     num: i8,
     controls: Option<MyControls>,
 }
-static mut ICON_STATE: bool = false;
-fn get_state() -> bool {
-    unsafe { ICON_STATE }
-}
-fn set_state(state: bool) {
-    unsafe { ICON_STATE = state }
-}
 const BUTTON_01: WindowID = 1u16;
 const SPLIT_BUTTON_01: WindowID = 2u16;
 const LINK_BUTTON_01: WindowID = 3u16;
@@ -275,7 +268,7 @@ impl MessageReceiver for Mycb {
                 //         }
                 //         _ => Err(NoProcessed),
                 //     }
-                println!("aaa{:?}", msg.get_type());
+                println!("你好：{:?}", msg.get_type());
                 Err(NoProcessed)
             }
             BUTTON_01 => {
