@@ -34,6 +34,8 @@ const CHECK_BOX_02: WindowID = 6u16;
 const EDIT_01: WindowID = 7u16;
 const VIEW_01: WindowID = 8u16;
 const VIEW_02: WindowID = 8u16;
+//------------------------
+const MENU_ITEM_1: MenuItemID = 1u16;
 impl MessageReceiver for Mycb {
     fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
         println!("发生错误: {:?}", err);
@@ -337,29 +339,45 @@ fn main() -> Result<()> {
             NumberId(1),
             None,
             false,
-        )?),
+        ).unwrap()),
         Some(Icon::load_from_module(
             ExecutableFile::from_current_file().unwrap(),
             NumberId(1),
             None,
             false,
-        )?),
+        ).unwrap()),
         Some(Cursor::from_system(SystemCursor::NormalSelection)?),
         Some(ClassBackgroundBrush::BtnFace),
         0,
         0,
-    )?;
-    //println!("{}", class);
+    ).unwrap();
     let mut window = class.create_window(
         "中文😝öé English",
-        Default::default(),
+        WindowType::Overlapped {
+            style: Default::default(),
+            syle_ex: Default::default(),
+            menu: true,
+            onwer: None,
+            is_layered: false,
+        },
         None,
         Box::new(Mycb {
             num: 0,
             controls: None,
         }),
-    )?;
-    window.show(ShowWindowType::Normal)?;
+    ).unwrap();
+    window.show(ShowWindowType::Normal).unwrap();
+    // {
+    //     let menu = window.get_menu_mut().unwrap().unwrap();
+    //     menu.insert_item(
+    //         None,
+    //         MenuItem::Normal(
+    //             MenuItemStyle::default(),
+    //             MenuItemShow::String(MenuCheckIcon::default(), "测试".to_string()),
+    //        Some(MENU_ITEM_1),
+    //         ),
+    //     ).unwrap();
+    // };
     println!("ok");
     capdows::win32::msg::msg_loop();
     Ok(())

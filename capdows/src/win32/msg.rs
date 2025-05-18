@@ -351,9 +351,8 @@ impl<D: NotifyMessage> AsMsg for UnsafeControlMsgDefaultOwnerType<D> {
             None => self.msg,
             Some(d) => {
                 let result = RawMessage(self.msg.0, self.msg.1, addr_of!(d) as isize);
-                println!("hello {:?} {} {:?} {}", result, d.code(), d.wnd_from(), d.id_from());
                 result
-            },
+            }
         }
     }
 }

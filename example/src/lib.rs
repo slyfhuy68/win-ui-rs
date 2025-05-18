@@ -117,9 +117,7 @@ impl ControlMsg for WindowFinderMsg {
             match code {
                 114 => BeginFind,
                 514 => EndFind,
-                312 => {
-                    SelChanged(data.map(|a| a.copy_handle()))
-                }
+                312 => SelChanged(data.map(|a| a.copy_handle())),
                 _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
             },
         ))

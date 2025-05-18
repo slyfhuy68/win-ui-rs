@@ -235,5 +235,6 @@ pub mod errors {
     pub const ERROR_WOULD_BLOCK: WinError = WinError::from_local(26);
     pub const ERROR_DIRECTORY_NAME_INVALID: WinError = WinError::from_local(27);
     pub const ERROR_INVALID_COMBINE: WinError = WinError::from_local(28);
+    pub const ERROR_MUSTNOT_CHILD: WinError = WinError::from_local(29);
 }
 use errors::*;

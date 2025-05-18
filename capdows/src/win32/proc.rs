@@ -32,7 +32,6 @@ pub unsafe extern "system" fn window_proc(
             return DefWindowProcW(window_handle, msg, param1, param2);
         }
         let user_callback_s = &mut *user_callback_ptr;
-        // println!("{}", std::any::type_name(c));
         let rusult = LRESULT(msg_handler(
             user_callback_s,
             window,
@@ -94,10 +93,10 @@ unsafe fn msg_handler(
                     (
                         WINDOW_STYLE(s.style as u32),
                         s.dwExStyle,
-                        if s.hMenu.is_invalid() {
-                            None
+                        if unsafe { IsMenu(s.hMenu) }.into() {
+                            -1
                         } else {
-                            Some(s.hMenu)
+                            s.hMenu.0 as u16 as i32
                         },
                         if s.hwndParent.is_invalid() {
                             None
@@ -142,7 +141,6 @@ unsafe fn msg_handler(
             }
             WM_NOTIFY => {
                 let nmhdr_ptr = param2 as *mut NMHDR;
-                    println!("code: {}", (*nmhdr_ptr).code);
                 match c.control_message(
                     callback_id,
                     &mut w,
@@ -219,14 +217,12 @@ unsafe fn msg_handler(
                 }
             }
             _ => {
-                //println!("msg:{}", msg);
                 default_handler(w, msg, param1, param2)
             }
         }
     }
 }
 fn callback_error(cb: &mut Box<CallBackObj>, err: MessageReceiverError) -> isize {
-    //println!("{:?}", err);
     match cb.error_handler(err) {
         Ok(x) => x,
         Err(err) => err.code() as isize,

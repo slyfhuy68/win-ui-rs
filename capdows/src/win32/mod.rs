@@ -25,7 +25,7 @@ use class::*;
 pub mod control;
 use control::*;
 pub mod help;
-// use help::*;
+use help::*;
 pub mod image;
 use image::*;
 pub mod menu;
@@ -167,6 +167,8 @@ use either::*;
 use windows::core::{Error as wError, Result as wResult, w};
 //----------------------------------------------------------------------------------
 use std::ffi::c_void;
+use std::num::NonZeroI32;
+use std::num::NonZeroU32;
 use std::{os::windows::raw::HANDLE, ptr::null_mut as NULL_PTR, string::*};
 #[allow(unused_imports)]
 use windows::Win32::Foundation::{
@@ -189,10 +191,6 @@ use windows::core::*;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 //                              工具函数
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-pub struct PtrWapper<T, O = Box<dyn std::any::Any>> {
-    pub ptr: T,
-    pub owner: O,
-}
 pub fn make_int_resource(i: usize) -> PCWSTR {
     PCWSTR(i as *mut u16)
 }
@@ -200,6 +198,11 @@ pub fn str_to_pcwstr(s: &str) -> (PCWSTR, Vec<u16>) {
     let wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
     let wide_str_ptr = wide_str.as_ptr();
     return (PCWSTR(wide_str_ptr), wide_str);
+}
+pub fn str_to_pwstr(s: &str) -> (PWSTR, Vec<u16>) {
+    let mut wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
+    let wide_str_ptr = wide_str.as_mut_ptr();
+    return (PWSTR(wide_str_ptr), wide_str);
 }
 use std::hash::DefaultHasher;
 use std::hash::Hash;

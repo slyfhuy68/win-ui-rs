@@ -12,7 +12,6 @@ pub fn get_winmain_args() -> Result<(HINSTANCE, HINSTANCE, Vec<String>, SHOW_WIN
         args,
         SHOW_WINDOW_CMD(argsss.wShowWindow as i32),
     );
-    //println!("{:?}",result);
     Ok(result)
 }
 

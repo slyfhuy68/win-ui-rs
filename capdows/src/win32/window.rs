@@ -2,12 +2,16 @@ use super::*;
 #[derive(Eq, PartialEq, Debug)] //不实现Clone
 pub struct Window {
     handle: HWND,
+    menu_buffer: HMENU,
 }
 unsafe impl Send for Window {}
 unsafe impl Sync for Window {}
 impl From<HWND> for Window {
     fn from(handle: HWND) -> Self {
-        Window { handle }
+        Window {
+            handle,
+            menu_buffer: HMENU(0 as *mut c_void),
+        }
     }
 }
 impl Into<HWND> for Window {
@@ -208,9 +212,7 @@ pub enum WindowZposGroup {
 }
 impl Default for Window {
     fn default() -> Self {
-        Self {
-            handle: HWND(NULL_PTR()),
-        }
+        Self::from(HWND(NULL_PTR()))
     }
 }
 pub enum WindowAnimateType {
@@ -239,6 +241,22 @@ impl Window {
             Some(hwnd.into())
         }
     }
+    pub fn is_child(&self) -> bool {
+        unsafe { GetWindowLongPtrW(self.handle, GWL_STYLE) & WS_CHILD.0 as isize != 0 }
+    }
+    pub fn get_menu_mut(&mut self) -> Result<Option<&mut Menu>> {
+        unsafe {
+            if self.is_child() {
+                return Err(ERROR_MUSTNOT_CHILD);
+            };
+            let menu = GetMenu(self.handle);
+            if menu.is_invalid() {
+                return Ok(None);
+            };
+            self.menu_buffer = menu;
+            Ok(Some(Menu::from_mut_ref(&mut self.menu_buffer)))
+        }
+    }
     pub fn root_parent(&self) -> Option<Self> {
         let hwnd = unsafe { GetAncestor(self.handle, GA_ROOT) };
         if hwnd.is_invalid() {
@@ -250,6 +268,7 @@ impl Window {
     pub fn copy_handle(&self) -> Self {
         Self {
             handle: self.handle,
+            menu_buffer: HMENU(0 as *mut c_void),
         }
     }
     pub unsafe fn handle(&self) -> HWND {
@@ -272,7 +291,7 @@ impl Window {
         todo!() //GetMenu
     }
     pub fn set_menu(&mut self, menu: Option<Menu>) -> Result<()> {
-        unsafe { SetMenu(self.0, )}
+        Ok(unsafe { SetMenu(self.handle, menu.map(|menu: Menu| unsafe { menu.handle() }))? })
     }
     pub fn get_system_menu(&mut self) -> Menu {
         todo!() //getSystemMenu(__,false)
@@ -530,7 +549,6 @@ impl Window {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
-            println!("xi: {} {} {}", code, wparam, lparam);
             last_error!(
                 SendMessageW(
                     self.handle,

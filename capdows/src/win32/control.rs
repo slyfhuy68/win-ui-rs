@@ -6,13 +6,13 @@ pub unsafe trait NotifyMessage {
     fn id_from(&self) -> WindowID;
 }
 unsafe impl NotifyMessage for NMHDR {
-    fn code(&self) -> u32{
+    fn code(&self) -> u32 {
         self.code
     }
-    fn wnd_from(&self) -> Window{
+    fn wnd_from(&self) -> Window {
         self.hwndFrom.into()
     }
-    fn id_from(&self) -> WindowID{
+    fn id_from(&self) -> WindowID {
         self.idFrom as u16
     }
 }
@@ -87,13 +87,13 @@ pub struct DefaultNMHDR<T> {
     pub data: Option<T>,
 }
 unsafe impl<T> NotifyMessage for DefaultNMHDR<T> {
-    fn code(&self) -> u32{
+    fn code(&self) -> u32 {
         self.nmhdr.code
     }
-    fn wnd_from(&self) -> Window{
+    fn wnd_from(&self) -> Window {
         self.nmhdr.hwndFrom.into()
     }
-    fn id_from(&self) -> WindowID{
+    fn id_from(&self) -> WindowID {
         self.nmhdr.idFrom as u16
     }
 }
@@ -116,7 +116,6 @@ where
             }
             Some(data) => Some(data),
         };
-        // println!("{}", code);
         Ok(Right(DefaultNMHDR {
             nmhdr: NMHDR {
                 hwndFrom: handle,
