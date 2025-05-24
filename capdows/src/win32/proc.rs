@@ -20,7 +20,6 @@ pub unsafe extern "system" fn window_proc(
             Err(_) => {
                 if msg == WM_NCCREATE {
                     let s = *(param2.0 as *mut CREATESTRUCTW);
-                    //s.lpCreateParams: *mut Box<CallBackObj>
                     let mm = set_proc(&mut window, s.lpCreateParams as *mut Box<CallBackObj>);
                     s.lpCreateParams as *mut Box<CallBackObj>
                 } else {
@@ -94,9 +93,9 @@ unsafe fn msg_handler(
                         WINDOW_STYLE(s.style as u32),
                         s.dwExStyle,
                         if unsafe { IsMenu(s.hMenu) }.into() {
-                            -1
+                            Left(Menu::from_mut_ref(&mut s.hMenu))
                         } else {
-                            s.hMenu.0 as u16 as i32
+                            Right(s.hMenu)
                         },
                         if s.hwndParent.is_invalid() {
                             None

@@ -605,14 +605,14 @@ pub enum WindowType {
     Overlapped {
         style: NormalWindowStyles,
         syle_ex: NormalWindowExStyles,
-        menu: bool,
+        menu: Option<Vec<MenuItemInfo>>,
         onwer: Option<Window>,
         is_layered: bool, //WS_EX_LAYERED
     }, //重叠窗口
     Popup {
         style: NormalWindowStyles,
         syle_ex: NormalWindowExStyles,
-        menu: bool,
+        menu: Option<Vec<MenuItemInfo>>,
         onwer: Option<Window>,
         is_layered: bool, //WS_EX_LAYERED
     },
@@ -637,9 +637,8 @@ impl Default for WindowType {
         }
     }
 }
-/// i32: -1表示需要新建，非负数表示窗口id
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>) {
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Either<Vec<MenuItemInfo>, HMENU>, Option<HWND>)> for WindowType {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Either<Vec<MenuItemInfo>, HMENU>, Option<HWND>) {
         use WindowType::*;
         unsafe {
             match self {
@@ -655,7 +654,10 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
                     (
                         yy,
                         xx | zz,
-                        if z { -1 } else { -2 },
+                        match z {
+                            None => Right(HMENU(0 as *mut c_void)), 
+                            Some(s) => Left(s)
+                        },
                         match w {
                             Some(x) => Some(x.handle()),
                             None => None,
@@ -677,7 +679,10 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
                     (
                         yy | WS_POPUP,
                         xx | zz,
-                        if z { -1 } else { 0 }, //-1表示需要新建，非负数表示窗口id
+                        match z {
+                            None => Right(HMENU(0 as *mut c_void)), 
+                            Some(s) => Left(s)
+                        },
                         match w {
                             Some(x) => Some(x.handle()),
                             None => None,
@@ -700,15 +705,15 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
                     if c {
                         xx |= WS_EX_NOPARENTNOTIFY;
                     };
-                    (yy | WS_CHILD, xx | zz, z as i32, Some(w.handle()))
+                    (yy | WS_CHILD, xx | zz, Right(HMENU(z as *mut c_void)), Some(w.handle()))
                 }
-                MessageOnly => (WINDOW_STYLE(0), WINDOW_EX_STYLE(0), 0, Some(HWND_MESSAGE)),
+                MessageOnly => (WINDOW_STYLE(0), WINDOW_EX_STYLE(0), Right(HMENU(0 as *mut c_void)), Some(HWND_MESSAGE)),
             }
         }
     }
 }
-impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
-    fn from(data: (WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)) -> Self {
+impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, Either<Vec<MenuItemInfo>, HMENU>, Option<HWND>)> for WindowType {
+    fn from(data: (WINDOW_STYLE, WINDOW_EX_STYLE, Either<Vec<MenuItemInfo>, HMENU>, Option<HWND>)) -> Self {
         use WindowType::*;
         let (style, style_ex, menu, w) = data;
         if w == Some(HWND_MESSAGE) {
@@ -716,7 +721,10 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
         } else if style.contains(WS_CHILD) && w.is_some() {
             Child {
                 style: (style, style_ex).into(),
-                identifier: menu as u16,
+                identifier: match menu {
+                    Left(_) => 0, 
+                    Right(r) => l.0 as WindowId
+                },
                 parent: w.unwrap_or_default().into(),
                 is_layered: style_ex.contains(WS_EX_LAYERED),
                 no_send_notify_to_parent: style_ex.contains(WS_EX_NOPARENTNOTIFY),
@@ -729,7 +737,10 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
             };
             Popup {
                 style: (style, style_ex).into(),
-                menu: menu == -1,
+                menu: match menu {
+                    Left(l) => Some(l), 
+                    Right(r) => None
+                },
                 onwer: w,
                 is_layered: style_ex.contains(WS_EX_LAYERED),
                 syle_ex: style_ex.into(),
@@ -741,7 +752,10 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
             };
             Overlapped {
                 style: (style, style_ex).into(),
-                menu: menu == -1,
+                menu: match menu {
+                    Left(l) => Some(l), 
+                    Right(r) => None
+                },
                 onwer: w,
                 is_layered: style_ex.contains(WS_EX_LAYERED),
                 syle_ex: style_ex.into(),

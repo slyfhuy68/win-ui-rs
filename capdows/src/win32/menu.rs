@@ -30,7 +30,21 @@ pub enum MenuItemBitmapIcon {
 }
 impl From<(HBITMAP, usize)> for MenuItemBitmapIcon {
     fn from(style: (HBITMAP, usize)) -> Self {
-        todo!()
+        use MenuItemBitmapIcon::*;
+        match style.0 {
+            HBMMENU_SYSTEM => SystemIcon(style.1),
+            HBMMENU_CALLBACK => CallBack,
+            HBMMENU_POPUP_CLOSE => CloseP,
+            HBMMENU_MBAR_CLOSE => CloseB,
+            HBMMENU_MBAR_CLOSE_D => CloseBD,
+            HBMMENU_POPUP_MINIMIZE => MimimizeP,
+            HBMMENU_MBAR_MINIMIZE => MimimizeB,
+            HBMMENU_MBAR_MINIMIZE_D => MimimizeBD,
+            HBMMENU_POPUP_MAXIMIZE => MaximizeP,
+            HBMMENU_POPUP_RESTORE => RestoreP,
+            HBMMENU_MBAR_RESTORE => RestoreB,
+            _ => Bitmap(style.0.into()),
+        }
     }
 }
 impl Into<(HBITMAP, usize)> for MenuItemBitmapIcon {
@@ -67,7 +81,6 @@ pub enum MenuItemDisabledState {
     ///禁用
     Disabled, //MFS_DISABLED
 }
-
 #[derive(Clone, PartialEq, Default)]
 pub struct MenuItemState {
     ///启用状态和灰显状态
@@ -96,8 +109,26 @@ impl Into<MENU_ITEM_STATE> for MenuItemState {
 }
 impl From<MENU_ITEM_STATE> for MenuItemState {
     fn from(style: MENU_ITEM_STATE) -> Self {
-        todo!()
+        let hilite = style.contains(MFS_HILITE);
+        let checked = style.contains(MFS_CHECKED);
+        let state = if style.contains(MFS_DISABLED) {
+            MenuItemDisabledState::Disabled
+        } else if style.contains(MENU_ITEM_STATE(MF_GRAYED.0)) {
+            MenuItemDisabledState::Grayed
+        } else if style.contains(MENU_ITEM_STATE(MF_DISABLED.0)) {
+            MenuItemDisabledState::DisabledNoGrayed
+        } else {
+            MenuItemDisabledState::Enabled
+        };
+        MenuItemState { state, hilite, checked }
     }
+}
+#[derive(Clone, PartialEq, Default)]
+pub enum MenuCheckedIcon {
+    #[default]
+    CheckMark,
+    Cullet, //MFT_RADIOCHECK
+    Costom(Bitmap),
 }
 #[derive(Default)]
 pub struct MenuCheckIcon {
@@ -106,7 +137,15 @@ pub struct MenuCheckIcon {
 }
 impl From<(MENU_ITEM_TYPE, (HBITMAP, HBITMAP))> for MenuCheckIcon {
     fn from(style: (MENU_ITEM_TYPE, (HBITMAP, HBITMAP))) -> Self {
-        todo!()
+        let checked = if style.1 .0.is_null() {if style.0.contains(MFT_RADIOCHECK) {
+            MenuCheckedIcon::Cullet
+        } else {
+            MenuCheckedIcon::CheckMark
+        }} else { MenuCheckedIcon::Costom(style.1 .0.into()) };
+        MenuCheckIcon {
+            checked,
+            unchecked: if style.1 .1.is_null() { None } else { Some(style.1 .1.into()) },
+        }
     }
 }
 impl Into<(MENU_ITEM_TYPE, (HBITMAP, HBITMAP))> for MenuCheckIcon {
@@ -137,6 +176,7 @@ impl
         MENU_ITEM_TYPE,
         PWSTR,
         (HBITMAP, usize),
+        Option<Vec<u16>>,
         u32,
         (HBITMAP, HBITMAP),
     )> for MenuItemShow
@@ -146,6 +186,7 @@ impl
             MENU_ITEM_TYPE,
             PWSTR,
             (HBITMAP, usize),
+            Option<Vec<u16>>,
             u32,
             (HBITMAP, HBITMAP),
         ),
@@ -213,7 +254,13 @@ pub enum MenuItemBreakType {
 }
 impl From<MENU_ITEM_TYPE> for MenuItemBreakType {
     fn from(style: MENU_ITEM_TYPE) -> Self {
-        todo!()
+        if style.contains(MFT_MENUBARBREAK) {
+            MenuItemBreakType::NewBreakLine
+        } else if style.contains(MFT_MENUBREAK) {
+            MenuItemBreakType::NewBreak
+        } else {
+            MenuItemBreakType::No
+        }
     }
 }
 impl Into<MENU_ITEM_TYPE> for MenuItemBreakType {
@@ -225,13 +272,7 @@ impl Into<MENU_ITEM_TYPE> for MenuItemBreakType {
         }
     }
 }
-#[derive(Clone, PartialEq, Default)]
-pub enum MenuCheckedIcon {
-    #[default]
-    CheckMark,
-    Cullet, //MFT_RADIOCHECK
-    Costom(Bitmap),
-}
+
 #[derive(Clone, PartialEq, Default)]
 pub struct MenuItemStyle {
     pub new_break: MenuItemBreakType,
@@ -241,7 +282,11 @@ pub struct MenuItemStyle {
 }
 impl From<(MENU_ITEM_TYPE, MENU_ITEM_STATE)> for MenuItemStyle {
     fn from(style: (MENU_ITEM_TYPE, MENU_ITEM_STATE)) -> Self {
-        todo!()
+        let new_break = MenuItemBreakType::from(style.0);
+        let righ_to_left = style.0.contains(MFT_RIGHTORDER);
+        let right_align_from_this = style.0.contains(MFT_RIGHTJUSTIFY);
+        let state = MenuItemState::from(style.1);
+        MenuItemStyle { new_break, righ_to_left, right_align_from_this, state }
     }
 }
 impl Into<(MENU_ITEM_TYPE, MENU_ITEM_STATE)> for MenuItemStyle {
@@ -259,7 +304,7 @@ impl Into<(MENU_ITEM_TYPE, MENU_ITEM_STATE)> for MenuItemStyle {
         (fType, fstate)
     }
 }
-pub enum MenuItem {
+pub enum MenuItemInfo {
     Normal(
         MenuItemStyle,
         MenuItemShow,
@@ -268,14 +313,49 @@ pub enum MenuItem {
     Child(MenuItemStyle, MenuItemShow, Menu /*MIIM_SUBMENU*/),
     Separator, //MFT_SEPARATOR
 }
-impl From<MENUITEMINFOW> for MenuItem {
-    fn from(style: MENUITEMINFOW) -> Self {
-        todo!()
+impl TryFrom<MENUITEMINFOW> for MenuItemInfo {
+    type Error = FromUtf16Error;
+
+    fn try_from(style: MENUITEMINFOW) -> Result<Self, Self::Error> {
+        if style.fType & MFT_SEPARATOR == MFT_SEPARATOR {
+            // 分隔符情况
+            return Ok(MenuItemInfo::Separator);
+        }
+        let show = if style.fType.contains(MFT_STRING) {
+            // 将 PWSTR 转换为 Rust 字符串，并处理可能出现的错误
+            unsafe {
+                MenuItemShow::String(MenuCheckIcon::default(), style.dwTypeData.to_string()?)
+            }
+        }
+        else if style.fType.contains(MFT_BITMAP) {
+            let bitmap_icon = MenuItemBitmapIcon::from((style.hbmpItem, style.dwItemData as usize));
+            MenuItemShow::Bitmap(MenuCheckIcon::default(), bitmap_icon)
+        } else {todo!()};
+        // 公共字段提取
+        let state = MenuItemState::from(style.fState);
+        let menu_item_style = MenuItemStyle::from(style.fType);
+
+        // 根据 hSubMenu 是否为空来确定是普通项还是子菜单项
+        if style.hSubMenu.is_null() {
+            Ok(MenuItemInfo::Normal(
+                menu_item_style,
+                show,
+                if style.wID != 0 { Some(style.wID as u16) } else { None }, // 转换为 Option<MenuItemID>
+            ))
+        } else {
+            // 创建 Menu 实例（根据实际应用逻辑）
+            let menu = Menu::from_handle(style.hSubMenu);
+            Ok(MenuItemInfo::Child(
+                menu_item_style,
+                show,
+                menu,
+            ))
+        }
     }
 }
-impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
+impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItemInfo {
     fn into(self) -> (MENUITEMINFOW, Option<Vec<u16>>) {
-        use MenuItem::*;
+        use MenuItemInfo::*;
         match self {
             Normal(style, show, id) => {
                 let (mtype, fState) = style.into();
@@ -442,7 +522,7 @@ impl Into<MENUINFO> for MenuStyle {
     }
 }
 impl Menu {
-    pub fn from_handle(handle: HMENU) -> Self {
+    pub unsafe fn from_handle(handle: HMENU) -> Self {
         Menu { handle }
     }
     pub fn new() -> Result<Self> {
@@ -461,17 +541,64 @@ impl Menu {
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
     }
-    pub fn insert_item(&mut self, before_item: Option<MenuItemPos>, item: MenuItem) -> Result<()> {
+    pub fn item_info_list(&self) -> Result<Vec<MenuItemInfo>> {
+        let mut num = self.item_count();
+        let result = if num == 0 {
+            return result;
+        } else {
+            Vec::with_capacity(num)
+        };
+        for i in 0..num {
+            Vec.push(self.get_item_info(MenuItemPos::Position(i))?)
+        } 
+    }
+    pub fn get_item_info(&self, pos: MenuItemPos) -> Result<MenuItemInfo> {
+        let (id, bp) = match pos {
+            MenuItemPos::Position(i) => (i as u32, true), 
+            MenuItemPos::CostomId(i) => (i as u32, false)
+        };
+        let mut lpmii = MENUITEMINFOW::default();
+        lpmii.cbSize = size_of<MENUITEMINFOW> as u32;
+        lpmii.fMask = MIIM_BITMAP
+            | MIIM_CHECKMARKS
+            | MIIM_DATA
+            | MIIM_FTYPE
+            | MIIM_ID
+            | MIIM_STATE
+            | MIIM_STRING
+            | MIIM_SUBMENU
+            | MIIM_TYPE;
+        unsafe {
+            GetMenuItemInfoW(self.handle, id, bp, &mut lpmii)?
+        }
+        if lpmii.fType.conncttts(MFT_STRING) {
+            let buffer = vec![0u16; lpmii.cch+1];
+            lpmii.fMask = MIIM_STRING;
+            lpmii.cch +=1;
+            lpmii.dwTypeData=PWSTR(buffer.as_mut_ptr())
+            unsafe {
+                GetMenuItemInfoW(self.handle, id, bp, &mut lpmii)?
+            }
+        }
+        Ok(MenuItemInfo::try_from(lpmii)?)
+    }
+    pub fn item_count(&self) -> Result<u16> {
+        let num: Result<u16, _> = unsafe {GetMenuItemCount()}.try_into();
+        match num {
+            Ok(num) => Ok(num), 
+            Err(e) => Err(correct_error())
+        }
+    }
+    pub fn insert_item(&mut self, before_item: Option<MenuItemPos>, item: MenuItemInfo) -> Result<()> {
         let (menu_item_info, _buffer) = item.into();
         let (id, flag) = match before_item {
-            None => (
-                unsafe { GetMenuItemCount(Some(self.handle)) } as MenuItemID,//在最后一项追加
-                true,
-            ),
+            None => {
+                
+                return; 
+            },
             Some(CostomId(id)) => (id, false),
             Some(Position(pos)) => (pos, true),
         };
-        println!("{:#?}", menu_item_info);
         unsafe {
             Ok(InsertMenuItemW(
                 self.handle,

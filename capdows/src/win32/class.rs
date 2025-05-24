@@ -101,10 +101,10 @@ impl WindowClass {
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
         let menu = match menu {
-            x if x >= 0 => Some(HMENU(x as *mut c_void)),
-            -1 => Some(unsafe { CreateMenu()? }),
-            -2 => None,
-            _ => return Err(ERROR_INT_OVERFLOW),
+            Left(lst) => unsafe {
+                let hmenu = CreateMenu();
+            }, 
+            Right(h) => h
         };
         let result = unsafe {
             CreateWindowExW(
