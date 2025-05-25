@@ -467,7 +467,6 @@ impl Menu {
             Some(CostomId(id)) => (id, false),
             Some(Position(pos)) => (pos, true),
         };
-        println!("{:#?}", id);
         unsafe {
             Ok(InsertMenuItemW(
                 self.handle,
