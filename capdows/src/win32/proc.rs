@@ -93,7 +93,7 @@ unsafe fn msg_handler(
                     (
                         WINDOW_STYLE(s.style as u32),
                         s.dwExStyle,
-                        if unsafe { IsMenu(s.hMenu) }.into() {
+                        if IsMenu(s.hMenu).into() {
                             -1
                         } else {
                             s.hMenu.0 as u16 as i32
@@ -216,9 +216,7 @@ unsafe fn msg_handler(
                     Err(x) => callback_error(c, x),
                 }
             }
-            _ => {
-                default_handler(w, msg, param1, param2)
-            }
+            _ => default_handler(w, msg, param1, param2),
         }
     }
 }

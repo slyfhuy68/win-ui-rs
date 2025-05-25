@@ -190,13 +190,13 @@ impl
             String(check, string) => {
                 let (type2, data) = check.into();
                 let (pwstr, buffer) = str_to_pwstr(&string);
-                let len = buffer.len() as u32 -1;
+                let len = buffer.len() as u32 - 1;
                 (
                     type2 | MFT_STRING,
                     pwstr,
                     (HBITMAP(std::ptr::null_mut()), 0),
                     Some(buffer),
-                    len, 
+                    len,
                     data,
                 )
             }
@@ -291,18 +291,20 @@ impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
                     None => 0,
                     Some(num) => num as u32,
                 };
+
                 (
                     MENUITEMINFOW {
                         cbSize: size_of::<MENUITEMINFOW>() as u32,
-                        fMask: MIIM_BITMAP
+                        fMask: MIIM_TYPE
                             | MIIM_CHECKMARKS
                             | MIIM_DATA
-                            | MIIM_FTYPE
                             | MIIM_ID
                             | MIIM_STATE
-                            | MIIM_STRING
-                            | MIIM_SUBMENU
-                            | MIIM_TYPE,
+                            | (if hbmpItem.is_invalid() {
+                                MENU_ITEM_MASK(0)
+                            } else {
+                                MIIM_BITMAP
+                            }),
                         fType: mtype | mtype2,
                         fState,
                         wID,
@@ -331,15 +333,16 @@ impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
                 (
                     MENUITEMINFOW {
                         cbSize: size_of::<MENUITEMINFOW>() as u32,
-                        fMask: MIIM_BITMAP
+                        fMask: MIIM_TYPE
                             | MIIM_CHECKMARKS
                             | MIIM_DATA
-                            | MIIM_FTYPE
                             | MIIM_ID
                             | MIIM_STATE
-                            | MIIM_STRING
-                            | MIIM_SUBMENU
-                            | MIIM_TYPE,
+                            | (if hbmpItem.is_invalid() {
+                                MENU_ITEM_MASK(0)
+                            } else {
+                                MIIM_BITMAP
+                            }),
                         fType: mtype | mtype2,
                         fState,
                         wID: 0,
@@ -357,15 +360,7 @@ impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
             Separator => (
                 MENUITEMINFOW {
                     cbSize: size_of::<MENUITEMINFOW>() as u32,
-                    fMask: MIIM_BITMAP
-                        | MIIM_CHECKMARKS
-                        | MIIM_DATA
-                        | MIIM_FTYPE
-                        | MIIM_ID
-                        | MIIM_STATE
-                        | MIIM_STRING
-                        | MIIM_SUBMENU
-                        | MIIM_TYPE,
+                    fMask: MIIM_FTYPE,
                     fType: MFT_SEPARATOR,
                     fState: Default::default(),
                     wID: 0,
@@ -450,8 +445,8 @@ impl Menu {
             handle: unsafe { CreatePopupMenu()? },
         })
     }
-    pub fn from_mut_ref(handle: &mut HMENU) -> &mut Self {
-        unsafe { &mut *(handle as *mut HMENU as *mut Self) }
+    pub fn from_mut_ref<'a>(handle: &'a mut HMENU) -> &'a mut Menu {
+        unsafe { std::mem::transmute(handle) }
     }
     pub unsafe fn handle(mut self) -> HMENU {
         let handle = self.handle;
@@ -461,17 +456,18 @@ impl Menu {
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
     }
+    /// 如果菜单栏在创建窗口后发生更改，则需要调用window.redraw_menu_bar()来绘制更改后的菜单栏。
     pub fn insert_item(&mut self, before_item: Option<MenuItemPos>, item: MenuItem) -> Result<()> {
         let (menu_item_info, _buffer) = item.into();
         let (id, flag) = match before_item {
             None => (
-                unsafe { GetMenuItemCount(Some(self.handle)) } as MenuItemID,//在最后一项追加
+                unsafe { GetMenuItemCount(Some(self.handle)) } as MenuItemID, //在最后一项追加
                 true,
             ),
             Some(CostomId(id)) => (id, false),
             Some(Position(pos)) => (pos, true),
         };
-        println!("{:#?}", menu_item_info);
+        println!("{:#?}", id);
         unsafe {
             Ok(InsertMenuItemW(
                 self.handle,

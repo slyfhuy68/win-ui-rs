@@ -233,7 +233,7 @@ impl MessageReceiver for Mycb {
         match id {
             VIEW_01 => {
                 //     use ImageTextViewMsgType::*;
-                let msg = msg.get_control_msg::<WindowFinder>()?;
+                // let msg = msg.get_control_msg::<WindowFinder>()?;
                 //     match msg.get_type() {
                 //         Clicked | DoubleClicked => {
                 //             println!("hi");
@@ -270,7 +270,7 @@ impl MessageReceiver for Mycb {
                 //         }
                 //         _ => Err(NoProcessed),
                 //     }
-                println!("你好：{:?}", msg.get_type());
+                // println!("你好：{:?}", msg.get_type());
                 Err(NoProcessed)
             }
             BUTTON_01 => {
@@ -334,50 +334,60 @@ fn main() -> Result<()> {
         "LibraryTest 中文👅öé English", //日常使用时不建议使用非ANSI字符
         Default::default(),
         None,
-        Some(Icon::load_from_module(
-            ExecutableFile::from_current_file().unwrap(),
-            NumberId(1),
-            None,
-            false,
-        ).unwrap()),
-        Some(Icon::load_from_module(
-            ExecutableFile::from_current_file().unwrap(),
-            NumberId(1),
-            None,
-            false,
-        ).unwrap()),
+        Some(
+            Icon::load_from_module(
+                ExecutableFile::from_current_file().unwrap(),
+                NumberId(1),
+                None,
+                false,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Icon::load_from_module(
+                ExecutableFile::from_current_file().unwrap(),
+                NumberId(1),
+                None,
+                false,
+            )
+            .unwrap(),
+        ),
         Some(Cursor::from_system(SystemCursor::NormalSelection)?),
         Some(ClassBackgroundBrush::BtnFace),
         0,
         0,
-    ).unwrap();
-    let mut window = class.create_window(
-        "中文😝öé English",
-        WindowType::Overlapped {
-            style: Default::default(),
-            syle_ex: Default::default(),
-            menu: true,
-            onwer: None,
-            is_layered: false,
-        },
-        None,
-        Box::new(Mycb {
-            num: 0,
-            controls: None,
-        }),
-    ).unwrap();
+    )
+    .unwrap();
+    let mut window = class
+        .create_window(
+            "中文😝öé English",
+            WindowType::Overlapped {
+                style: Default::default(),
+                syle_ex: Default::default(),
+                menu: true,
+                onwer: None,
+                is_layered: false,
+            },
+            None,
+            Box::new(Mycb {
+                num: 0,
+                controls: None,
+            }),
+        )
+        .unwrap();
     window.show(ShowWindowType::Normal).unwrap();
-    // {
-    //     let menu = window.get_menu_mut().unwrap().unwrap();
-    //     menu.insert_item(
-    //         None,
-    //         MenuItem::Normal(
-    //             MenuItemStyle::default(),
-    //             MenuItemShow::String(MenuCheckIcon::default(), "测试".to_string()),
-    //        Some(MENU_ITEM_1),
-    //         ),
-    //     ).unwrap();
-    // };
+    let menu = window.with_menu(|menu| {
+        menu.insert_item(
+            None,
+            MenuItem::Normal(
+                MenuItemStyle::default(),
+                MenuItemShow::String(MenuCheckIcon::default(), "测试".to_string()),
+                Some(MENU_ITEM_1),
+            ),
+        )
+        .unwrap();
+    }).unwrap();
+    window.redraw_menu_bar().unwrap();
     println!("ok");
     capdows::win32::msg::msg_loop();
     Ok(())

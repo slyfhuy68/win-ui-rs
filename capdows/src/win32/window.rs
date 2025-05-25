@@ -1,16 +1,22 @@
 use super::*;
-#[derive(Eq, PartialEq, Debug)] //不实现Clone
+use std::fmt;
+#[derive(Eq, PartialEq)] //不实现Clone
 pub struct Window {
     handle: HWND,
-    menu_buffer: HMENU,
 }
 unsafe impl Send for Window {}
 unsafe impl Sync for Window {}
+impl fmt::Debug for Window {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_tuple("Window")
+         .field(&self.handle.0)
+         .finish()
+    }
+}
 impl From<HWND> for Window {
     fn from(handle: HWND) -> Self {
         Window {
             handle,
-            menu_buffer: HMENU(0 as *mut c_void),
         }
     }
 }
@@ -244,17 +250,18 @@ impl Window {
     pub fn is_child(&self) -> bool {
         unsafe { GetWindowLongPtrW(self.handle, GWL_STYLE) & WS_CHILD.0 as isize != 0 }
     }
-    pub fn get_menu_mut(&mut self) -> Result<Option<&mut Menu>> {
+    pub fn with_menu<F, T>(&mut self, f: F) -> Result<T> 
+    where
+        F: FnOnce(&mut Menu) -> T{
         unsafe {
             if self.is_child() {
                 return Err(ERROR_MUSTNOT_CHILD);
             };
-            let menu = GetMenu(self.handle);
+            let mut menu = GetMenu(self.handle);
             if menu.is_invalid() {
-                return Ok(None);
+                return Err(ERROR_NOT_HAVE_MENU);
             };
-            self.menu_buffer = menu;
-            Ok(Some(Menu::from_mut_ref(&mut self.menu_buffer)))
+            Ok(f(Menu::from_mut_ref(&mut menu)))
         }
     }
     pub fn root_parent(&self) -> Option<Self> {
@@ -268,7 +275,6 @@ impl Window {
     pub fn copy_handle(&self) -> Self {
         Self {
             handle: self.handle,
-            menu_buffer: HMENU(0 as *mut c_void),
         }
     }
     pub unsafe fn handle(&self) -> HWND {
@@ -282,16 +288,13 @@ impl Window {
         todo!() //AdjustWindowRectEx
     }
     pub fn redraw_menu_bar(&mut self) -> Result<()> {
-        todo!() //DrawMenuBar
+        Ok(unsafe { DrawMenuBar(self.handle)? })
     }
     pub fn show(&mut self, stype: ShowWindowType) -> Result<bool> {
         Ok(unsafe { ShowWindow(self.handle, stype.into()) }.into())
     }
-    pub fn get_menu(&mut self) -> Result<Menu> {
-        todo!() //GetMenu
-    }
     pub fn set_menu(&mut self, menu: Option<Menu>) -> Result<()> {
-        Ok(unsafe { SetMenu(self.handle, menu.map(|menu: Menu| unsafe { menu.handle() }))? })
+        Ok(unsafe { SetMenu(self.handle, menu.map(|menu: Menu| { menu.handle() }))? })
     }
     pub fn get_system_menu(&mut self) -> Menu {
         todo!() //getSystemMenu(__,false)
