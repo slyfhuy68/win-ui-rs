@@ -20,6 +20,8 @@ pub mod brush;
 use std::hash::Hasher;
 pub mod mouse;
 // use mouse::*;
+pub mod tools;
+// use tools::*;
 pub mod class;
 use class::*;
 pub mod control;
@@ -154,7 +156,7 @@ pub mod allmods {
     pub use super::menu::*;
     pub use super::module::*;
     pub use super::msg::*;
-    pub use super::prop::*;
+    // pub use super::prop::*;
     pub use super::style::*;
     pub use super::window::*;
 
@@ -162,6 +164,7 @@ pub mod allmods {
 }
 //----------------------------------------------------------------------------------
 pub use super::error::{Result, WinError as Error, correct_error, errors::*};
+use super::i18n::*;
 use either::*;
 #[allow(unused_imports)]
 use windows::core::{Error as wError, Result as wResult, w};

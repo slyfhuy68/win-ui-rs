@@ -8,6 +8,7 @@ edition.workspace = true
 [dependencies]
 either = "1.14.0"
 tokio = { version = "1.44.2", features = ["rt"] }
+windows-link = "0.1.1"
 
 
 [dependencies.windows]
@@ -23,3 +24,5 @@ features = [
     "Win32_UI_Input",
     "Win32_UI_Input_KeyboardAndMouse",
 ]
+[features]
+timeout_msg_box = []

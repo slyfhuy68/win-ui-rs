@@ -39,6 +39,7 @@ dependencies = [
  "either",
  "tokio",
  "windows",
+ "windows-link",
 ]
 
 [[package]]

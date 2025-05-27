@@ -1,6 +1,11 @@
 use super::*; //部分触发代码使用AI编写
 use std::any::Any;
 pub type MenuItemID = u16;
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct Menu {
+    handle: HMENU,
+}
 #[derive(Clone, PartialEq)]
 pub enum MenuItemBitmapIcon {
     ///位图
@@ -76,6 +81,18 @@ pub struct MenuItemState {
     pub hilite: bool, //true MFS_HILITE,false MFS_UNHILITE
     pub checked: bool, //true MFS_CHECKED,false MFS_UNCHECKED
 }
+impl Into<MENU_ITEM_STATE> for MenuItemDisabledState {
+    fn into(self) -> MENU_ITEM_STATE {
+        let mut mtype = MENU_ITEM_STATE(0);
+        match self {
+            MenuItemDisabledState::Enabled => (),
+            MenuItemDisabledState::Disabled => mtype |= MFS_DISABLED,
+            MenuItemDisabledState::DisabledNoGrayed => mtype |= MENU_ITEM_STATE(MF_DISABLED.0),
+            MenuItemDisabledState::Grayed => mtype |= MENU_ITEM_STATE(MF_GRAYED.0),
+        };
+        mtype
+    }
+}
 impl Into<MENU_ITEM_STATE> for MenuItemState {
     fn into(self) -> MENU_ITEM_STATE {
         let mut mtype = MENU_ITEM_STATE(0);
@@ -85,13 +102,7 @@ impl Into<MENU_ITEM_STATE> for MenuItemState {
         if self.checked {
             mtype |= MFS_CHECKED;
         }
-        match self.state {
-            MenuItemDisabledState::Enabled => (),
-            MenuItemDisabledState::Disabled => mtype |= MFS_DISABLED,
-            MenuItemDisabledState::DisabledNoGrayed => mtype |= MENU_ITEM_STATE(MF_DISABLED.0),
-            MenuItemDisabledState::Grayed => mtype |= MENU_ITEM_STATE(MF_GRAYED.0),
-        };
-        mtype
+        mtype | self.state.into()
     }
 }
 impl From<MENU_ITEM_STATE> for MenuItemState {
@@ -247,6 +258,7 @@ impl From<(MENU_ITEM_TYPE, MENU_ITEM_STATE)> for MenuItemStyle {
 impl Into<(MENU_ITEM_TYPE, MENU_ITEM_STATE)> for MenuItemStyle {
     fn into(self) -> (MENU_ITEM_TYPE, MENU_ITEM_STATE) {
         // let (fType, dwTypeData, (hbmpItem, dwItemData), buffer, cch) = self.mtype.into();
+        #[allow(non_snake_case)]
         let mut fType = MENU_ITEM_TYPE(0);
         fType |= self.new_break.into();
         if self.righ_to_left {
@@ -255,6 +267,7 @@ impl Into<(MENU_ITEM_TYPE, MENU_ITEM_STATE)> for MenuItemStyle {
         if self.right_align_from_this {
             fType |= MFT_RIGHTJUSTIFY;
         }
+        #[allow(non_snake_case)]
         let fstate = self.state.into();
         (fType, fstate)
     }
@@ -278,7 +291,9 @@ impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
         use MenuItem::*;
         match self {
             Normal(style, show, id) => {
+                #[allow(non_snake_case)]
                 let (mtype, fState) = style.into();
+                #[allow(non_snake_case)]
                 let (
                     mtype2,
                     dwTypeData,
@@ -287,6 +302,7 @@ impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
                     cch,
                     (hbmpChecked, hbmpUnchecked),
                 ) = show.into();
+                #[allow(non_snake_case)]
                 let wID = match id {
                     None => 0,
                     Some(num) => num as u32,
@@ -320,7 +336,9 @@ impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
                 )
             }
             Child(style, show, menu) => {
+                #[allow(non_snake_case)]
                 let (mtype, fState) = style.into();
+                #[allow(non_snake_case)]
                 let (
                     mtype2,
                     dwTypeData,
@@ -329,6 +347,7 @@ impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
                     cch,
                     (hbmpChecked, hbmpUnchecked),
                 ) = show.into();
+                #[allow(non_snake_case)]
                 let hSubMenu = unsafe { menu.handle() };
                 (
                     MENUITEMINFOW {
@@ -382,11 +401,6 @@ pub enum MenuItemPos {
     CostomId(MenuItemID),
     Position(u16),
 }
-#[derive(Clone, PartialEq)]
-#[repr(transparent)]
-pub struct Menu {
-    handle: HMENU,
-}
 pub enum MenuCheckShow {
     Normal,
     AlignToBmp,
@@ -404,6 +418,7 @@ pub struct MenuStyle {
 }
 impl Into<MENUINFO> for MenuStyle {
     fn into(self) -> MENUINFO {
+        #[allow(non_snake_case)]
         let mut dwStyle = windows::Win32::UI::WindowsAndMessaging::MENUINFO_STYLE(0);
         if self.auto_dismiss {
             dwStyle |= MNS_AUTODISMISS;
@@ -437,7 +452,8 @@ impl Into<MENUINFO> for MenuStyle {
     }
 }
 impl Menu {
-    pub fn from_handle(handle: HMENU) -> Self {
+    ///Menu会自动释放，需要注意HMENU是否为Windows释放
+    pub unsafe fn from_handle(handle: HMENU) -> Self {
         Menu { handle }
     }
     pub fn new() -> Result<Self> {
@@ -456,12 +472,18 @@ impl Menu {
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
     }
+    pub fn item_count(&self) -> Result<MenuItemID> {
+        match unsafe { GetMenuItemCount(Some(self.handle)) } {
+            -1 => Err(correct_error()),
+            x => Ok(x as MenuItemID),
+        }
+    }
     /// 如果菜单栏在创建窗口后发生更改，则需要调用window.redraw_menu_bar()来绘制更改后的菜单栏。
     pub fn insert_item(&mut self, before_item: Option<MenuItemPos>, item: MenuItem) -> Result<()> {
         let (menu_item_info, _buffer) = item.into();
         let (id, flag) = match before_item {
             None => (
-                unsafe { GetMenuItemCount(Some(self.handle)) } as MenuItemID, //在最后一项追加
+                self.item_count()?, //在最后一项追加
                 true,
             ),
             Some(CostomId(id)) => (id, false),
@@ -475,6 +497,40 @@ impl Menu {
                 &menu_item_info,
             )?)
         }
+    }
+    pub fn set_item_state(
+        &mut self,
+        item: MenuItemPos,
+        state: MenuItemDisabledState,
+    ) -> Result<()> {
+        let (id, flag) = match item {
+            CostomId(id) => (id, MF_BYCOMMAND),
+            Position(pos) => (pos, MF_BYPOSITION),
+        };
+        let state: MENU_ITEM_STATE = state.into();
+        if unsafe { EnableMenuItem(self.handle, id as u32, MENU_ITEM_FLAGS(state.0) | flag).0 }
+            == -1
+        {
+            Err(ERROR_NOT_FOUND)
+        } else {
+            Ok(())
+        }
+    }
+    pub fn remove_item(&mut self, item: MenuItemPos) -> Result<()> {
+        let (id, flag) = match item {
+            CostomId(id) => (id, MF_BYCOMMAND),
+            Position(pos) => (pos, MF_BYPOSITION),
+        };
+        match unsafe { DeleteMenu(self.handle, id as u32, flag) } {
+            Ok(()) => Ok(()),
+            Err(e) => Ok(e.code().ok()?),
+        }
+    }
+    pub fn clear(&mut self) -> Result<()> {
+        for _ in 0..self.item_count()? {
+            self.remove_item(MenuItemPos::Position(0))?;
+        }
+        Ok(())
     }
 }
 impl Drop for Menu {

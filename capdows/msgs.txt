@@ -117,7 +117,6 @@ WM_MENURBUTTONUP
 WM_MENUDRAG
 WM_MENUGETOBJECT
 WM_UNINITMENUPOPUP
-WM_MENUCOMMAND
 WM_CHANGEUISTATE
 WM_UPDATEUISTATE
 WM_QUERYUISTATE
@@ -253,7 +252,7 @@ WM_PENWINLAST
 -----------------------------------------------------
 	消息					       说明
 -------------------		-------------------------
-WM_COMMAND	   |		仅支持控件部分
+WM_COMMAND	   |		仅支持控件部分和菜单部分
 
 
 
@@ -268,3 +267,4 @@ WM_NOTIFY
 WM_NOTIFYFORMAT
 WM_LBUTTONDOWN
 WM_LBUTTONUP
+WM_MENUCOMMAND

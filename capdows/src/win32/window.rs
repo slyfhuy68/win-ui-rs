@@ -8,16 +8,12 @@ unsafe impl Send for Window {}
 unsafe impl Sync for Window {}
 impl fmt::Debug for Window {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Window")
-         .field(&self.handle.0)
-         .finish()
+        f.debug_tuple("Window").field(&self.handle.0).finish()
     }
 }
 impl From<HWND> for Window {
     fn from(handle: HWND) -> Self {
-        Window {
-            handle,
-        }
+        Window { handle }
     }
 }
 impl Into<HWND> for Window {
@@ -250,9 +246,10 @@ impl Window {
     pub fn is_child(&self) -> bool {
         unsafe { GetWindowLongPtrW(self.handle, GWL_STYLE) & WS_CHILD.0 as isize != 0 }
     }
-    pub fn with_menu<F, T>(&mut self, f: F) -> Result<T> 
+    pub fn with_menu<F, T>(&mut self, f: F) -> Result<T>
     where
-        F: FnOnce(&mut Menu) -> T{
+        F: FnOnce(&mut Menu) -> T,
+    {
         unsafe {
             if self.is_child() {
                 return Err(ERROR_MUSTNOT_CHILD);
@@ -294,7 +291,7 @@ impl Window {
         Ok(unsafe { ShowWindow(self.handle, stype.into()) }.into())
     }
     pub fn set_menu(&mut self, menu: Option<Menu>) -> Result<()> {
-        Ok(unsafe { SetMenu(self.handle, menu.map(|menu: Menu| { menu.handle() }))? })
+        Ok(unsafe { SetMenu(self.handle, menu.map(|menu: Menu| menu.handle()))? })
     }
     pub fn get_system_menu(&mut self) -> Menu {
         todo!() //getSystemMenu(__,false)

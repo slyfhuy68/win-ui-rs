@@ -1,3 +1,4 @@
+use capdows::msg_box;
 use capdows::win32::allmods::*;
 use capdows::win32::control::Control;
 use capdows_controls::{button::*, check_box::*, edit::*, group_box::*, radio::*, view::*};
@@ -37,6 +38,57 @@ const VIEW_02: WindowID = 8u16;
 //------------------------
 const MENU_ITEM_1: MenuItemID = 1u16;
 impl MessageReceiver for Mycb {
+    fn menu_command(
+        &mut self,
+        _id: usize,
+        window: &mut Window,
+        item: MenuCommandMsgItemPos,
+    ) -> MessageReceiverResult<()> {
+        if let MenuCommandMsgItemPos::CostomId(id) = item {
+            msg_box!(&format!("菜单点击, 编号：{:?}", id), "提示").unwrap();
+            if id == MENU_ITEM_1 + 4 {
+                msg_box!("重新开始", "提示").unwrap();
+                window
+                    .with_menu(|menu| {
+                        menu.clear().unwrap();
+                        menu.insert_item(
+                            None,
+                            MenuItem::Normal(
+                                MenuItemStyle::default(),
+                                MenuItemShow::String(MenuCheckIcon::default(), "测试1".to_string()),
+                                Some(MENU_ITEM_1),
+                            ),
+                        )
+                        .unwrap();
+                    })
+                    .unwrap();
+                window.redraw_menu_bar().unwrap();
+                return Ok(());
+            } else if id > 4 {
+                return Ok(());
+            }
+            window
+                .with_menu(|menu| {
+                    menu.set_item_state(MenuItemPos::CostomId(id), MenuItemDisabledState::Disabled)
+                        .unwrap();
+                    menu.insert_item(
+                        None,
+                        MenuItem::Normal(
+                            MenuItemStyle::default(),
+                            MenuItemShow::String(
+                                MenuCheckIcon::default(),
+                                "测试".to_string() + &((id + 1).to_string()),
+                            ),
+                            Some(id + 1),
+                        ),
+                    )
+                    .unwrap();
+                })
+                .unwrap();
+            window.redraw_menu_bar().unwrap();
+        };
+        Ok(())
+    }
     fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
         println!("发生错误: {:?}", err);
         Ok(err.code() as isize)
@@ -376,17 +428,19 @@ fn main() -> Result<()> {
         )
         .unwrap();
     window.show(ShowWindowType::Normal).unwrap();
-    let menu = window.with_menu(|menu| {
-        menu.insert_item(
-            None,
-            MenuItem::Normal(
-                MenuItemStyle::default(),
-                MenuItemShow::String(MenuCheckIcon::default(), "测试".to_string()),
-                Some(MENU_ITEM_1),
-            ),
-        )
+    window
+        .with_menu(|menu| {
+            menu.insert_item(
+                None,
+                MenuItem::Normal(
+                    MenuItemStyle::default(),
+                    MenuItemShow::String(MenuCheckIcon::default(), "测试1".to_string()),
+                    Some(MENU_ITEM_1),
+                ),
+            )
+            .unwrap();
+        })
         .unwrap();
-    }).unwrap();
     window.redraw_menu_bar().unwrap();
     println!("ok");
     capdows::win32::msg::msg_loop();
