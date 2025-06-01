@@ -1,17 +1,25 @@
-use capdows::win32::allmods::*;
-use capdows::win32::control::*;
+// use capdows::win32::allmods::*;
+use capdows::win32::font::*;
 use capdows::win32::*;
 capdows::import_foundation!();
 use std::ffi::c_void;
-use windows::Win32::Graphics::Gdi::DEFAULT_GUI_FONT;
-use windows::Win32::Graphics::Gdi::GetStockObject;
+use windows::Win32::Graphics::Gdi::*;
+// use windows::Win32::Graphics::Gdi::GetStockObject;
+use class::*;
+use window::*;
 use windows::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
 use windows::core::PCWSTR;
+// use msg::*;
+use capdows::win32::core::*;
+use control::*;
+use image::*;
+use style::*;
 // use windows::core::Result as wResult;
 pub mod button;
 pub mod check_box;
 pub mod edit;
 pub mod group_box;
+pub mod combo_box;
 pub mod radio;
 pub mod view;
 use either::*;
@@ -30,7 +38,7 @@ fn new_control(
     style: ChildWindowStyles,
     style_ex: NormalWindowExStyles,
     control_style_ms: WINDOW_STYLE,
-    font: bool,
+    font: Option<ControlFont>,
     no_notify: bool,
 ) -> Result<Window> {
     unsafe {
@@ -69,11 +77,11 @@ fn new_control(
             Some(hinstance),
             None,
         )?;
-        if font {
+        if let Some(font) = font {
             PostMessageW(
                 Some(hwnd),
                 WM_SETFONT,
-                WPARAM(GetStockObject(DEFAULT_GUI_FONT).0 as usize),
+                WPARAM(font.into_handle()?.0 as usize),
                 LPARAM(1),
             )?;
         };
@@ -88,7 +96,7 @@ fn new_button(
     style: ChildWindowStyles,
     style_ex: NormalWindowExStyles,
     control_style_ms: WINDOW_STYLE,
-    font: bool,
+    font: Option<ControlFont>,
     no_notify: bool,
     draw: Option<Either<Bitmap, Icon>>,
 ) -> Result<Window> {

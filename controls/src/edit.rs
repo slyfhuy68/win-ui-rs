@@ -7,8 +7,9 @@ pub enum EditType {
 }
 pub enum CaseType {
     Normal,
-    Lower,// ES_LOWERCASE
-    Upper,// ES_UPPERCASE
+    Number, // ES_NUMBER
+    Lower,  // ES_LOWERCASE
+    Upper,  // ES_UPPERCASE
 }
 pub struct EditStyle {
     //AI
@@ -16,13 +17,12 @@ pub struct EditStyle {
     pub auto_vscroll: bool, // ES_AUTOVSCROLL
     pub center: bool,       // ES_CENTER
     pub nohide_sel: bool,   // ES_NOHIDESEL
-    pub number: bool,       // ES_NUMBER
     pub oem_convert: bool,  // ES_OEMCONVERT
     pub readonly: bool,     // ES_READONLY
     pub right: bool,        // ES_RIGHT
     pub want_return: bool,  // ES_WANTRETURN
-    pub case_type: CaseType, 
-    pub etype: EditType,    
+    pub case_type: CaseType,
+    pub etype: EditType,
 }
 
 impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
@@ -42,9 +42,6 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
         if self.nohide_sel {
             edit_style |= WINDOW_STYLE(ES_NOHIDESEL as u32);
         }
-        if self.number {
-            edit_style |= WINDOW_STYLE(ES_NUMBER as u32);
-        }
         if self.oem_convert {
             edit_style |= WINDOW_STYLE(ES_OEMCONVERT as u32);
         }
@@ -56,26 +53,30 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
         }
         if self.want_return {
             edit_style |= WINDOW_STYLE(ES_WANTRETURN as u32);
-        }{
-        use EditType::*;
-        match self.etype {
-            //不是AI
-            Normal => (),
-            MultiLine => {
-                edit_style |= WINDOW_STYLE(ES_MULTILINE as u32);
+        }
+        {
+            use EditType::*;
+            match self.etype {
+                //不是AI
+                Normal => (),
+                MultiLine => {
+                    edit_style |= WINDOW_STYLE(ES_MULTILINE as u32);
+                }
+                Password(c) => {
+                    edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);
+                    pass = Some(c)
+                } // Rich => {
+                  //     todo!()
+                  // },
             }
-            Password(c) => {
-                edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);
-                pass = Some(c)
-            } // Rich => {
-              //     todo!()
-              // },
-        }}{
-            use CaseType::*; 
-            match self.case_type{
-                Normal => (), 
-                Lower => edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32), 
-                Upper => edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32), 
+        }
+        {
+            use CaseType::*;
+            match self.case_type {
+                Normal => (),
+                Number => edit_style |= WINDOW_STYLE(ES_NUMBER as u32),
+                Lower => edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32),
+                Upper => edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32),
             }
         }
         (edit_style, pass)
@@ -131,16 +132,15 @@ define_control! {
 impl Default for EditStyle {
     fn default() -> Self {
         Self {
-            auto_hscroll: false, // ES_AUTOHSCROLL
-            auto_vscroll: false, // ES_AUTOVSCROLL
-            center: false,       // ES_CENTER
-            nohide_sel: false,   // ES_NOHIDESEL
-            number: false,       // ES_NUMBER
-            oem_convert: false,  // ES_OEMCONVERT
-            readonly: false,     // ES_READONLY
-            right: false,        // ES_RIGHT
-            want_return: false,  // ES_WANTRETURN
-            case_type: CaseType::Normal, 
+            auto_hscroll: true, // ES_AUTOHSCROLL
+            auto_vscroll: true, // ES_AUTOVSCROLL
+            center: false,      // ES_CENTER
+            nohide_sel: false,  // ES_NOHIDESEL
+            oem_convert: false, // ES_OEMCONVERT
+            readonly: false,    // ES_READONLY
+            right: false,       // ES_RIGHT
+            want_return: true,  // ES_WANTRETURN
+            case_type: CaseType::Normal,
             etype: EditType::Normal,
         }
     }
@@ -155,7 +155,7 @@ impl Edit {
         control_style: EditStyle,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,
-        font: bool,
+        font: Option<ControlFont>,
         no_notify: bool,
     ) -> Result<Self> {
         let (control_style_ms, password) = control_style.into();
@@ -179,9 +179,6 @@ impl Edit {
         Ok(result)
     }
     // fn can_undo(&self) -> Result<bool>{
-    //     if !unsafe { Self::is_self(&self.0.into()) }? {
-    //         return Err(ERROR_NOT_SUPPORTED);
-    //     };
     //     unsafe { SendMessageW(self.0, EM_CANUNDO, Some(WPARAM(0)), Some(LPARAM(0))).0 }
     //             as usize != 0
     // }
@@ -197,10 +194,6 @@ impl Edit {
             }
             None => 0usize,
         };
-
-        if !Self::is_self(&self.0)? {
-            return Err(ERROR_NOT_SUPPORTED);
-        };
         unsafe {
             SendMessageW(
                 self.0.handle(),
@@ -213,9 +206,6 @@ impl Edit {
         Ok(())
     }
     pub fn get_passwrd_char(&mut self) -> Result<char> {
-        if !Self::is_self(&self.0)? {
-            return Err(ERROR_NOT_SUPPORTED);
-        };
         match char::from_u32(unsafe {
             SendMessageW(
                 self.0.handle(),
@@ -241,11 +231,7 @@ impl Edit {
             .0
         } as usize;
         if length == 0 {
-            if !Self::is_self(&self.0)? {
-                return Ok(String::new());
-            } else {
-                return Err(ERROR_NOT_SUPPORTED);
-            };
+            return Ok(String::new());
         };
         let mut buffer: Vec<u16> = vec![0; length + 2];
         unsafe {
@@ -260,9 +246,6 @@ impl Edit {
         Ok(String::from_utf16_lossy(&buffer[..length]))
     }
     pub fn set_text(&mut self, text: &str) -> Result<()> {
-        if !Self::is_self(&self.0)? {
-            return Err(ERROR_NOT_SUPPORTED);
-        };
         let (text_ptr, _text_u16) = str_to_pcwstr(text);
 
         if unsafe {

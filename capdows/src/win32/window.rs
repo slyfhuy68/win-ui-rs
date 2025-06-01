@@ -277,6 +277,14 @@ impl Window {
     pub unsafe fn handle(&self) -> HWND {
         self.handle
     }
+    pub fn move_out(&mut self) -> Window {
+        let wnd = self.copy_handle();
+        self.nullify();
+        wnd
+    }
+    pub fn nullify(&mut self) {
+        self.handle = HWND(0 as *mut c_void);
+    }
     pub fn adjust_window_rect(
         rect: Rectangle,
         wtype: WindowType,

@@ -36,9 +36,9 @@ pub mod module;
 use module::*;
 pub mod msg;
 use msg::*;
+pub mod font;
 mod proc;
-// mod raw_impl;
-// use raw_impl::*;
+// use font::*;
 use proc::*;
 pub mod prop;
 pub mod style;
@@ -147,21 +147,22 @@ pub mod core {
     }
 }
 use self::core::*;
-pub mod allmods {
-    pub use super::brush::*;
-    pub use super::class::*;
-    pub use super::core::*;
-    pub use super::help::*;
-    pub use super::image::*;
-    pub use super::menu::*;
-    pub use super::module::*;
-    pub use super::msg::*;
-    // pub use super::prop::*;
-    pub use super::style::*;
-    pub use super::window::*;
-
-    pub use super::{Error, Result};
-}
+// pub mod allmods {
+//     pub use super::brush::*;
+//     pub use super::class::*;
+//     pub use super::core::*;
+//     pub use super::help::*;
+//     pub use super::image::*;
+//     pub use super::menu::*;
+//     pub use super::module::*;
+//     pub use super::msg::*;
+//     // pub use super::prop::*;
+//     pub use super::style::*;
+//     pub use super::font::*;
+//     pub use super::window::*;
+//
+//     pub use super::{Error, Result};
+// }
 //----------------------------------------------------------------------------------
 pub use super::error::{Result, WinError as Error, correct_error, errors::*};
 use super::i18n::*;

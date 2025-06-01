@@ -68,7 +68,7 @@ impl ManuallyDrawButton {
             style,
             style_ex,
             WINDOW_STYLE(BS_OWNERDRAW as u32),
-            false,
+            None,
             false,
             None,
         )?;
@@ -212,7 +212,7 @@ impl Button {
         control_style: ButtonDrawType,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,
-        font: bool,
+        font: Option<ControlFont>,
         no_notify: bool,
     ) -> Result<Self> {
         let (control_style_ms, draw) = control_style.into();
@@ -366,7 +366,7 @@ impl SplitButton {
         control_style: SplitButtonDrawType,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,
-        font: bool,
+        font: Option<ControlFont>,
         no_notify: bool,
     ) -> Result<Self> {
         let (control_style_ms, draw) = control_style.into();
@@ -498,7 +498,7 @@ impl LinkButton {
         control_style: LinkButtonDrawType,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,
-        font: bool,
+        font: Option<ControlFont>,
         no_notify: bool,
     ) -> Result<Self> {
         let (control_style_ms, draw) = control_style.into();
@@ -517,9 +517,6 @@ impl LinkButton {
         Ok(LinkButton(hwnd.into()))
     }
     pub fn get_note(&self) -> Result<String> {
-        if !Self::is_self(&self.0)? {
-            return Err(ERROR_NOT_SUPPORTED);
-        }
         let length = unsafe {
             SendMessageW(
                 self.0.handle(),
@@ -545,9 +542,6 @@ impl LinkButton {
         Ok(String::from_utf16_lossy(&buffer[..length]))
     }
     pub fn set_note(&mut self, note: &str) -> Result<()> {
-        if !Self::is_self(&self.0)? {
-            return Err(ERROR_NOT_SUPPORTED);
-        };
         let (note_ptr, _note_u16) = str_to_pcwstr(note);
 
         if unsafe {

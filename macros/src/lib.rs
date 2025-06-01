@@ -62,8 +62,8 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                 Self(wnd)
             }
 
-            fn to_window(self) -> Window {
-                self.0
+            fn to_window(mut self) -> Window {
+                self.0.move_out()
             }
 
             fn get_window(&self) -> &Window {
@@ -133,6 +133,27 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                     control: #control_name(w.into()),
                     msg_type: result,
                 })
+            }
+        }
+        impl Drop for #msg_name_ident {
+            fn drop(&mut self) {
+                unsafe {
+                    self.control.get_window_mut().nullify()
+                }
+            }
+        }
+        impl Drop for #control_name {
+            fn drop(&mut self) {
+                unsafe {
+                    let hwnd = self.0.handle();
+                    if hwnd.0 as usize !=  0 {
+                        let hfont = SendMessageW(hwnd, WM_GETFONT, None, None).0;
+                        let _ = DestroyWindow(hwnd);
+                        if hfont != 0 {
+                            let _ = DeleteObject(HGDIOBJ(hfont as *mut c_void));
+                        }
+                    }
+                }
             }
         }
     };

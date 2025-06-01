@@ -36,7 +36,7 @@ impl GroupBox {
         identifier: WindowID,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,
-        font: bool,
+        font: Option<ControlFont>,
         parent_draw: bool,
     ) -> Result<Self> {
         let control_style_ms = if parent_draw {

@@ -47,6 +47,21 @@ pub enum ViewType {
     },
     EnhMetaFile(EnhMetaFile), // SS_ENHMETAFILE
 }
+pub struct ImageTextViewStyle {
+    pub stype: ViewType,
+
+    pub black_frame: bool,  // SS_BLACKFRAME
+    pub black_rect: bool,   // SS_BLACKRECT
+    pub etched_frame: bool, // SS_ETCHEDFRAME
+    pub etched_horz: bool,  // SS_ETCHEDHORZ
+    pub etched_vert: bool,  // SS_ETCHEDVERT
+    pub gray_frame: bool,   // SS_GRAYFRAME
+    pub gray_rect: bool,    // SS_GRAYRECT
+    pub white_frame: bool,  // SS_WHITEFRAME
+    pub white_rect: bool,   // SS_WHITERECT
+    pub sunken: bool,       // SS_SUNKEN
+                            // pub extra_notify: bool, // SS_NOTIFY
+}
 impl ImageTextViewStyle {
     pub fn new_icon(icon: Icon) -> Self {
         ImageTextViewStyle {
@@ -119,21 +134,6 @@ impl Into<ViewContent> for ViewType {
             EnhMetaFile(e) => ViewContent::EnhMetaFile(e),
         }
     }
-}
-pub struct ImageTextViewStyle {
-    pub stype: ViewType,
-
-    pub black_frame: bool,  // SS_BLACKFRAME
-    pub black_rect: bool,   // SS_BLACKRECT
-    pub etched_frame: bool, // SS_ETCHEDFRAME
-    pub etched_horz: bool,  // SS_ETCHEDHORZ
-    pub etched_vert: bool,  // SS_ETCHEDVERT
-    pub gray_frame: bool,   // SS_GRAYFRAME
-    pub gray_rect: bool,    // SS_GRAYRECT
-    pub white_frame: bool,  // SS_WHITEFRAME
-    pub white_rect: bool,   // SS_WHITERECT
-    pub sunken: bool,       // SS_SUNKEN
-                            // pub extra_notify: bool, // SS_NOTIFY
 }
 
 impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
@@ -288,7 +288,7 @@ impl ImageTextView {
         control_style: ImageTextViewStyle,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,
-        font: bool,
+        font: Option<ControlFont>,
         no_notify: bool,
     ) -> Result<Self> {
         let (mut x, y) = control_style.into();

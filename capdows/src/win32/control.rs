@@ -19,8 +19,9 @@ unsafe impl NotifyMessage for NMHDR {
 ///Windows控件
 pub trait Control {
     type MsgType: UnsafeControlMsg;
-    ///应该调用unsafe {Self::is_self(wnd.handle)}检查是否为自身类型的窗口
-    fn from_window(wnd: &Window) -> Result<Self>
+    ///安全性：你需要确保窗口是你自己拥有的，因为某些控件实现Drop，会关闭窗口       
+    ///如果窗口不是你拥有的，需要在值走出作用域前调用[`Control::to_window`]来还原为Window
+    unsafe fn from_window(wnd: &Window) -> Result<Self>
     where
         Self: Sized,
     {

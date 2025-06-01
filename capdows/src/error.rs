@@ -9,6 +9,14 @@ pub fn correct_error_data<T>(data: T) -> Result<T> {
 pub fn correct_error() -> WinError {
     WinError::correct_error()
 }
+pub fn correct_error_result<T>(data: T) -> Result<T> {
+    let code = wError::from_win32().code();
+    if code.is_ok() {
+        Ok(data)
+    } else {
+        Err(code.into())
+    }
+}
 use std::fmt::Debug;
 use windows::{
     Win32::Foundation::{GetLastError, NTSTATUS, WIN32_ERROR},
@@ -213,7 +221,7 @@ pub mod errors {
     pub const ERROR_INVALID_RESOURCE_ID: WinError = WinError::from_local(4);
     pub const ERROR_NULL_POINTER: WinError = WinError::from_local(5);
     pub const ERROR_MSG_CODE_NOT_SUPPORT: WinError = WinError::from_local(6);
-    pub const ERROR_NOT_SUPPORT_ZERO: WinError = WinError::from_local(7); //ERROR_NOT_SUPPORT_ZERO
+    pub const ERROR_NOT_SUPPORT_ZERO: WinError = WinError::from_local(7);
     pub const ERROR_NOT_PRESENT: WinError = WinError::from_local(8);
     pub const ERROR_CANNOT_REMOVE_DEFAULT: WinError = WinError::from_local(9);
     pub const ERROR_WINDOW_TYPE_NOT_SUPPORT: WinError = WinError::from_local(10);
@@ -228,7 +236,8 @@ pub mod errors {
     pub const ERROR_EXECUTABLE_FILE_BUSY: WinError = WinError::from_local(19);
     pub const ERROR_CROSSES_DEVICES: WinError = WinError::from_local(20);
     pub const ERROR_TOO_MANY_LINKS: WinError = WinError::from_local(21);
-    pub const ERROR_UNSUPPORTED: WinError = WinError::from_local(22);
+    // ERROR_UNSUPPORTED = ERROR_NOT_SUPPORTED;
+    pub const ERROR_COMBO_BOX_ERR: WinError = WinError::from_local(22);
     pub const ERROR_CONNECTION_RESET: WinError = WinError::from_local(23);
     pub const ERROR_NETWORK_DOWN: WinError = WinError::from_local(24);
     pub const ERROR_ADDRESS_NOT_AVAILABLE: WinError = WinError::from_local(25);

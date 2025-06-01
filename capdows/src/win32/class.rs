@@ -5,6 +5,8 @@ pub struct WindowClass {
     pub name: PCWSTR,
     pub owner: Option<Vec<u16>>,
 }
+unsafe impl Send for WindowClass{}
+unsafe impl Sync for WindowClass{}
 impl WindowClass {
     pub fn is_invalid(&self) -> bool {
         self.name.is_null()
@@ -85,19 +87,15 @@ impl WindowClass {
         &self,
         name: &str,
         wtype: WindowType,
-        pos: Option<Rectangle>,
+        pos: Option<Point>,
+        size: Option<Size>,
         msgr: Box<CallBackObj>,
     ) -> Result<Window> {
         let (style, ex_style, menu, parent) = wtype.into();
         let (wname, _wnameptr) = str_to_pcwstr(name);
         let cname = self.get();
-        let (Point(x, y), Size(width, height)) = match pos {
-            None => (
-                Point(CW_USEDEFAULT, CW_USEDEFAULT),
-                Size(CW_USEDEFAULT, CW_USEDEFAULT),
-            ),
-            Some(x) => x.get_size(),
-        };
+        let Point(x, y) = pos.unwrap_or(Point(CW_USEDEFAULT, CW_USEDEFAULT));
+        let Size(width, height) = size.unwrap_or(Size(CW_USEDEFAULT, CW_USEDEFAULT));
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
         let menu = match menu {

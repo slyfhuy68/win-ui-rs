@@ -121,7 +121,7 @@ impl RadioButton {
         control_style: RadioButtonDrawType,
         style: ChildWindowStyles,
         style_ex: NormalWindowExStyles,
-        font: bool,
+        font: Option<ControlFont>,
         no_notify: bool,
     ) -> Result<Self> {
         let (control_style_ms, draw) = control_style.into();
@@ -140,9 +140,6 @@ impl RadioButton {
         Ok(RadioButton(hwnd))
     }
     pub fn is_checked(&self) -> Result<bool> {
-        if !Self::is_self(&self.0)? {
-            return Err(ERROR_NOT_SUPPORTED);
-        }
         let result = unsafe {
             SendMessageW(
                 self.0.handle(),

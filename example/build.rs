@@ -1,11 +1,11 @@
 extern crate capdows_resource;
 // use either::Either;
 // use either::Either::*;
-use capdows_resource::*;
 use capdows_resource::menu::*;
+use capdows_resource::*;
 use capdows_resource::{image::*, version::*};
-use version::LangID as vLangID;
 use std::collections::HashMap;
+use version::LangID as vLangID;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let vstr = Version {
         product_internal_version: (0u16, 0u16, 0u16, 1u16),
