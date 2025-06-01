@@ -1,5 +1,6 @@
 use super::*;
 #[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HelpId(NonZeroI32);
 
 impl Into<i32> for HelpId {
@@ -10,6 +11,9 @@ impl Into<i32> for HelpId {
 impl HelpId {
     pub fn new(id: NonZeroI32) -> Self {
         Self(id)
+    }
+    pub fn get(self) -> i32 {
+        self.0.get()
     }
 }
 pub(crate) fn option_into(id: Option<HelpId>) -> i32 {

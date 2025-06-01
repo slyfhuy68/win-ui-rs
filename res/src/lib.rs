@@ -15,8 +15,8 @@ use windows::Win32::Storage::FileSystem::*;
 pub struct PreCompilePruduct(String);
 use std::ops::Add;
 impl PreCompilePruduct {
-    pub fn from(s: &str) -> Self {
-        Self(s.to_string())
+    pub fn from(s: String) -> Self {
+        Self(s)
     }
     pub fn get(self) -> String {
         self.0
@@ -25,6 +25,7 @@ impl PreCompilePruduct {
         let out_dir = env::var("OUT_DIR").unwrap();
         let dest_path = Path::new(&out_dir).join("resource.rc");
         let mut f = File::create(&dest_path).expect("无法创建文件");
+        f.write_all(b"\xEF\xBB\xBF")?;
         f.write_all((self.0).as_bytes()).expect("无法写入文件");
         compile(dest_path.to_str().unwrap(), NONE)
             .manifest_required()
@@ -40,6 +41,7 @@ impl Add for PreCompilePruduct {
 }
 pub use capdows::win32::core::{NumberId, ResourceID, StringId};
 pub mod image;
+pub mod menu;
 pub mod version;
 #[macro_export]
 macro_rules! compile_all {
@@ -48,3 +50,14 @@ macro_rules! compile_all {
     };
 }
 //ai宏
+fn pre_compile_resource_id(id: ResourceID) -> Result<PreCompilePruduct> {
+    Ok(PreCompilePruduct::from(match id {
+        StringId(y) => {
+            if y.parse::<f32>().is_ok() {
+                return Err(ERROR_INVALID_STRING_ID);
+            };
+            y
+        }
+        NumberId(x) => x.to_string(),
+    }))
+}

@@ -272,21 +272,25 @@ impl Into<(MENU_ITEM_TYPE, MENU_ITEM_STATE)> for MenuItemStyle {
         (fType, fstate)
     }
 }
-pub enum MenuItem {
+pub enum MenuItem<'a> {
     Normal(
         MenuItemStyle,
         MenuItemShow,
         Option<MenuItemID>, /*MIIM_ID*/
     ),
-    Child(MenuItemStyle, MenuItemShow, Menu /*MIIM_SUBMENU*/),
+    Child(
+        MenuItemStyle,
+        MenuItemShow,
+        &'a mut Menu, /*MIIM_SUBMENU*/
+    ),
     Separator, //MFT_SEPARATOR
 }
-impl From<MENUITEMINFOW> for MenuItem {
+impl From<MENUITEMINFOW> for MenuItem<'_> {
     fn from(style: MENUITEMINFOW) -> Self {
         todo!()
     }
 }
-impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
+impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem<'_> {
     fn into(self) -> (MENUITEMINFOW, Option<Vec<u16>>) {
         use MenuItem::*;
         match self {
@@ -348,7 +352,7 @@ impl Into<(MENUITEMINFOW, Option<Vec<u16>>)> for MenuItem {
                     (hbmpChecked, hbmpUnchecked),
                 ) = show.into();
                 #[allow(non_snake_case)]
-                let hSubMenu = unsafe { menu.handle() };
+                let hSubMenu = unsafe { menu.get_handle() };
                 (
                     MENUITEMINFOW {
                         cbSize: size_of::<MENUITEMINFOW>() as u32,
@@ -452,7 +456,7 @@ impl Into<MENUINFO> for MenuStyle {
     }
 }
 impl Menu {
-    ///Menu会自动释放，需要注意HMENU是否为Windows释放
+    ///使用此函数Menu会自动释放，需要注意HMENU是否为Windows管理释放
     pub unsafe fn from_handle(handle: HMENU) -> Self {
         Menu { handle }
     }
@@ -468,6 +472,9 @@ impl Menu {
         let handle = self.handle;
         self.handle = HMENU(NULL_PTR());
         handle
+    }
+    pub unsafe fn get_handle(&self) -> HMENU {
+        self.handle
     }
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
@@ -523,7 +530,7 @@ impl Menu {
         };
         match unsafe { DeleteMenu(self.handle, id as u32, flag) } {
             Ok(()) => Ok(()),
-            Err(e) => Ok(e.code().ok()?),
+            Err(_) => Err(correct_error()),
         }
     }
     pub fn clear(&mut self) -> Result<()> {

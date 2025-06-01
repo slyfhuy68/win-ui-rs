@@ -1,5 +1,6 @@
 use super::*;
 #[derive(PartialEq, Eq, Hash)]
+///此LangID与capdows::i18n::LangID不同，这是版本信息资源专用的语言ID
 pub struct LangID(pub u16);
 impl LangID {
     pub fn new(value: &str) -> Result<Self> {
@@ -119,8 +120,8 @@ VALUE \"ProductVersion\", \"{}\"
             variant
         );
         Ok((
-            PreCompilePruduct::from(&result1),
-            PreCompilePruduct::from(&format!(
+            PreCompilePruduct::from(result1),
+            PreCompilePruduct::from(format!(
                 "VALUE \"Translation\", 0x{}, 1200\n",
                 id.to_hex_string()
             )),
@@ -352,6 +353,6 @@ BLOCK \"VarFileInfo\"
 ",
             piv, fiv, flags, marker, os, ft, sft, sif, vif
         );
-        Ok(PreCompilePruduct::from(&result))
+        Ok(PreCompilePruduct::from(result))
     }
 }

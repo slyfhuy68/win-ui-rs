@@ -45,9 +45,7 @@ impl MessageReceiver for Mycb {
         item: MenuCommandMsgItemPos,
     ) -> MessageReceiverResult<()> {
         if let MenuCommandMsgItemPos::CostomId(id) = item {
-            msg_box!(&format!("菜单点击, 编号：{:?}", id), "提示").unwrap();
             if id == MENU_ITEM_1 + 4 {
-                msg_box!("重新开始", "提示").unwrap();
                 window
                     .with_menu(|menu| {
                         menu.clear().unwrap();
@@ -62,6 +60,8 @@ impl MessageReceiver for Mycb {
                         .unwrap();
                     })
                     .unwrap();
+                msg_box!(&format!("菜单点击, 编号：{:?}", id), "提示").unwrap();
+                msg_box!("重新开始", "提示").unwrap();
                 window.redraw_menu_bar().unwrap();
                 return Ok(());
             } else if id > 4 {
@@ -77,7 +77,7 @@ impl MessageReceiver for Mycb {
                             MenuItemStyle::default(),
                             MenuItemShow::String(
                                 MenuCheckIcon::default(),
-                                "测试".to_string() + &((id + 1).to_string()),
+                                "点击测试".to_string() + &((id + 1).to_string()),
                             ),
                             Some(id + 1),
                         ),
@@ -85,6 +85,7 @@ impl MessageReceiver for Mycb {
                     .unwrap();
                 })
                 .unwrap();
+            msg_box!(&format!("菜单点击, 编号：{:?}", id), "点击测试").unwrap();
             window.redraw_menu_bar().unwrap();
         };
         Ok(())
@@ -283,48 +284,6 @@ impl MessageReceiver for Mycb {
     ) -> MessageReceiverResult<isize> {
         let controls = &mut self.controls.as_mut().ok_or(NoProcessed)?;
         match id {
-            VIEW_01 => {
-                //     use ImageTextViewMsgType::*;
-                // let msg = msg.get_control_msg::<WindowFinder>()?;
-                //     match msg.get_type() {
-                //         Clicked | DoubleClicked => {
-                //             println!("hi");
-                //             if get_state() {
-                //                 controls
-                //                     .finder
-                //                     .change_content(ViewContent::Icon({
-                //                         set_state(false);
-                //                         Icon::load_from_module(
-                //                             ExecutableFile::from_current_file().unwrap(),
-                //                             NumberId(2),
-                //                             None,
-                //                             true,
-                //                         )
-                //                         .unwrap()
-                //                     }))
-                //                     .unwrap();
-                //             } else {
-                //                 controls
-                //                     .finder
-                //                     .change_content(ViewContent::Icon({
-                //                         set_state(true);
-                //                         Icon::load_from_module(
-                //                             ExecutableFile::from_current_file().unwrap(),
-                //                             NumberId(3),
-                //                             None,
-                //                             true,
-                //                         )
-                //                         .unwrap()
-                //                     }))
-                //                     .unwrap();
-                //             }
-                //             Ok(0)
-                //         }
-                //         _ => Err(NoProcessed),
-                //     }
-                // println!("你好：{:?}", msg.get_type());
-                Err(NoProcessed)
-            }
             BUTTON_01 => {
                 use ButtonMsgType::*;
                 let msg = msg.get_control_msg::<Button>()?;
@@ -383,9 +342,9 @@ impl MessageReceiver for Mycb {
 }
 fn main() -> Result<()> {
     let class = WindowClass::register(
-        "LibraryTest 中文👅öé English", //日常使用时不建议使用非ANSI字符
+        "LibraryTest 中文👅öé English",
         Default::default(),
-        None,
+        Some(NumberId(5)),
         Some(
             Icon::load_from_module(
                 ExecutableFile::from_current_file().unwrap(),
@@ -416,7 +375,7 @@ fn main() -> Result<()> {
             WindowType::Overlapped {
                 style: Default::default(),
                 syle_ex: Default::default(),
-                menu: true,
+                menu: false,
                 onwer: None,
                 is_layered: false,
             },
@@ -434,7 +393,7 @@ fn main() -> Result<()> {
                 None,
                 MenuItem::Normal(
                     MenuItemStyle::default(),
-                    MenuItemShow::String(MenuCheckIcon::default(), "测试1".to_string()),
+                    MenuItemShow::String(MenuCheckIcon::default(), "点击测试1".to_string()),
                     Some(MENU_ITEM_1),
                 ),
             )

@@ -5,20 +5,24 @@ pub enum EditType {
     Password(char),
     //Rich,
 }
+pub enum CaseType {
+    Normal,
+    Lower,// ES_LOWERCASE
+    Upper,// ES_UPPERCASE
+}
 pub struct EditStyle {
     //AI
     pub auto_hscroll: bool, // ES_AUTOHSCROLL
     pub auto_vscroll: bool, // ES_AUTOVSCROLL
     pub center: bool,       // ES_CENTER
-    pub lowercase: bool,    // ES_LOWERCROLL
     pub nohide_sel: bool,   // ES_NOHIDESEL
     pub number: bool,       // ES_NUMBER
     pub oem_convert: bool,  // ES_OEMCONVERT
-    pub etype: EditType,    //不是AI
     pub readonly: bool,     // ES_READONLY
     pub right: bool,        // ES_RIGHT
-    pub uppercase: bool,    // ES_UPPERCASE
     pub want_return: bool,  // ES_WANTRETURN
+    pub case_type: CaseType, 
+    pub etype: EditType,    
 }
 
 impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
@@ -35,9 +39,6 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
         if self.center {
             edit_style |= WINDOW_STYLE(ES_CENTER as u32);
         }
-        if self.lowercase {
-            edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32);
-        }
         if self.nohide_sel {
             edit_style |= WINDOW_STYLE(ES_NOHIDESEL as u32);
         }
@@ -53,12 +54,9 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
         if self.right {
             edit_style |= WINDOW_STYLE(ES_RIGHT as u32);
         }
-        if self.uppercase {
-            edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32);
-        }
         if self.want_return {
             edit_style |= WINDOW_STYLE(ES_WANTRETURN as u32);
-        }
+        }{
         use EditType::*;
         match self.etype {
             //不是AI
@@ -72,6 +70,13 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
             } // Rich => {
               //     todo!()
               // },
+        }}{
+            use CaseType::*; 
+            match self.case_type{
+                Normal => (), 
+                Lower => edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32), 
+                Upper => edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32), 
+            }
         }
         (edit_style, pass)
     }
@@ -129,14 +134,13 @@ impl Default for EditStyle {
             auto_hscroll: false, // ES_AUTOHSCROLL
             auto_vscroll: false, // ES_AUTOVSCROLL
             center: false,       // ES_CENTER
-            lowercase: false,    // ES_LOWERCROLL
             nohide_sel: false,   // ES_NOHIDESEL
             number: false,       // ES_NUMBER
             oem_convert: false,  // ES_OEMCONVERT
             readonly: false,     // ES_READONLY
             right: false,        // ES_RIGHT
-            uppercase: false,    // ES_UPPERCASE
             want_return: false,  // ES_WANTRETURN
+            case_type: CaseType::Normal, 
             etype: EditType::Normal,
         }
     }
