@@ -5,8 +5,8 @@ pub struct WindowClass {
     pub name: PCWSTR,
     pub owner: Option<Vec<u16>>,
 }
-unsafe impl Send for WindowClass{}
-unsafe impl Sync for WindowClass{}
+unsafe impl Send for WindowClass {}
+unsafe impl Sync for WindowClass {}
 impl WindowClass {
     pub fn is_invalid(&self) -> bool {
         self.name.is_null()
@@ -98,13 +98,7 @@ impl WindowClass {
         let Size(width, height) = size.unwrap_or(Size(CW_USEDEFAULT, CW_USEDEFAULT));
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
-        let menu = match menu {
-            x if x >= 0 => Some(HMENU(x as *mut c_void)),
-            -1 => Some(unsafe { CreateMenu()? }),
-            -2 => None,
-            _ => return Err(ERROR_INT_OVERFLOW),
-        };
-        let result = unsafe {
+        let result = unsafe {Window::from_handle(
             CreateWindowExW(
                 ex_style,
                 cname,
@@ -114,13 +108,12 @@ impl WindowClass {
                 y,
                 width,
                 height,
-                parent,
-                menu,
+                Some(parent),
+                Some(menu),
                 Some(hinstance),
                 Some(ptr as *const c_void),
             )?
-        }
-        .into();
+        )};
         Ok(result)
     }
 }

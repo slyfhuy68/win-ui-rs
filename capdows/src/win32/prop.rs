@@ -82,14 +82,14 @@ impl Window {
     //     }
     // }
     pub fn get_prop(&self, key: &str) -> Result<usize> {
-        let (name, vecname) = str_to_pcwstr(key);
+        let (name, _buffer) = str_to_pcwstr(key);
         match unsafe { GetPropW(self.handle(), name).0 } as usize {
             0 => Err(ERROR_NOT_PRESENT),
             x => Ok(x),
         }
     }
     pub fn set_prop(&mut self, key: &str, value: usize) -> Result<()> {
-        let (name, vecname) = str_to_pcwstr(key);
+        let (name, _buffer) = str_to_pcwstr(key);
         match value {
             0 => Err(ERROR_NOT_SUPPORT_ZERO),
             x => unsafe {
@@ -101,8 +101,8 @@ impl Window {
             },
         }
     }
-    pub fn remove_prop(&mut self, key: &str, value: usize) -> Result<()> {
-        let (name, vecname) = str_to_pcwstr(key);
+    pub fn remove_prop(&mut self, key: &str) -> Result<()> {
+        let (name, _buffer) = str_to_pcwstr(key);
         match unsafe { RemovePropW(self.handle(), name)?.0 } as usize {
             0 => Err(ERROR_NOT_PRESENT),
             _ => Ok(()),

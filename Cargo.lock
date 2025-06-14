@@ -36,6 +36,7 @@ dependencies = [
 name = "capdows"
 version = "0.0.1"
 dependencies = [
+ "capdows_macros",
  "either",
  "tokio",
  "windows",

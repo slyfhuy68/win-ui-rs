@@ -1,8 +1,16 @@
 use super::*;
 use std::fmt;
 #[derive(Eq, PartialEq)] //不实现Clone
+///已明确由Rust拥有的窗口
 pub struct Window {
     handle: HWND,
+}
+impl Drop for Window {
+    fn drop(&mut self) {
+        if !(std::thread::panicking() || self.handle.is_invalid()){
+            panic!("debug, window")
+        }
+    }
 }
 unsafe impl Send for Window {}
 unsafe impl Sync for Window {}
@@ -11,12 +19,8 @@ impl fmt::Debug for Window {
         f.debug_tuple("Window").field(&self.handle.0).finish()
     }
 }
-impl From<HWND> for Window {
-    fn from(handle: HWND) -> Self {
-        Window { handle }
-    }
-}
 impl Into<HWND> for Window {
+    #[inline]
     fn into(self) -> HWND {
         self.handle
     }
@@ -178,15 +182,16 @@ impl From<WindowZpos> for HWND {
     }
 }
 
-impl From<HWND> for WindowZpos {
-    fn from(hwnd: HWND) -> Self {
+impl WindowZpos {
+    ///如果HWND是一个窗口，确保它是Rust拥有的
+    pub unsafe fn from_handle(hwnd: HWND) -> Self {
         let ptr_value = hwnd.0 as isize;
         match ptr_value {
             -1 => WindowZpos::TopMost,
             0 => WindowZpos::Top,
             -2 => WindowZpos::NoTopMost,
             1 => WindowZpos::Bottom,
-            _ => WindowZpos::PriorWindow(hwnd.into()),
+            _ => WindowZpos::PriorWindow(unsafe{Window::from_handle(hwnd)}),
         }
     }
 }
@@ -214,7 +219,7 @@ pub enum WindowZposGroup {
 }
 impl Default for Window {
     fn default() -> Self {
-        Self::from(HWND(NULL_PTR()))
+        Self{handle: HWND(NULL_PTR())}
     }
 }
 pub enum WindowAnimateType {
@@ -235,13 +240,17 @@ pub enum WindowAnimateShowType {
     NoActivate(WindowAnimateType),
 }
 impl Window {
+    #[inline]
+    pub unsafe fn from_handle(handle: HWND) -> Self {
+        Window { handle }
+    }
     pub fn parent(&self) -> Option<Self> {
-        let hwnd = unsafe { GetAncestor(self.handle, GA_PARENT) };
+        unsafe { let hwnd = GetAncestor(self.handle, GA_PARENT);
         if hwnd.is_invalid() {
             None
         } else {
-            Some(hwnd.into())
-        }
+            Some(Window::from_handle(hwnd))
+        } }
     }
     pub fn is_child(&self) -> bool {
         unsafe { GetWindowLongPtrW(self.handle, GWL_STYLE) & WS_CHILD.0 as isize != 0 }
@@ -262,50 +271,60 @@ impl Window {
         }
     }
     pub fn root_parent(&self) -> Option<Self> {
-        let hwnd = unsafe { GetAncestor(self.handle, GA_ROOT) };
+        unsafe { let hwnd = GetAncestor(self.handle, GA_ROOT) ;
         if hwnd.is_invalid() {
             None
         } else {
-            Some(hwnd.into())
-        }
+            Some(Window::from_handle(hwnd))
+        }}
     }
+    #[inline]
     pub fn copy_handle(&self) -> Self {
         Self {
             handle: self.handle,
         }
     }
+    #[inline]
     pub unsafe fn handle(&self) -> HWND {
         self.handle
     }
-    pub fn move_out(&mut self) -> Window {
+    #[inline]
+    pub unsafe fn move_out(&mut self) -> Window {
         let wnd = self.copy_handle();
         self.nullify();
         wnd
     }
+    #[inline]
     pub fn nullify(&mut self) {
         self.handle = HWND(0 as *mut c_void);
     }
-    pub fn adjust_window_rect(
-        rect: Rectangle,
-        wtype: WindowType,
-        have_menu: bool,
-    ) -> Result<Rectangle> {
-        todo!() //AdjustWindowRectEx
-    }
+    #[inline]
     pub fn redraw_menu_bar(&mut self) -> Result<()> {
         Ok(unsafe { DrawMenuBar(self.handle)? })
     }
     pub fn show(&mut self, stype: ShowWindowType) -> Result<bool> {
         Ok(unsafe { ShowWindow(self.handle, stype.into()) }.into())
     }
-    pub fn set_menu(&mut self, menu: Option<Menu>) -> Result<()> {
-        Ok(unsafe { SetMenu(self.handle, menu.map(|menu: Menu| menu.handle()))? })
+    pub fn set_menu(&mut self, menu: Option<MenuBar>) -> Result<()> {
+        Ok(unsafe { SetMenu(self.handle, menu.map(|menu: MenuBar| menu.handle()))? })
     }
-    pub fn get_system_menu(&mut self) -> Menu {
-        todo!() //getSystemMenu(__,false)
+
+    pub fn with_caption_menu<F, T>(&mut self, f: F) -> Result<T>
+    where
+        F: FnOnce(&mut Menu) -> T,
+    {
+        unsafe {
+            let mut menu = GetSystemMenu(self.handle, false);
+            if menu.is_invalid() {
+                return Err(ERROR_NOT_HAVE_MENU);
+            };
+            Ok(f(Menu::from_mut_ref(&mut menu)))
+        }
     }
-    pub fn reset_system_menu(&mut self) {
-        todo!() //getSystemMenu(__,true)
+    pub fn reset_caption_menu(&mut self) {
+        unsafe {
+            let _ = GetSystemMenu(self.handle, true);
+        }
     }
     pub fn get_class(&self) -> Result<WindowClass> {
         let mut array1 = vec![0u16; 255];
@@ -318,60 +337,28 @@ impl Window {
             owner: Some(array1),
         })
     }
-    pub fn get_context_help_id(&self) -> Option<u32> {
-        match unsafe { GetWindowContextHelpId(self.handle) } {
-            0 => None,
-            x => Some(x),
-        }
+    pub fn get_context_help_id(&self) -> Option<HelpId> {
+        HelpId::try_from(unsafe { GetWindowContextHelpId(self.handle) } as i32)
     }
-    pub fn set_context_help_id(&mut self, help_id: Option<u32>) -> Result<()> {
+    pub fn set_context_help_id(&mut self, help_id: Option<HelpId>) -> Result<()> {
         let help = match help_id {
             None => 0,
-            Some(x) => x,
-        };
+            Some(x) => x.get(),
+        } as u32;
         unsafe { Ok(SetWindowContextHelpId(self.handle, help)?) }
     }
-    pub fn set_z_group(&mut self, pos: WindowZpos, group: WindowZposGroup) -> Result<()> {
+    pub fn set_z_group(&mut self, _pos: WindowZpos, _group: WindowZposGroup) -> Result<()> {
         todo!() //SetWindowBand windows未公开api
     }
     pub fn get_z_group(&self) -> Result<WindowZposGroup> {
         todo!() //SetWindowBand windows未公开api
     }
-    pub fn arrange_iconic(&mut self) -> Result<u32> {
-        todo!() //ArrangeIconicWindows
-    }
-    pub fn to_top(&mut self) -> Result<()> {
-        todo!() //BringWindowToTop
-    }
-    pub fn minimize(&mut self) -> Result<()> {
-        todo!() //CloseWindow
-    }
     pub fn destroy(&mut self) -> Result<()> {
-        todo!() //DestroyWindow
-    }
-    pub fn set_animate(
-        &mut self,
-        time: std::time::Duration,
-        atype: WindowAnimateShowType,
-    ) -> Result<()> {
-        todo!() //AnimateWindow
-    }
-    pub fn cascade_child(
-        &mut self,
-        skip_mdi_disabled: bool,
-        area: Option<Rectangle>,
-        wnd: Option<&[Window]>,
-    ) -> Result<u16> {
-        todo!() //CascadeWindows
-    }
-    pub fn get_child_from_point(
-        &mut self,
-        pos: Point,
-        skip_disabled: bool,
-        skip_visible: bool,
-        skip_transparent: bool,
-    ) -> Option<Window> {
-        todo!() //ChildWindowFromPointEx
+        unsafe {
+            DestroyWindow(self.handle)?;
+            self.handle = HWND(0 as *mut c_void);
+            Ok(())
+        }
     }
     pub fn from_screen_point(point: Point) -> Option<Window> {
         unsafe {
@@ -379,7 +366,7 @@ impl Window {
             if hwnd.is_invalid() {
                 None
             } else {
-                Some(hwnd.into())
+                Some(Window::from_handle(hwnd))
             }
         }
     }
@@ -390,7 +377,7 @@ impl Window {
             return Err(ERROR_CANNOT_REMOVE_DEFAULT);
         }
         unsafe {
-            let ptr = self.get_msg_receiver_mut(id)? as *mut CallBackObj;
+            let ptr = self.with_msg_receiver_mut(id, |mut_ref| mut_ref as *mut CallBackObj)?;
             if RemoveWindowSubclass(self.handle, Some(subclass_porc), id).into() {
                 let _ = Box::from_raw(ptr);
                 Ok(())
@@ -418,10 +405,13 @@ impl Window {
             }
         }
     }
-    pub fn get_msg_receiver(&self, id: usize) -> Result<&CallBackObj> {
+    pub fn with_msg_receiver<F, T>(&self, id: usize, f: F) -> Result<T>
+    where
+        F: FnOnce(&CallBackObj) -> T,
+    {
         unsafe {
             if id == 0 {
-                return Ok((*(get_proc(&self)?)).as_ref());
+                return Ok(f((*(get_proc(&self)?)).as_ref()));
             };
             let mut data: usize = 0usize;
             if GetWindowSubclass(
@@ -432,20 +422,23 @@ impl Window {
             )
             .into()
             {
-                Ok((*(data as *const Box<CallBackObj>)).as_ref())
+                Ok(f((*(data as *const Box<CallBackObj>)).as_ref()))
             } else {
                 Err(correct_error())
             }
         }
     }
-    pub fn get_msg_receiver_mut(&mut self, id: usize) -> Result<&mut CallBackObj> {
+    pub fn with_msg_receiver_mut<F, T>(&mut self, id: usize, f: F) -> Result<T>
+    where
+        F: FnOnce(&mut CallBackObj) -> T,
+    {
         unsafe {
             if id == 0 {
-                return Ok((*(get_proc(&self)?)).as_mut());
+                return Ok(f((*(get_proc(&self)?)).as_mut()));
             };
             let mut data: usize = 0usize;
             if GetWindowSubclass(self.handle, Some(subclass_porc), id, Some(&mut data)).into() {
-                Ok((*(data as *mut Box<CallBackObj>)).as_mut())
+                Ok(f((*(data as *mut Box<CallBackObj>)).as_mut()))
             } else {
                 Err(correct_error())
             }
@@ -459,11 +452,6 @@ impl Window {
             GetWindowSubclass(self.handle, Some(subclass_porc), id, None).into()
         }
     }
-    // pub fn force_end(&self) {
-    //     unsafe {EndTask(self.handle,false,true)};
-    // }
-
-    //pub fn find_window(&mut self,class:Option<WindowClass>,title: Option<&str>){}
     pub fn force_redraw(&mut self) -> Result<()> {
         unsafe {
             Ok(SetWindowPos(
@@ -477,19 +465,70 @@ impl Window {
             )?)
         }
     }
-}
-pub fn cascade_window(
-    skip_mdi_disabled: bool,
-    area: Option<Rectangle>,
-    wnd: Option<&[Window]>,
-) -> Result<u16> {
-    todo!() //CascadeWindows
-}
-pub fn allow_set_foreground_window(pid: Option<u32>) -> Result<()> {
-    todo!() //AllowSetForegroundWindow
-}
-pub fn have_any_popup_window() -> bool {
-    unsafe { AnyPopup() }.as_bool()
+    #[inline]
+    pub fn have_any_popup_window() -> bool {
+        unsafe { AnyPopup() }.as_bool()
+    }
+    //未实现区--------------------------------------
+    pub fn adjust_window_rect(
+        _rect: Rectangle,
+        _wtype: WindowType,
+        _have_menu: bool,
+    ) -> Result<Rectangle> {
+        todo!() //AdjustWindowRectEx
+    }
+    pub fn arrange_iconic(&mut self) -> Result<u32> {
+        todo!() //ArrangeIconicWindows
+    }
+    pub fn to_top(&mut self) -> Result<()> {
+        todo!() //BringWindowToTop
+    }
+    pub fn minimize(&mut self) -> Result<()> {
+        todo!() //CloseWindow
+    }
+    pub fn set_animate(
+        &mut self,
+        _time: std::time::Duration,
+        _atype: WindowAnimateShowType,
+    ) -> Result<()> {
+        todo!() //AnimateWindow
+    }
+    pub fn cascade_child(
+        &mut self,
+        _skip_mdi_disabled: bool,
+        _area: Option<Rectangle>,
+        _wnd: Option<&[Window]>,
+    ) -> Result<u16> {
+        todo!() //CascadeWindows
+    }
+    pub fn get_child_from_point(
+        &mut self,
+        _pos: Point,
+        _skip_disabled: bool,
+        _skip_visible: bool,
+        _skip_transparent: bool,
+    ) -> Option<Window> {
+        todo!() //ChildWindowFromPointEx
+    }
+    pub fn force_end(&self) {
+        todo!()
+        // unsafe {EndTask(self.handle, false, true)};
+    }
+
+    pub fn find_window(&mut self, _class: Option<WindowClass>, _title: Option<&str>) {
+        todo!()
+    }
+    pub fn cascade_window(
+        _skip_mdi_disabled: bool,
+        _area: Option<Rectangle>,
+        _wnd: Option<&[Window]>,
+    ) -> Result<u16> {
+        todo!() //CascadeWindows
+    }
+    pub fn allow_set_foreground_window(_pid: Option<u32>) -> Result<()> {
+        todo!() //AllowSetForegroundWindow
+    }
+    //未实现区结束----------------------------------
 }
 // use std::fmt;
 // pub struct WindowRawMsgFuture {

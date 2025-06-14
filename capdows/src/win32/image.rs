@@ -322,6 +322,8 @@ impl Into<HBITMAP> for Bitmap {
 pub struct EnhMetaFile {
     pub handle: HENHMETAFILE,
 }
+unsafe impl Send for EnhMetaFile {}
+unsafe impl Sync for EnhMetaFile {}
 impl EnhMetaFile {
     pub fn copy_handle(&self) -> Self {
         Self {

@@ -1,6 +1,6 @@
 //本文件几乎都是AI生成的
 use super::*;
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Copy, Default, Debug)]
 pub enum ClassBackgroundBrush {
     Brush(super::brush::Brush),
     ActiveBorder,
@@ -19,6 +19,7 @@ pub enum ClassBackgroundBrush {
     Menu,
     MenuText,
     Scrollbar,
+    #[default]
     Window,
     WindowFrame,
     WindowText,
@@ -108,7 +109,8 @@ impl Into<HBRUSH> for ClassBackgroundBrush {
     }
 }
 
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq, Copy, Default, Debug)]
+#[repr(packed)]
 pub struct WindowClassStyle {
     pub globa: bool,             //CS_GLOBALCLASS
     pub no_close_button: bool,   //CS_NOCLOSE
@@ -175,7 +177,7 @@ impl Into<WNDCLASS_STYLES> for WindowClassStyle {
         ms_style | self.dc_type.into()
     }
 }
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq, Copy, Default, Debug)]
 pub enum DCtype {
     #[default]
     DefaultDC, //NULL
@@ -206,7 +208,7 @@ impl From<WNDCLASS_STYLES> for DCtype {
 }
 //-------------------------------------------------------------------------------
 //const WS_ONLYCAPTION: WINDOW_STYLE = WINDOW_STYLE(4194304u32);
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq, Copy, Default, Debug)]
 pub enum WindowSizeState {
     #[default]
     None, //NULL
@@ -233,7 +235,7 @@ impl Into<WINDOW_STYLE> for WindowSizeState {
         }
     }
 }
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq, Copy, Default, Debug)]
 pub enum WindowContextBarButton {
     NoButton, //NULL
     Minimize, //WS_MINIMIZEBOX
@@ -271,9 +273,11 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowContextBarButton {
         }
     }
 }
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Copy, Debug)]
 pub enum WindowBorderType {
-    NoBorder,                           //NULL
+    NoBorder, //NULL
+    DlgFame,                            //WS_DLGFRAME
+    ThinLineDlgFame,                    //WS_DLGFRAME | WS_BORDER
     ThinLine,                           //WS_BORDER
     Caption,                            //WS_CAPTION
     SystemMenu(WindowContextBarButton), //WS_SYSMENU | WS_CAPTION
@@ -291,8 +295,12 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowBorderType {
             SystemMenu((ms_style, ms_style_ex).into())
         } else if ms_style.contains(WS_CAPTION) {
             Caption
+        } else if ms_style.contains(WS_DLGFRAME | WS_BORDER) {
+            ThinLineDlgFame
         } else if ms_style.contains(WS_BORDER) {
             ThinLine
+        } else if ms_style.contains(WS_DLGFRAME) {
+            DlgFame
         } else {
             NoBorder
         }
@@ -301,451 +309,341 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowBorderType {
 impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowBorderType {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
         use WindowBorderType::*;
+        (
+            match self {
+                NoBorder => WINDOW_STYLE(0u32),
+                WindowBorderType::DlgFame => WS_DLGFRAME,
+                WindowBorderType::ThinLineDlgFame => WS_DLGFRAME | WS_BORDER,
+                ThinLine => WS_BORDER,
+                Caption => WS_CAPTION,
+                SystemMenu(x) => {
+                    let (z, y) = x.into();
+                    return (WS_SYSMENU | WS_CAPTION | z, y);
+                }
+            },
+            WINDOW_EX_STYLE(0u32),
+        )
+    }
+}
+#[derive(Clone, PartialEq, Copy, Default, Debug)]
+pub enum WindowEdgeType {
+    #[default]
+    None,
+    Raised, //WS_EX_WINDOWEDGE
+    Sunken, //WS_EX_CLIENTEDGE
+    ThreeD, //WS_EX_STATICEDGE
+}
+impl Into<WINDOW_EX_STYLE> for WindowEdgeType {
+    fn into(self) -> WINDOW_EX_STYLE {
+        use WindowEdgeType::*;
         match self {
-            NoBorder => (WINDOW_STYLE(0u32), WINDOW_EX_STYLE(0u32)),
-            ThinLine => (WS_BORDER, WINDOW_EX_STYLE(0u32)),
-            Caption => (WS_CAPTION, WINDOW_EX_STYLE(0u32)),
-            SystemMenu(x) => {
-                let (z, y) = x.into();
-                (WS_SYSMENU | WS_CAPTION | z, y)
-            }
+            None => WINDOW_EX_STYLE(0u32),
+            Raised => WS_EX_WINDOWEDGE,
+            Sunken => WS_EX_CLIENTEDGE,
+            ThreeD => WS_EX_STATICEDGE,
         }
     }
 }
-#[derive(Clone, PartialEq)]
+impl From<WINDOW_EX_STYLE> for WindowEdgeType {
+    fn from(style: WINDOW_EX_STYLE) -> Self {
+        use WindowEdgeType::*;
+        if style.contains(WS_EX_WINDOWEDGE) {
+            Raised
+        } else if style.contains(WS_EX_CLIENTEDGE) {
+            Sunken
+        } else if style.contains(WS_EX_STATICEDGE) {
+            ThreeD
+        } else {
+            None
+        }
+    }
+}
+#[derive(Clone, PartialEq, Copy, Default, Debug)]
+#[repr(packed)]
 pub struct NormalWindowStyles {
-    //https://learn.microsoft.com/zh-cn/windows/win32/winmsg/window-styles
-    pub visble: bool,          //WS_VISIBLE
-    pub disabled: bool,        //WS_DISABLED
-    pub vertical_roll: bool,   //WS_VSCROLL
-    pub horizontal_roll: bool, //WS_HSCROLL
-    pub size_box: bool,        //WS_SIZEBOX 或 WS_THICKFRAME
-    pub dlg_frame: bool,       //WS_DLGFRAME
-    pub clip_children: bool,   //WS_CLIPCHILDREN
+    //此部分使用正则表达式生成
+    pub size_box: bool,              // WS_SIZEBOX
+    pub horizontal_roll: bool,       // WS_HSCROLL
+    pub vertical_roll: bool,         // WS_VSCROLL
+    pub clip_children: bool,         // WS_CLIPCHILDREN
+    pub disabled: bool,              // WS_DISABLED
+    pub visble: bool,                // WS_VISIBLE
+    pub dlg_modal_frame: bool,       // WS_EX_DLGMODALFRAME
+    pub top_most: bool,              // WS_EX_TOPMOST
+    pub accept_files: bool,          // WS_EX_ACCEPTFILES
+    pub transparent: bool,           // WS_EX_TRANSPARENT
+    pub tool_window: bool,           // WS_EX_TOOLWINDOW
+    pub right_aligned: bool,         // WS_EX_RIGHT
+    pub right_to_left_reading: bool, // WS_EX_RTLREADING
+    pub left_scrroll_bar: bool,      // WS_EX_LEFTSCROLLBAR
+    pub control_parent: bool,        // WS_EX_CONTROLPARENT
+    pub app_window: bool,            // WS_EX_APPWINDOW
+    pub no_inherit_layout: bool,     // WS_EX_NOINHERITLAYOUT
+    pub right_layout: bool,          // WS_EX_LAYOUTRTL
+    pub com_posited: bool,           // WS_EX_COMPOSITED
+    pub no_auto_active: bool,        // WS_EX_NOACTIVATE
+    pub no_redirection_bitmap: bool, // WS_EX_NOREDIRECTIONBITMAP
+    pub edge_type: WindowEdgeType,
     pub size_state: WindowSizeState,
     pub border_type: WindowBorderType,
 }
-impl Default for NormalWindowStyles {
-    fn default() -> Self {
-        Self {
-            visble: false,
-            disabled: false,
-            vertical_roll: false,
-            horizontal_roll: false,
-            size_box: false,
-            dlg_frame: false,
-            clip_children: false,
-            size_state: WindowSizeState::None,
-            border_type: WindowBorderType::SystemMenu(WindowContextBarButton::MinimizeAndMaximize),
-        }
-    }
+#[derive(Clone, PartialEq, Copy, Default, Debug)]
+#[repr(packed)]
+pub struct ChildWindowStyles {
+    pub style: NormalWindowStyles,
+    pub tab_stop: bool,      //WS_TABSTOP
+    pub group_leader: bool,  //WS_GROUP
+    pub clip_isblings: bool, //WS_CLIPSIBLINGS
+    pub no_parent_notify: bool, //WS_EX_NOPARENTNOTIFY
+                             // pub mid_child: bool, //WS_EX_MDICHILD
 }
 impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
-    fn from(rstyle: (WINDOW_STYLE, WINDOW_EX_STYLE)) -> Self {
-        let (ms_style, ex) = rstyle;
+    fn from((style, style_ex): (WINDOW_STYLE, WINDOW_EX_STYLE)) -> Self {
         Self {
-            visble: ms_style.contains(WS_VISIBLE),
-            disabled: ms_style.contains(WS_DISABLED),
-            vertical_roll: ms_style.contains(WS_VSCROLL),
-            horizontal_roll: ms_style.contains(WS_HSCROLL),
-            size_box: ms_style.contains(WS_SIZEBOX),
-            dlg_frame: ms_style.contains(WS_DLGFRAME),
-            clip_children: ms_style.contains(WS_CLIPCHILDREN),
-            size_state: ms_style.into(),
-            border_type: (ms_style, ex).into(),
+            size_box: style.contains(WS_SIZEBOX),
+            horizontal_roll: style.contains(WS_HSCROLL),
+            vertical_roll: style.contains(WS_VSCROLL),
+            clip_children: style.contains(WS_CLIPCHILDREN),
+            disabled: style.contains(WS_DISABLED),
+            visble: style.contains(WS_VISIBLE),
+            dlg_modal_frame: style_ex.contains(WS_EX_DLGMODALFRAME),
+            top_most: style_ex.contains(WS_EX_TOPMOST),
+            accept_files: style_ex.contains(WS_EX_ACCEPTFILES),
+            transparent: style_ex.contains(WS_EX_TRANSPARENT),
+            tool_window: style_ex.contains(WS_EX_TOOLWINDOW),
+            right_aligned: style_ex.contains(WS_EX_RIGHT),
+            right_to_left_reading: style_ex.contains(WS_EX_RTLREADING),
+            left_scrroll_bar: style_ex.contains(WS_EX_LEFTSCROLLBAR),
+            control_parent: style_ex.contains(WS_EX_CONTROLPARENT),
+            app_window: style_ex.contains(WS_EX_APPWINDOW),
+            no_inherit_layout: style_ex.contains(WS_EX_NOINHERITLAYOUT),
+            right_layout: style_ex.contains(WS_EX_LAYOUTRTL),
+            com_posited: style_ex.contains(WS_EX_COMPOSITED),
+            no_auto_active: style_ex.contains(WS_EX_NOACTIVATE),
+            no_redirection_bitmap: style_ex.contains(WS_EX_NOREDIRECTIONBITMAP),
+            edge_type: WindowEdgeType::from(style_ex),
+            size_state: WindowSizeState::from(style),
+            border_type: WindowBorderType::from((style, style_ex)),
         }
     }
 }
 impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
-        let mut ms_style = WINDOW_STYLE(0u32);
-        if self.visble {
-            ms_style |= WS_VISIBLE;
-        };
-        if self.disabled {
-            ms_style |= WS_DISABLED;
-        };
-        if self.vertical_roll {
-            ms_style |= WS_VSCROLL;
-        };
-        if self.horizontal_roll {
-            ms_style |= WS_HSCROLL;
-        };
-        if self.size_box {
-            ms_style |= WS_SIZEBOX;
-        };
-        if self.dlg_frame {
-            ms_style |= WS_DLGFRAME;
-        };
-        if self.clip_children {
-            ms_style |= WS_CLIPCHILDREN;
-        };
-        ms_style |= self.size_state.into();
-        let (b, a) = self.border_type.into();
-        ms_style |= b;
-        (ms_style, a)
+        let (mut style, mut style_ex) = self.border_type.into();
+        set_style(&mut style, WS_SIZEBOX, self.size_box);
+        set_style(&mut style, WS_HSCROLL, self.horizontal_roll);
+        set_style(&mut style, WS_VSCROLL, self.vertical_roll);
+        set_style(&mut style, WS_CLIPCHILDREN, self.clip_children);
+        set_style(&mut style, WS_DISABLED, self.disabled);
+        set_style(&mut style, WS_VISIBLE, self.visble);
+        set_style_ex(&mut style_ex, WS_EX_DLGMODALFRAME, self.dlg_modal_frame);
+        set_style_ex(&mut style_ex, WS_EX_TOPMOST, self.top_most);
+        set_style_ex(&mut style_ex, WS_EX_ACCEPTFILES, self.accept_files);
+        set_style_ex(&mut style_ex, WS_EX_TRANSPARENT, self.transparent);
+        set_style_ex(&mut style_ex, WS_EX_TOOLWINDOW, self.tool_window);
+        set_style_ex(&mut style_ex, WS_EX_RIGHT, self.right_aligned);
+        set_style_ex(&mut style_ex, WS_EX_RTLREADING, self.right_to_left_reading);
+        set_style_ex(&mut style_ex, WS_EX_LEFTSCROLLBAR, self.left_scrroll_bar);
+        set_style_ex(&mut style_ex, WS_EX_CONTROLPARENT, self.control_parent);
+        set_style_ex(&mut style_ex, WS_EX_APPWINDOW, self.app_window);
+        set_style_ex(&mut style_ex, WS_EX_NOINHERITLAYOUT, self.no_inherit_layout);
+        set_style_ex(&mut style_ex, WS_EX_LAYOUTRTL, self.right_layout);
+        set_style_ex(&mut style_ex, WS_EX_COMPOSITED, self.com_posited);
+        set_style_ex(&mut style_ex, WS_EX_NOACTIVATE, self.no_auto_active);
+        set_style_ex(&mut style_ex, WS_EX_NOREDIRECTIONBITMAP, self.no_redirection_bitmap);
+        style |= self.size_state.into();
+        style_ex |= self.edge_type.into();
+        (style, style_ex)
     }
 }
-#[derive(Clone, PartialEq)]
-pub struct ChildWindowStyles {
-    //https://learn.microsoft.com/zh-cn/windows/win32/winmsg/window-styles
-    pub visble: bool,          //WS_VISIBLE
-    pub disabled: bool,        //WS_DISABLED
-    pub vertical_roll: bool,   //WS_VSCROLL
-    pub horizontal_roll: bool, //WS_HSCROLL
-    pub size_box: bool,        //WS_SIZEBOX 或 WS_THICKFRAME
-    pub tab_stop: bool,        //WS_TABSTOP
-    pub dlg_frame: bool,       //WS_DLGFRAME
-    pub group: bool,           //WS_GROUP
-    pub clip_isbling: bool,    //WS_CLIPSIBLINGS
-    pub clip_children: bool,   //WS_CLIPCHILDREN
-    pub size_state: WindowSizeState,
-    pub border_type: WindowBorderType,
+#[inline]
+fn set_style(style: &mut WINDOW_STYLE, flag: WINDOW_STYLE, condition: bool) {
+    style.0 |= flag.0 * condition as u32;
 }
-impl ChildWindowStyles {
-    pub fn null() -> Self {
-        Self {
-            visble: false,
-            disabled: false,
-            vertical_roll: false,
-            horizontal_roll: false,
-            size_box: false,
-            group: false,
-            tab_stop: false,
-            dlg_frame: false,
-            clip_isbling: false,
-            clip_children: false,
-            size_state: WindowSizeState::None,
-            border_type: WindowBorderType::NoBorder,
-        }
-    }
-}
-impl Default for ChildWindowStyles {
-    fn default() -> Self {
-        Self {
-            group: false,
-            visble: true,
-            disabled: false,
-            vertical_roll: false,
-            horizontal_roll: false,
-            size_box: false,
-            tab_stop: true,
-            dlg_frame: false,
-            clip_isbling: false,
-            clip_children: false,
-            size_state: WindowSizeState::None,
-            border_type: WindowBorderType::NoBorder,
-        }
-    }
+#[inline]
+fn set_style_ex(style_ex: &mut WINDOW_EX_STYLE, flag: WINDOW_EX_STYLE, condition: bool) {
+    style_ex.0 |= flag.0 * condition as u32;
 }
 impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for ChildWindowStyles {
-    fn from(rstyle: (WINDOW_STYLE, WINDOW_EX_STYLE)) -> Self {
-        let (ms_style, ex) = rstyle;
+    fn from((style, style_ex): (WINDOW_STYLE, WINDOW_EX_STYLE)) -> Self {
         Self {
-            visble: ms_style.contains(WS_VISIBLE),
-            disabled: ms_style.contains(WS_DISABLED),
-            vertical_roll: ms_style.contains(WS_VSCROLL),
-            horizontal_roll: ms_style.contains(WS_HSCROLL),
-            size_box: ms_style.contains(WS_THICKFRAME),
-            tab_stop: ms_style.contains(WS_TABSTOP),
-            dlg_frame: ms_style.contains(WS_DLGFRAME),
-            clip_isbling: ms_style.contains(WS_CLIPSIBLINGS),
-            clip_children: ms_style.contains(WS_CLIPCHILDREN),
-            group: ms_style.contains(WS_GROUP),
-            size_state: ms_style.into(),
-            border_type: (ms_style, ex).into(),
+            style: (style, style_ex).into(),
+            tab_stop: style.contains(WS_TABSTOP),
+            group_leader: style.contains(WS_GROUP),
+            clip_isblings: style.contains(WS_CLIPSIBLINGS),
+            no_parent_notify: style_ex.contains(WS_EX_NOPARENTNOTIFY),
+            // mid_child: style_ex.contains(WS_EX_MDICHILD),
         }
     }
 }
 impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for ChildWindowStyles {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
-        let mut ms_style = WINDOW_STYLE(0u32);
-        if self.visble {
-            ms_style |= WS_VISIBLE;
-        };
-        if self.disabled {
-            ms_style |= WS_DISABLED;
-        };
-        if self.vertical_roll {
-            ms_style |= WS_VSCROLL;
-        };
-        if self.horizontal_roll {
-            ms_style |= WS_HSCROLL;
-        };
-        if self.size_box {
-            ms_style |= WS_THICKFRAME;
-        };
+        let (mut style, mut style_ex) = self.style.into();
+
         if self.tab_stop {
-            ms_style |= WS_TABSTOP;
+            style |= WS_TABSTOP;
         };
-        if self.dlg_frame {
-            ms_style |= WS_DLGFRAME;
+        if self.group_leader {
+            style |= WS_GROUP;
         };
-        if self.group {
-            ms_style |= WS_GROUP;
+        if self.clip_isblings {
+            style |= WS_CLIPSIBLINGS;
         };
-        if self.clip_isbling {
-            ms_style |= WS_CLIPSIBLINGS;
+        if self.no_parent_notify {
+            style_ex |= WS_EX_NOPARENTNOTIFY;
         };
-        if self.clip_children {
-            ms_style |= WS_CLIPCHILDREN;
-        };
-        ms_style |= self.size_state.into();
-        let (b, a) = self.border_type.into();
-        ms_style |= b;
-        (ms_style, a)
+        // if self.mid_child {
+        //     style_ex |= WS_EX_MDICHILD;
+        // };
+        (style, style_ex)
     }
 }
-#[derive(Clone, PartialEq, Default)]
-pub struct NormalWindowExStyles {
-    //https://learn.microsoft.com/zh-cn/windows/win32/winmsg/extended-window-styles
-    pub edge: bool,                  //WS_EX_WINDOWEDGE
-    pub transparent: bool,           //WS_EX_TRANSPARENT
-    pub top_most: bool,              //WS_EX_TOPMOST
-    pub tool_window: bool,           //WS_EX_TOOLWINDOW
-    pub static_edge: bool,           //WS_EX_STATICEDGE
-    pub right_reading: bool,         //WS_EX_RTLREADING
-    pub right: bool,                 //WS_EX_RIGHT
-    pub no_redirection_bitmap: bool, //WS_EX_NOREDIRECTIONBITMAP
-    pub no_auto_active: bool,        //WS_EX_NOACTIVATE
-    pub left_scrroll_bar: bool,      //WS_EX_LEFTSCROLLBAR
-    ///如果 shell 语言是希伯来语、阿拉伯语或支持阅读顺序对齐的其他语言，则窗口的原点位于右上角。 将水平值递增到左侧。
-    pub right_layout: bool, //WS_EX_LAYOUTRTL
-    ///不将其窗口布局传递给其子窗口
-    pub no_inherit_layout: bool, //WS_EX_NOINHERITLAYOUT
-    pub accept_files: bool,          //WS_EX_ACCEPTFILES
-    pub app_window: bool,            //WS_EX_APPWINDOW
-    pub clint_edge: bool,            //WS_EX_CLIENTEDGE
-    pub dlg_modal_frame: bool,       //WS_EX_DLGMODALFRAME
-    pub com_posited: bool,           //WS_EX_COMPOSITED
-                                     //WS_EX_CONTROLPARENT is in style
-}
-impl From<WINDOW_EX_STYLE> for NormalWindowExStyles {
-    fn from(ms_style: WINDOW_EX_STYLE) -> Self {
-        Self {
-            edge: ms_style.contains(WS_EX_WINDOWEDGE),
-            transparent: ms_style.contains(WS_EX_TRANSPARENT),
-            top_most: ms_style.contains(WS_EX_TOPMOST),
-            tool_window: ms_style.contains(WS_EX_TOOLWINDOW),
-            static_edge: ms_style.contains(WS_EX_STATICEDGE),
-            right_reading: ms_style.contains(WS_EX_RTLREADING),
-            right: ms_style.contains(WS_EX_RIGHT),
-            no_redirection_bitmap: ms_style.contains(WS_EX_NOREDIRECTIONBITMAP),
-            no_inherit_layout: ms_style.contains(WS_EX_NOINHERITLAYOUT),
-            no_auto_active: ms_style.contains(WS_EX_NOACTIVATE),
-            left_scrroll_bar: ms_style.contains(WS_EX_LEFTSCROLLBAR),
-            right_layout: ms_style.contains(WS_EX_LAYOUTRTL),
-            accept_files: ms_style.contains(WS_EX_ACCEPTFILES),
-            app_window: ms_style.contains(WS_EX_APPWINDOW),
-            clint_edge: ms_style.contains(WS_EX_CLIENTEDGE),
-            dlg_modal_frame: ms_style.contains(WS_EX_DLGMODALFRAME),
-            com_posited: ms_style.contains(WS_EX_COMPOSITED),
-        }
-    }
-}
-impl Into<WINDOW_EX_STYLE> for NormalWindowExStyles {
-    fn into(self) -> WINDOW_EX_STYLE {
-        let mut ms_style = WINDOW_EX_STYLE(0u32);
-        if self.edge {
-            ms_style |= WS_EX_WINDOWEDGE;
-        };
-        if self.transparent {
-            ms_style |= WS_EX_TRANSPARENT;
-        };
-        if self.top_most {
-            ms_style |= WS_EX_TOPMOST;
-        };
-        if self.tool_window {
-            ms_style |= WS_EX_TOOLWINDOW;
-        };
-        if self.static_edge {
-            ms_style |= WS_EX_STATICEDGE;
-        };
-        if self.right_reading {
-            ms_style |= WS_EX_RTLREADING;
-        };
-        if self.right {
-            ms_style |= WS_EX_RIGHT;
-        };
-        if self.no_redirection_bitmap {
-            ms_style |= WS_EX_NOREDIRECTIONBITMAP;
-        };
-        if self.no_inherit_layout {
-            ms_style |= WS_EX_NOINHERITLAYOUT;
-        };
-        if self.no_auto_active {
-            ms_style |= WS_EX_NOACTIVATE;
-        };
-        if self.left_scrroll_bar {
-            ms_style |= WS_EX_LEFTSCROLLBAR;
-        };
-        if self.right_layout {
-            ms_style |= WS_EX_LAYOUTRTL;
-        };
-        if self.accept_files {
-            ms_style |= WS_EX_ACCEPTFILES;
-        };
-        if self.app_window {
-            ms_style |= WS_EX_APPWINDOW;
-        };
-        if self.clint_edge {
-            ms_style |= WS_EX_CLIENTEDGE;
-        };
-        if self.dlg_modal_frame {
-            ms_style |= WS_EX_DLGMODALFRAME;
-        };
-        if self.com_posited {
-            ms_style |= WS_EX_COMPOSITED;
-        };
-        ms_style
-    }
-}
-#[derive(PartialEq)]
+#[derive(Debug)]
 pub enum WindowType {
     Overlapped {
         style: NormalWindowStyles,
-        syle_ex: NormalWindowExStyles,
-        menu: bool,
-        onwer: Option<Window>,
+        menu: Option<MenuBar>,
+        owner: Option<Window>,
         is_layered: bool, //WS_EX_LAYERED
     }, //重叠窗口
     Popup {
         style: NormalWindowStyles,
-        syle_ex: NormalWindowExStyles,
-        menu: bool,
-        onwer: Option<Window>,
+        menu: Option<MenuBar>,
+        owner: Option<Window>,
         is_layered: bool, //WS_EX_LAYERED
     },
     Child {
         style: ChildWindowStyles,
-        syle_ex: NormalWindowExStyles,
         identifier: WindowID,
         parent: Window,
-        no_send_notify_to_parent: bool, //WS_EX_NOPARENTNOTIFY
-        is_layered: bool,               //WS_EX_LAYERED
+        is_layered: bool, //WS_EX_LAYERED
     },
     MessageOnly,
+}
+impl WindowType {
+    pub fn nullify_menu (&mut self) {
+        let _ = match self {
+            WindowType::Overlapped {menu, ..} => menu.take().map(|mut x| x.nullify()), 
+            WindowType::Popup {menu, ..} => menu.take().map(|mut x| x.nullify()), 
+            _ => Some(())
+        };
+    }
 }
 impl Default for WindowType {
     fn default() -> Self {
         Self::Overlapped {
             style: Default::default(),
-            syle_ex: Default::default(),
-            menu: false,
-            onwer: None,
+            menu: None,
+            owner: None,
             is_layered: false,
         }
     }
 }
-/// i32: -1表示需要新建，非负数表示窗口id
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>) {
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND)> for WindowType {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND) {
         use WindowType::*;
         unsafe {
             match self {
                 Overlapped {
-                    style: x,
-                    syle_ex: syle_exx,
-                    menu: z,
-                    onwer: w,
-                    is_layered: b,
+                    style,
+                    menu,
+                    owner,
+                    is_layered,
                 } => {
-                    let xx: WINDOW_EX_STYLE = syle_exx.into();
-                    let (yy, zz) = x.into();
+                    let (style, mut style_ex) = style.into();
+                    if is_layered {
+                        style_ex |= WS_EX_LAYERED;
+                    };
                     (
-                        yy,
-                        xx | zz,
-                        if z { -1 } else { -2 },
-                        match w {
-                            Some(x) => Some(x.handle()),
-                            None => None,
-                        },
+                        style,
+                        style_ex,
+                        menu.unwrap_or(MenuBar::null()).handle(),
+                        owner.unwrap_or_default().handle(),
                     )
                 }
                 Popup {
-                    style: x,
-                    syle_ex: ms_style,
-                    menu: z,
-                    onwer: w,
-                    is_layered: b,
+                    style,
+                    menu,
+                    owner,
+                    is_layered,
                 } => {
-                    let mut xx: WINDOW_EX_STYLE = ms_style.into();
-                    let (yy, zz) = x.into();
-                    if b {
-                        xx |= WS_EX_LAYERED;
+                    let (style, mut style_ex) = style.into();
+                    if is_layered {
+                        style_ex |= WS_EX_LAYERED;
                     };
                     (
-                        yy | WS_POPUP,
-                        xx | zz,
-                        if z { -1 } else { 0 }, //-1表示需要新建，非负数表示窗口id
-                        match w {
-                            Some(x) => Some(x.handle()),
-                            None => None,
-                        },
+                        style | WS_POPUP,
+                        style_ex,
+                        menu.unwrap_or(MenuBar::null()).handle(),
+                        owner.unwrap_or_default().handle(),
                     )
                 }
                 Child {
-                    style: x,
-                    syle_ex: ms_style,
-                    identifier: z,
-                    parent: w,
-                    is_layered: b,
-                    no_send_notify_to_parent: c,
+                    style,
+                    identifier,
+                    parent,
+                    is_layered,
                 } => {
-                    let mut xx: WINDOW_EX_STYLE = ms_style.into();
-                    let (yy, zz) = x.into();
-                    if b {
-                        xx |= WS_EX_LAYERED;
+                    let (style, mut style_ex) = style.into();
+                    if is_layered {
+                        style_ex |= WS_EX_LAYERED;
                     };
-                    if c {
-                        xx |= WS_EX_NOPARENTNOTIFY;
-                    };
-                    (yy | WS_CHILD, xx | zz, z as i32, Some(w.handle()))
+                    (
+                        style | WS_CHILD,
+                        style_ex,
+                        HMENU(identifier as *mut c_void),
+                        parent.handle(),
+                    )
                 }
-                MessageOnly => (WINDOW_STYLE(0), WINDOW_EX_STYLE(0), 0, Some(HWND_MESSAGE)),
+                MessageOnly => (
+                    WINDOW_STYLE(0),
+                    WINDOW_EX_STYLE(0),
+                    HMENU(0 as *mut c_void),
+                    HWND_MESSAGE,
+                ),
             }
         }
     }
 }
-impl From<(WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)> for WindowType {
-    fn from(data: (WINDOW_STYLE, WINDOW_EX_STYLE, i32, Option<HWND>)) -> Self {
+impl WindowType {
+    ///确保wnd是Rust拥有的
+    pub unsafe fn from_data(style: WINDOW_STYLE, style_ex:WINDOW_EX_STYLE, menu:HMENU, wnd:HWND) -> Self {
         use WindowType::*;
-        let (style, style_ex, menu, w) = data;
-        if w == Some(HWND_MESSAGE) {
-            MessageOnly
-        } else if style.contains(WS_CHILD) && w.is_some() {
-            Child {
+        if wnd == HWND_MESSAGE {
+            return MessageOnly;
+        }
+        let w: Option<Window> = if wnd.is_invalid() {
+            None
+        } else {
+            unsafe {Some(Window::from_handle(wnd))}
+        };
+        let m: Option<MenuBar> = if wnd.is_invalid() {
+            None
+        } else {
+            unsafe { Some(MenuBar::from_handle(menu)) }
+        };
+        if style.contains(WS_CHILD) && !w.is_some() {
+            return Child {
                 style: (style, style_ex).into(),
-                identifier: menu as u16,
+                identifier: menu.0 as u16,
                 parent: w.unwrap_or_default().into(),
                 is_layered: style_ex.contains(WS_EX_LAYERED),
-                no_send_notify_to_parent: style_ex.contains(WS_EX_NOPARENTNOTIFY),
-                syle_ex: style_ex.into(),
-            }
-        } else if style.contains(WS_POPUP) {
-            let w = match w {
-                Some(x) if !x.is_invalid() => Some(x.into()),
-                _ => None,
             };
-            Popup {
+        };
+        if style.contains(WS_POPUP) {
+            return Popup {
                 style: (style, style_ex).into(),
-                menu: menu == -1,
-                onwer: w,
+                menu: m,
+                owner: w,
                 is_layered: style_ex.contains(WS_EX_LAYERED),
-                syle_ex: style_ex.into(),
-            }
+            };
         } else {
-            let w = match w {
-                Some(x) if !x.is_invalid() => Some(x.into()),
-                _ => None,
-            };
-            Overlapped {
+            return Overlapped {
                 style: (style, style_ex).into(),
-                menu: menu == -1,
-                onwer: w,
+                menu: m,
+                owner: w,
                 is_layered: style_ex.contains(WS_EX_LAYERED),
-                syle_ex: style_ex.into(),
-            }
-        }
+            };
+        };
     }
 }

@@ -2,15 +2,16 @@ use super::*;
 ///表示 NMHDR 或将 NMHDR 作为其第一个成员的、#[repr(C)]的较大结构
 pub unsafe trait NotifyMessage {
     fn code(&self) -> u32;
-    fn wnd_from(&self) -> Window;
+    ///返回的窗口可能不是Rust拥有的
+    unsafe fn wnd_from(&self) -> Window;
     fn id_from(&self) -> WindowID;
 }
 unsafe impl NotifyMessage for NMHDR {
     fn code(&self) -> u32 {
         self.code
     }
-    fn wnd_from(&self) -> Window {
-        self.hwndFrom.into()
+    unsafe fn wnd_from(&self) -> Window {
+        unsafe {Window::from_handle(self.hwndFrom)}
     }
     fn id_from(&self) -> WindowID {
         self.idFrom as u16
@@ -19,9 +20,8 @@ unsafe impl NotifyMessage for NMHDR {
 ///Windows控件
 pub trait Control {
     type MsgType: UnsafeControlMsg;
-    ///安全性：你需要确保窗口是你自己拥有的，因为某些控件实现Drop，会关闭窗口       
-    ///如果窗口不是你拥有的，需要在值走出作用域前调用[`Control::to_window`]来还原为Window
-    unsafe fn from_window(wnd: &Window) -> Result<Self>
+    const CLASS_NAME: &'static str;
+    fn from_window(wnd: &Window) -> Result<Self>
     where
         Self: Sized,
     {
@@ -33,7 +33,7 @@ pub trait Control {
             }
         }
     }
-    ///不应检查是否为自身类型的窗口
+    ///不检查是否为自身类型的窗口
     unsafe fn force_from_window(wnd: Window) -> Self
     where
         Self: Sized;
@@ -47,7 +47,9 @@ pub trait Control {
             a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
         }
     }
-    fn get_class() -> WindowClass;
+    fn get_class() -> WindowClass {
+        unsafe {WindowClass::from_str(Self::CLASS_NAME)}
+    }
 }
 impl<T: Control> From<T> for Window {
     fn from(ctl: T) -> Window {
@@ -72,7 +74,9 @@ pub unsafe trait UnsafeControlMsg: /*UnsafeMessage + */ControlMsgType {
     where
         Self: Sized;
     unsafe fn is_self(ptr: usize) -> Result<bool> {
-        unsafe { Self::ControlType::is_self(&((*(ptr as *mut NMHDR)).hwndFrom.into())) }
+        unsafe { Self::ControlType::is_self(&(
+            Window::from_handle((*(ptr as *mut NMHDR)).hwndFrom)
+            )) }
     }
 }
 pub trait ControlMsg: /*UnsafeControlMsg + */ ControlMsgType{
@@ -91,8 +95,8 @@ unsafe impl<T> NotifyMessage for DefaultNMHDR<T> {
     fn code(&self) -> u32 {
         self.nmhdr.code
     }
-    fn wnd_from(&self) -> Window {
-        self.nmhdr.hwndFrom.into()
+    unsafe fn wnd_from(&self) -> Window {
+       unsafe{Window::from_handle( self.nmhdr.hwndFrom)}
     }
     fn id_from(&self) -> WindowID {
         self.nmhdr.idFrom as u16
@@ -137,14 +141,14 @@ where
                 T::from_raw_control_msg(
                     ((*(msg_ptr)).code) as u32,
                     None,
-                    (*(msg_ptr)).hwndFrom.into(),
+                    Window::from_handle((*(msg_ptr)).hwndFrom),
                 )
             } else {
                 let msg_ptr = ptr as *mut DefaultNMHDR<T::ControlMsgDataType>;
                 T::from_raw_control_msg(
                     (*(msg_ptr)).nmhdr.code,
                     (&mut (*(msg_ptr)).data).into(),
-                    (*(msg_ptr)).nmhdr.hwndFrom.into(),
+                    Window::from_handle((*(msg_ptr)).nmhdr.hwndFrom),
                 )
             }
         }

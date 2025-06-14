@@ -1,11 +1,61 @@
 use super::*; //部分触发代码使用AI编写
 use std::any::Any;
 pub type MenuItemID = u16;
+use std::ops::Deref;
+use std::ops::DerefMut;
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Menu {
     handle: HMENU,
 }
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct MenuBar {
+    handle: Menu,
+}
+impl Deref for MenuBar {
+    type Target = Menu;
+
+    fn deref(&self) -> &Self::Target {
+        &self.handle
+    }
+}
+impl DerefMut for MenuBar {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.handle
+    }
+}
+impl MenuBar {
+    #[inline]
+    pub const unsafe fn from_menu(menu: Menu) -> Self {
+        MenuBar { handle: menu }
+    }
+    #[inline]
+    pub const unsafe fn from_handle(menu: HMENU) -> Self {
+        unsafe {
+            MenuBar {
+                handle: Menu::from_handle(menu),
+            }
+        }
+    }
+    #[inline]
+    pub fn new() -> Result<Self> {
+        Ok(unsafe { Self::from_menu(Menu::from_handle(CreateMenu()?)) })
+    }
+    #[inline]
+    pub const unsafe fn null() -> Self {
+        unsafe {
+            Self {
+                handle: Menu::null(),
+            }
+        }
+    }
+    #[inline]
+    pub unsafe fn handle(self) -> HMENU {
+        unsafe { self.handle.handle() }
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub enum MenuItemBitmapIcon {
     ///位图
@@ -34,7 +84,7 @@ pub enum MenuItemBitmapIcon {
     RestoreB, //HBMMENU_MBAR_RESTORE
 }
 impl From<(HBITMAP, usize)> for MenuItemBitmapIcon {
-    fn from(style: (HBITMAP, usize)) -> Self {
+    fn from(_: (HBITMAP, usize)) -> Self {
         todo!()
     }
 }
@@ -106,7 +156,7 @@ impl Into<MENU_ITEM_STATE> for MenuItemState {
     }
 }
 impl From<MENU_ITEM_STATE> for MenuItemState {
-    fn from(style: MENU_ITEM_STATE) -> Self {
+    fn from(_: MENU_ITEM_STATE) -> Self {
         todo!()
     }
 }
@@ -116,7 +166,7 @@ pub struct MenuCheckIcon {
     pub unchecked: Option<Bitmap>,
 }
 impl From<(MENU_ITEM_TYPE, (HBITMAP, HBITMAP))> for MenuCheckIcon {
-    fn from(style: (MENU_ITEM_TYPE, (HBITMAP, HBITMAP))) -> Self {
+    fn from(_: (MENU_ITEM_TYPE, (HBITMAP, HBITMAP))) -> Self {
         todo!()
     }
 }
@@ -153,7 +203,7 @@ impl
     )> for MenuItemShow
 {
     fn from(
-        style: (
+        _: (
             MENU_ITEM_TYPE,
             PWSTR,
             (HBITMAP, usize),
@@ -223,7 +273,7 @@ pub enum MenuItemBreakType {
     NewBreak,     //MFT_MENUBREAK
 }
 impl From<MENU_ITEM_TYPE> for MenuItemBreakType {
-    fn from(style: MENU_ITEM_TYPE) -> Self {
+    fn from(_: MENU_ITEM_TYPE) -> Self {
         todo!()
     }
 }
@@ -251,7 +301,7 @@ pub struct MenuItemStyle {
     pub state: MenuItemState,        //MIIM_STATE
 }
 impl From<(MENU_ITEM_TYPE, MENU_ITEM_STATE)> for MenuItemStyle {
-    fn from(style: (MENU_ITEM_TYPE, MENU_ITEM_STATE)) -> Self {
+    fn from(_: (MENU_ITEM_TYPE, MENU_ITEM_STATE)) -> Self {
         todo!()
     }
 }
@@ -286,7 +336,7 @@ pub enum MenuItem<'a> {
     Separator, //MFT_SEPARATOR
 }
 impl From<MENUITEMINFOW> for MenuItem<'_> {
-    fn from(style: MENUITEMINFOW) -> Self {
+    fn from(_: MENUITEMINFOW) -> Self {
         todo!()
     }
 }
@@ -457,27 +507,42 @@ impl Into<MENUINFO> for MenuStyle {
 }
 impl Menu {
     ///使用此函数Menu会自动释放，需要注意HMENU是否为Windows管理释放
-    pub unsafe fn from_handle(handle: HMENU) -> Self {
+    #[inline]
+    pub const unsafe fn from_handle(handle: HMENU) -> Self {
         Menu { handle }
     }
+    #[inline]
+    pub const unsafe fn null() -> Self {
+        Menu {
+            handle: HMENU(0 as *mut c_void),
+        }
+    }
+    #[inline]
     pub fn new() -> Result<Self> {
         Ok(Menu {
             handle: unsafe { CreatePopupMenu()? },
         })
     }
+    pub fn nullify(&mut self) {
+        self.handle = HMENU(NULL_PTR());
+    }
+    #[inline]
     pub fn from_mut_ref<'a>(handle: &'a mut HMENU) -> &'a mut Menu {
         unsafe { std::mem::transmute(handle) }
     }
+    #[inline]
     pub unsafe fn handle(mut self) -> HMENU {
         let handle = self.handle;
         self.handle = HMENU(NULL_PTR());
         handle
     }
-    pub unsafe fn get_handle(&self) -> HMENU {
+    #[inline]
+    pub const unsafe fn get_handle(&self) -> HMENU {
         self.handle
     }
+    #[inline]
     pub fn is_invalid(&self) -> bool {
-        self.handle.0 == NULL_PTR()
+        self.handle.0 as usize == 0
     }
     pub fn item_count(&self) -> Result<MenuItemID> {
         match unsafe { GetMenuItemCount(Some(self.handle)) } {

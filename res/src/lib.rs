@@ -1,4 +1,4 @@
-use capdows::win32::allmods::*;
+use capdows::win32::*;
 use std::env;
 // use either::Either;
 // use either::Either::*;

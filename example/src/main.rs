@@ -1,5 +1,5 @@
 use capdows::msg_box;
-use capdows::win32::allmods::*;
+use capdows::win32::*;
 use capdows::win32::control::Control;
 use capdows_controls::{button::*, check_box::*, edit::*, group_box::*, radio::*, view::*};
 use capdows_example::*;

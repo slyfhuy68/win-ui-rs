@@ -57,13 +57,13 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
         impl Control for #control_name {
             type MsgType = #msg_name_ident;
-
+            const CLASS_NAME: &'static str = #class_name;
             unsafe fn force_from_window(wnd: Window) -> Self {
                 Self(wnd)
             }
 
             fn to_window(mut self) -> Window {
-                self.0.move_out()
+                unsafe {self.0.move_out()}
             }
 
             fn get_window(&self) -> &Window {
@@ -78,10 +78,6 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                 #[allow(unused_unsafe)]
                 unsafe #is_self_block
             }
-
-            fn get_class() -> WindowClass {unsafe{
-                WindowClass::from_str(#class_name)
-            }}
         }
 
         pub struct #msg_name_ident {
@@ -130,7 +126,7 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                 #[allow(unused_unsafe)]
                 let result = unsafe #from_msg_block;
                 Ok(Self {
-                    control: #control_name(w.into()),
+                    control: #control_name(Window::from_handle(w)),
                     msg_type: result,
                 })
             }

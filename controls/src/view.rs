@@ -48,8 +48,8 @@ pub enum ViewType {
     EnhMetaFile(EnhMetaFile), // SS_ENHMETAFILE
 }
 pub struct ImageTextViewStyle {
+    pub style: ChildWindowStyles, 
     pub stype: ViewType,
-
     pub black_frame: bool,  // SS_BLACKFRAME
     pub black_rect: bool,   // SS_BLACKRECT
     pub etched_frame: bool, // SS_ETCHEDFRAME
@@ -65,6 +65,7 @@ pub struct ImageTextViewStyle {
 impl ImageTextViewStyle {
     pub fn new_icon(icon: Icon) -> Self {
         ImageTextViewStyle {
+            style: Default::default(), 
             stype: ViewType::Icon {
                 icon,
                 reasize_control: false,
@@ -85,6 +86,7 @@ impl ImageTextViewStyle {
     }
     pub fn new_text(text: &str) -> Self {
         ImageTextViewStyle {
+            style: Default::default(), 
             stype: ViewType::Text {
                 text: text.to_string(),
                 align: Alignment::Center,
@@ -136,8 +138,8 @@ impl Into<ViewContent> for ViewType {
     }
 }
 
-impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
-    fn into(self) -> (WINDOW_STYLE, ViewContent) {
+impl Into<(WINDOW_STYLE, ViewContent, ChildWindowStyles)> for ImageTextViewStyle {
+    fn into(self) -> (WINDOW_STYLE, ViewContent, ChildWindowStyles) {
         let mut window_style = WINDOW_STYLE(0);
         let content_data = match self.stype {
             ViewType::Text {
@@ -239,7 +241,7 @@ impl Into<(WINDOW_STYLE, ViewContent)> for ImageTextViewStyle {
             + (self.sunken as u32) * SS_SUNKEN.0;
         // + (self.extra_notify as u32) * SS_NOTIFY.0;
 
-        (window_style, content_data)
+        (window_style, content_data, self.style)
     }
 }
 #[repr(C)]
@@ -280,45 +282,50 @@ define_control! {
         todo!()
     }
 }
-impl ImageTextView {
-    pub fn new(
+impl DataControl for ImageTextView {
+    type Data = ViewContent;
+    type Style= ImageTextViewStyle;
+    fn new(
         wnd: &mut Window,
+        name: &str,
         pos: Option<Rectangle>,
         identifier: WindowID,
-        control_style: ImageTextViewStyle,
-        style: ChildWindowStyles,
-        style_ex: NormalWindowExStyles,
-        font: Option<ControlFont>,
-        no_notify: bool,
+        control_style: Self::Style,
+        font: Option<ControlFont>
     ) -> Result<Self> {
-        let (mut x, y) = control_style.into();
-        if !no_notify {
-            x |= WINDOW_STYLE(SS_NOTIFY.0 as u32);
-        }
-        let hwnd = match y {
-            ViewContent::Text(z) => ImageTextView(new_control(
-                wnd, "STATIC", &z, pos, identifier, style, style_ex, x, font, no_notify,
-            )?),
-            v => {
+        let (cs, data, cws) = control_style.into();
+        let hwnd = match data {
+            ViewContent::Text(text) => ImageTextView(new_control(
+                    wnd,
+                    "STATIC",
+                    &text,
+                    pos,
+                    identifier,
+                    (cs, cws),
+                    font,
+                )?),
+            other => {
                 let mut ra = ImageTextView(new_control(
                     wnd,
                     "STATIC",
-                    &("id:".to_owned() + &identifier.to_string()),
+                    name,
                     pos,
                     identifier,
-                    style,
-                    style_ex,
-                    x,
+                    (cs, cws),
                     font,
-                    no_notify,
                 )?);
-                ra.change_content(v)?;
+                ra.change_content(other)?;
                 ra
             }
         };
 
         Ok(hwnd)
     }
+    fn set_data(_: Window, _: Self::Data) -> Result<Self> {
+        unreachable!()
+    }
+}
+impl ImageTextView {
     //get_content\change_content ai+修改
     pub fn get_content(&self) -> Result<ViewContent> {
         unsafe {

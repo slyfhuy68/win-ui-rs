@@ -5,7 +5,7 @@
 //     \____|  \____|  \__| |_| |_|  \___/  |_|    (_) |___/ |_|  \____| |_|   |_| |_|  \____|  \____|  \___/   \___/   \ \____|  \____| |_|  \__| |_| |_|  \____| |____/
 //                                                                |___/                         |___/                    \____/   |___/
 // #![allow(dead_code)]
-#![allow(unused_variables)]
+// #![allow(unused_variables)]
 // #![allow(unused_mut)]
 // #![allow(unused_imports)]
 // #![allow(non_upper_case_globals)]

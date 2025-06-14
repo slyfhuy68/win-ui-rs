@@ -78,15 +78,15 @@ define_control! {
         todo!()
     }
 }
-pub struct RadioButtonDrawType(pub ButtonAutoDrawType, pub RadioButtonStyle);
+pub struct RadioButtonDrawType(pub ButtonAutoDrawType, pub RadioButtonStyle, pub ChildWindowStyles);
 impl Default for RadioButtonDrawType {
     fn default() -> Self {
-        Self(ButtonAutoDrawType::TextOnly(false), Default::default())
+        Self(ButtonAutoDrawType::TextOnly(false), Default::default(), Default::default(), )
     }
 }
-impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for RadioButtonDrawType {
-    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
-        let RadioButtonDrawType(dtype, bstyle) = self;
+impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for RadioButtonDrawType {
+    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles) {
+        let RadioButtonDrawType(dtype, bstyle, bbb) = self;
         let mut wstyle = WINDOW_STYLE(0);
         let ditype = match dtype {
             ButtonAutoDrawType::IconOnly(boi) => Some(boi),
@@ -104,7 +104,7 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for RadioButtonDrawType 
             }
         };
         wstyle |= bstyle.into();
-        (wstyle, ditype)
+        (wstyle, ditype, bbb)
     }
 }
 // impl From(WINDOW_STYLE, Option<BitmapOrIcon>) for RadioButtonDrawType {
@@ -112,33 +112,8 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for RadioButtonDrawType 
 //
 // 	}
 // }
+impl ButtonControl for RadioButton{type Style = RadioButtonDrawType;}
 impl RadioButton {
-    pub fn new(
-        wnd: &mut Window,
-        name: &str,
-        pos: Option<Rectangle>,
-        identifier: WindowID,
-        control_style: RadioButtonDrawType,
-        style: ChildWindowStyles,
-        style_ex: NormalWindowExStyles,
-        font: Option<ControlFont>,
-        no_notify: bool,
-    ) -> Result<Self> {
-        let (control_style_ms, draw) = control_style.into();
-        let hwnd = new_button(
-            wnd,
-            name,
-            pos,
-            identifier,
-            style,
-            style_ex,
-            control_style_ms,
-            font,
-            no_notify,
-            draw,
-        )?;
-        Ok(RadioButton(hwnd))
-    }
     pub fn is_checked(&self) -> Result<bool> {
         let result = unsafe {
             SendMessageW(

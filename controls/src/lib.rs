@@ -5,7 +5,7 @@ capdows::import_foundation!();
 use std::ffi::c_void;
 use windows::Win32::Graphics::Gdi::*;
 // use windows::Win32::Graphics::Gdi::GetStockObject;
-use class::*;
+// use class::*;
 use window::*;
 use windows::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
 use windows::core::PCWSTR;
@@ -17,9 +17,9 @@ use style::*;
 // use windows::core::Result as wResult;
 pub mod button;
 pub mod check_box;
+pub mod combo_box;
 pub mod edit;
 pub mod group_box;
-pub mod combo_box;
 pub mod radio;
 pub mod view;
 use either::*;
@@ -29,28 +29,19 @@ fn style_of(wnd: &Window) -> WINDOW_STYLE {
 fn style_of_raw(wnd: &Window) -> i32 {
     unsafe { GetWindowLongW(wnd.handle(), GWL_STYLE) as i32 }
 }
-fn new_control(
+fn new_control<S: Into<(WINDOW_STYLE, ChildWindowStyles)>>(
     wnd: &mut Window,
     control_name: &'static str,
     name: &str,
     pos: Option<Rectangle>,
     id: u16,
-    style: ChildWindowStyles,
-    style_ex: NormalWindowExStyles,
-    control_style_ms: WINDOW_STYLE,
+    styles: S,
     font: Option<ControlFont>,
-    no_notify: bool,
 ) -> Result<Window> {
     unsafe {
-        let mut xx: WINDOW_EX_STYLE = style_ex.into();
-        let (mut yy, zz) = style.into();
-        if no_notify {
-            xx |= WS_EX_NOPARENTNOTIFY;
-        };
-        yy |= WS_CHILD | control_style_ms;
-        xx |= zz;
-        let ex_style = xx;
-        let w_style = yy;
+        let (control_style, stylea) = styles.into();
+        let (mut style, style_ex) = stylea.into();
+        style |= WS_CHILD | control_style;
         let id = Some(HMENU(id as *mut c_void));
         let parent = Some(wnd.handle());
         let (ptr, _ptr_raw) = str_to_pcwstr(name);
@@ -64,10 +55,10 @@ fn new_control(
         };
         let hinstance = HINSTANCE(GetWindowLongW(wnd.handle(), GWL_HINSTANCE) as *mut c_void);
         let hwnd = CreateWindowExW(
-            ex_style,
+            style_ex,
             cptr,
             ptr,
-            w_style,
+            style,
             x,
             y,
             width,
@@ -85,32 +76,26 @@ fn new_control(
                 LPARAM(1),
             )?;
         };
-        Ok(hwnd.into())
+        Ok(Window::from_handle(hwnd))
     }
 }
-fn new_button(
+fn new_button<S: Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)>>(
     wnd: &mut Window,
     name: &str,
     pos: Option<Rectangle>,
     id: u16,
-    style: ChildWindowStyles,
-    style_ex: NormalWindowExStyles,
-    control_style_ms: WINDOW_STYLE,
+    style: S,
     font: Option<ControlFont>,
-    no_notify: bool,
-    draw: Option<Either<Bitmap, Icon>>,
 ) -> Result<Window> {
+    let (cs, draw, cws) = style.into();
     let wnd = new_control(
         wnd,
         "BUTTON",
         name,
         pos,
         id,
-        style,
-        style_ex,
-        control_style_ms,
+        (cs, cws),
         font,
-        no_notify,
     )?;
     match draw {
         Some(x) => unsafe {
@@ -146,3 +131,72 @@ fn is_button_window(wnd: &Window) -> Result<bool> {
     is_some_window(wnd, "Button")
 }
 use capdows_macros::define_control;
+//这三个trait设计的不好，[todo]修改三个trait
+pub trait CommonControl : Control  + Sized{
+    type Style: Into<(WINDOW_STYLE, ChildWindowStyles)> + Send + Sync;
+    fn new(
+        wnd: &mut Window,
+        name: &str,
+        pos: Option<Rectangle>,
+        identifier: WindowID,
+        control_style: Self::Style,
+        font: Option<ControlFont>
+    ) -> Result<Self> {
+        let hwnd = new_control(
+            wnd,
+            Self::CLASS_NAME,
+            name,
+            pos,
+            identifier,
+            control_style,
+            font,
+        )?;
+        unsafe {Ok(Self::force_from_window(hwnd.into()))}
+    }
+}
+pub trait ButtonControl : Control + Sized {
+    type Style: Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> + Send + Sync;
+    fn new(
+        wnd: &mut Window,
+        name: &str,
+        pos: Option<Rectangle>,
+        identifier: WindowID,
+        control_style: Self::Style,
+        font: Option<ControlFont>
+    ) -> Result<Self> {
+        let hwnd = new_button(
+            wnd,
+            name,
+            pos,
+            identifier,
+            control_style,
+            font,
+        )?;
+        unsafe {Ok(Self::force_from_window(hwnd.into()))}
+    }
+}
+pub trait DataControl : Control + Sized {
+    type Data;
+    type Style: Into<(WINDOW_STYLE, Self::Data, ChildWindowStyles)> + Send + Sync;
+    fn new(
+        wnd: &mut Window,
+        name: &str,
+        pos: Option<Rectangle>,
+        identifier: WindowID,
+        control_style: Self::Style,
+        font: Option<ControlFont>
+    ) -> Result<Self> {
+        let (cs, data, cws) = control_style.into();
+        let hwnd = new_control(
+            wnd,
+            Self::CLASS_NAME,
+            name,
+            pos,
+            identifier,
+            (cs, cws),
+            font,
+        )?;
+        Self::set_data(hwnd, data)
+    }
+    fn set_data(wnd: Window, data: Self::Data) -> Result<Self> ;
+}

@@ -10,6 +10,8 @@ either = "1.14.0"
 tokio = { version = "1.44.2", features = ["rt"] }
 windows-link = "0.1.1"
 
+[dependencies.capdows_macros]
+path = "../macros"
 
 [dependencies.windows]
 version = "0.61.1"

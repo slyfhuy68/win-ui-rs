@@ -14,14 +14,14 @@ pub unsafe extern "system" fn window_proc(
     param2: LPARAM,
 ) -> LRESULT {
     unsafe {
-        let mut window = window_handle.into();
+        let mut window = Window::from_handle(window_handle);
         let user_callback_ptr = match get_proc(&window) {
             Ok(x) => x,
             Err(_) => {
                 if msg == WM_NCCREATE {
                     let s = *(param2.0 as *mut CREATESTRUCTW);
                     //s.lpCreateParams: *mut Box<CallBackObj>
-                    let mm = set_proc(&mut window, s.lpCreateParams as *mut Box<CallBackObj>);
+                    let _ = set_proc(window_handle, s.lpCreateParams as *mut Box<CallBackObj>);
                     s.lpCreateParams as *mut Box<CallBackObj>
                 } else {
                     return DefWindowProcW(window_handle, msg, param1, param2);
@@ -42,15 +42,18 @@ pub unsafe extern "system" fn window_proc(
             windows_porc_default_handler,
         ));
         if msg == WM_DESTROY {
-            let _ = set_proc(&mut window_handle.into(), 0 as *mut Box<CallBackObj>);
+            let _ = set_proc(window_handle, 0 as *mut Box<CallBackObj>);
             let _ = Box::from_raw(user_callback_ptr);
         };
         rusult
     }
 }
 #[inline]
-fn set_proc(wnd: &mut Window, ptr: *mut Box<CallBackObj>) -> Result<()> {
-    wnd.set_prop(PROC_KEY_NAME, ptr as usize)
+fn set_proc(wnd: HWND, ptr: *mut Box<CallBackObj>) -> Result<()> {
+    match unsafe { RemovePropW(wnd, w!("MalibUserCallback"))?.0 } as usize {
+        0 => Err(ERROR_NOT_PRESENT),
+        _ => Ok(()),
+    }
 }
 #[inline]
 pub fn get_proc(wnd: &Window) -> Result<*mut Box<CallBackObj>> {
@@ -60,7 +63,7 @@ pub fn get_proc(wnd: &Window) -> Result<*mut Box<CallBackObj>> {
     }
 }
 #[inline]
-fn windows_porc_default_handler(p1: Window, p2: u32, p3: usize, p4: isize) -> isize {
+fn windows_porc_default_handler(p1: &mut Window, p2: u32, p3: usize, p4: isize) -> isize {
     unsafe { DefWindowProcW(p1.handle(), p2, WPARAM(p3), LPARAM(p4)).0 }
 }
 unsafe fn msg_handler(
@@ -70,9 +73,9 @@ unsafe fn msg_handler(
     wparam: WPARAM,
     lparam: LPARAM,
     callback_id: usize,
-    default_handler: unsafe fn(Window, u32, usize, isize) -> isize,
+    default_handler: unsafe fn(&mut Window, u32, usize, isize) -> isize,
 ) -> isize {
-    unsafe {
+    let result = unsafe {
         let WPARAM(param1) = wparam;
         let LPARAM(param2) = lparam;
         use MessageReceiverError::*;
@@ -80,7 +83,13 @@ unsafe fn msg_handler(
             WM_CREATE => {
                 let s = *(param2 as *mut CREATESTRUCTW);
                 let wc = w.get_class();
-                match c.create(
+                let mut wtype = WindowType::from_data(
+                        WINDOW_STYLE(s.style as u32),
+                        s.dwExStyle,
+                        s.hMenu,
+                        s.hwndParent,
+                    );
+                let result = match c.create(
                     callback_id,
                     &mut w,
                     &s.lpszName.to_string().unwrap_or(String::from("")),
@@ -93,36 +102,24 @@ unsafe fn msg_handler(
                     },
                     HMODULE(s.hInstance.0).into(),
                     Rectangle::PointSize(Point(s.x, s.y), Size(s.cx, s.cy)),
-                    (
-                        WINDOW_STYLE(s.style as u32),
-                        s.dwExStyle,
-                        if IsMenu(s.hMenu).into() {
-                            -1
-                        } else {
-                            s.hMenu.0 as u16 as i32
-                        },
-                        if s.hwndParent.is_invalid() {
-                            None
-                        } else {
-                            Some(s.hwndParent)
-                        },
-                    )
-                        .into(),
+                    &mut wtype,
                 ) {
                     Ok(x) => match x {
                         true => 0isize,
                         false => -1isize,
                     },
-                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                     Err(x) => {
                         callback_error(c, x);
                         -1isize
                     }
-                }
+                };
+                wtype.nullify_menu();
+                result
             }
             WM_DESTROY => match c.destroy(callback_id, &mut w) {
                 Ok(_) => 0isize,
-                Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                 Err(x) => callback_error(c, x),
             },
             WM_COMMAND => {
@@ -150,12 +147,12 @@ unsafe fn msg_handler(
                                 MenuCommandMsgItemPos::CostomId(low as MenuItemID),
                             ) {
                                 Ok(_) => 0,
-                                Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                                Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                                 Err(x) => callback_error(c, x),
                             }
                         }
                         // 1 => ,//加速器
-                        _ => default_handler(w, msg, param1, param2),
+                        _ => default_handler(&mut w, msg, param1, param2),
                     }
                 }
             }
@@ -170,7 +167,7 @@ unsafe fn msg_handler(
                     MenuCommandMsgItemPos::Position(Menu::from_mut_ref(&mut hmenu), param1 as u16),
                 ) {
                     Ok(_) => 0,
-                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                     Err(x) => callback_error(c, x),
                 }
             }
@@ -183,7 +180,7 @@ unsafe fn msg_handler(
                     (*nmhdr_ptr).idFrom as WindowID,
                 ) {
                     Ok(x) => x,
-                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                     Err(x) => callback_error(c, x),
                 }
             }
@@ -204,13 +201,13 @@ unsafe fn msg_handler(
                     nmhdr.nmhdr.idFrom as WindowID,
                 ) {
                     Ok(x) => x,
-                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                     Err(x) => callback_error(c, x),
                 }
             }
             WM_NULL => match c.notifications(callback_id, &mut w, WindowNotify::Null) {
                 Ok(_) => 0,
-                Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                 Err(x) => callback_error(c, x),
             },
             WM_LBUTTONDOWN => {
@@ -228,7 +225,7 @@ unsafe fn msg_handler(
                     },
                 ) {
                     Ok(_) => 0,
-                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                     Err(x) => callback_error(c, x),
                 }
             }
@@ -247,13 +244,15 @@ unsafe fn msg_handler(
                     },
                 ) {
                     Ok(_) => 0,
-                    Err(NoProcessed) => default_handler(w, msg, param1, param2),
+                    Err(NoProcessed) => default_handler(&mut w, msg, param1, param2),
                     Err(x) => callback_error(c, x),
                 }
             }
-            _ => default_handler(w, msg, param1, param2),
+            _ => default_handler(&mut w, msg, param1, param2),
         }
-    }
+    };
+    w.nullify();
+    result
 }
 #[inline]
 fn callback_error(cb: &mut Box<CallBackObj>, err: MessageReceiverError) -> isize {
@@ -272,7 +271,7 @@ pub unsafe extern "system" fn subclass_porc(
 ) -> LRESULT {
     unsafe {
         let c = &mut *(dwrefdata as *mut Box<CallBackObj>);
-        let w = hwnd.into();
+        let w = Window::from_handle(hwnd);
         let rusult = LRESULT(msg_handler(
             c,
             w,
@@ -291,6 +290,6 @@ pub unsafe extern "system" fn subclass_porc(
     }
 }
 #[inline]
-fn subclass_porc_default_handler(p1: Window, p2: u32, p3: usize, p4: isize) -> isize {
+fn subclass_porc_default_handler(p1: &mut Window, p2: u32, p3: usize, p4: isize) -> isize {
     unsafe { DefSubclassProc(p1.handle(), p2, WPARAM(p3), LPARAM(p4)).0 }
 }

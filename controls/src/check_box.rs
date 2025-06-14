@@ -93,15 +93,15 @@ define_control! {
         todo!()
     }
 }
-pub struct CheckBoxDrawType(pub ButtonAutoDrawType, pub CheckBoxStyle);
+pub struct CheckBoxDrawType(pub ButtonAutoDrawType, pub CheckBoxStyle, pub ChildWindowStyles);
 impl Default for CheckBoxDrawType {
     fn default() -> Self {
-        Self(ButtonAutoDrawType::TextOnly(false), Default::default())
+        Self(ButtonAutoDrawType::TextOnly(false), Default::default(), Default::default())
     }
 }
-impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for CheckBoxDrawType {
-    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>) {
-        let CheckBoxDrawType(dtype, bstyle) = self;
+impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for CheckBoxDrawType {
+    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles) {
+        let CheckBoxDrawType(dtype, bstyle, aaa) = self;
         let mut wstyle = WINDOW_STYLE(0);
         let ditype = match dtype {
             ButtonAutoDrawType::IconOnly(boi) => Some(boi),
@@ -119,7 +119,7 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>)> for CheckBoxDrawType {
             }
         };
         wstyle |= bstyle.into();
-        (wstyle, ditype)
+        (wstyle, ditype, aaa)
     }
 }
 // impl From(WINDOW_STYLE, Option<BitmapOrIcon>) for CheckBoxDrawType {
@@ -143,33 +143,9 @@ impl std::fmt::Display for CheckBoxState {
     }
 }
 pub use CheckBoxState::*;
+impl ButtonControl for CheckBox{type Style = CheckBoxDrawType;}
 impl CheckBox {
-    pub fn new(
-        wnd: &mut Window,
-        name: &str,
-        pos: Option<Rectangle>,
-        identifier: WindowID,
-        control_style: CheckBoxDrawType,
-        style: ChildWindowStyles,
-        style_ex: NormalWindowExStyles,
-        font: Option<ControlFont>,
-        no_notify: bool,
-    ) -> Result<Self> {
-        let (control_style_ms, draw) = control_style.into();
-        let hwnd = new_button(
-            wnd,
-            name,
-            pos,
-            identifier,
-            style,
-            style_ex,
-            control_style_ms,
-            font,
-            no_notify,
-            draw,
-        )?;
-        Ok(CheckBox(hwnd))
-    }
+
     pub fn is_checked(&self) -> Result<CheckBoxState> {
         let result = unsafe {
             SendMessageW(

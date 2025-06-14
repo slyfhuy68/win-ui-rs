@@ -1,5 +1,5 @@
 use super::*;
-#[derive(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy, Debug)]
 pub struct Brush(HANDLE);
 
 impl Brush {

@@ -15,6 +15,12 @@ impl HelpId {
     pub fn get(self) -> i32 {
         self.0.get()
     }
+    pub fn try_from(id: i32) -> Option<Self> {
+        match id {
+            0 => None,
+            x => Some(unsafe { Self(NonZeroI32::new_unchecked(x)) }),
+        }
+    }
 }
 pub(crate) fn option_into(id: Option<HelpId>) -> i32 {
     match id {

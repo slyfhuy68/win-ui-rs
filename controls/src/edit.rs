@@ -13,6 +13,7 @@ pub enum CaseType {
 }
 pub struct EditStyle {
     //AI
+    pub style: ChildWindowStyles, 
     pub auto_hscroll: bool, // ES_AUTOHSCROLL
     pub auto_vscroll: bool, // ES_AUTOVSCROLL
     pub center: bool,       // ES_CENTER
@@ -25,9 +26,9 @@ pub struct EditStyle {
     pub etype: EditType,
 }
 
-impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
+impl Into<(WINDOW_STYLE, Option<char>, ChildWindowStyles)> for EditStyle {
     //AI
-    fn into(self) -> (WINDOW_STYLE, Option<char>) {
+    fn into(self) -> (WINDOW_STYLE, Option<char>, ChildWindowStyles) {
         let mut edit_style = WINDOW_STYLE(0u32);
         let mut pass: Option<char> = None;
         if self.auto_hscroll {
@@ -79,7 +80,7 @@ impl Into<(WINDOW_STYLE, Option<char>)> for EditStyle {
                 Upper => edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32),
             }
         }
-        (edit_style, pass)
+        (edit_style, pass, self.style)
     }
 }
 pub enum EditMsgType {
@@ -132,6 +133,7 @@ define_control! {
 impl Default for EditStyle {
     fn default() -> Self {
         Self {
+            style: Default::default(), 
             auto_hscroll: true, // ES_AUTOHSCROLL
             auto_vscroll: true, // ES_AUTOVSCROLL
             center: false,      // ES_CENTER
@@ -145,39 +147,19 @@ impl Default for EditStyle {
         }
     }
 }
-
-impl Edit {
-    pub fn new(
-        wnd: &mut Window,
-        name: &str,
-        pos: Option<Rectangle>,
-        identifier: WindowID,
-        control_style: EditStyle,
-        style: ChildWindowStyles,
-        style_ex: NormalWindowExStyles,
-        font: Option<ControlFont>,
-        no_notify: bool,
-    ) -> Result<Self> {
-        let (control_style_ms, password) = control_style.into();
-        let hwnd = new_control(
-            wnd,
-            "EDIT",
-            name,
-            pos,
-            identifier,
-            style,
-            style_ex,
-            control_style_ms,
-            font,
-            no_notify,
-        )?;
-        let mut result = Edit(hwnd);
+impl DataControl for Edit {
+    type Data = Option<char>;
+    type Style = EditStyle;
+    fn set_data(wnd: Window, password: Self::Data) -> Result<Self> {
+        let mut result = Edit(wnd);
         match password {
             None => (), //不要直接传给set_passwrd_char，表达的含义不一样
             Some(s) => result.set_passwrd_char(Some(s))?,
         };
-        Ok(result)
+         Ok(result)
     }
+}
+impl Edit {
     // fn can_undo(&self) -> Result<bool>{
     //     unsafe { SendMessageW(self.0, EM_CANUNDO, Some(WPARAM(0)), Some(LPARAM(0))).0 }
     //             as usize != 0

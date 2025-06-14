@@ -125,6 +125,7 @@ pub enum MenuCommandMsgItemPos<'a> {
     Position(&'a mut Menu, u16),
 }
 ///每个回调的id表示一个窗口的接收器id，如果这是一个子类化接收器，NoProcessed表示调用子类链上一个接收器，id为子类化id，如果不是，那么id为0，NoProcessed表示进行默认处理
+#[allow(unused_variables)]
 pub trait MessageReceiver {
     // fn activating()包含WM_MOUSEACTIVATE
     fn mouse_msg(
@@ -164,6 +165,7 @@ pub trait MessageReceiver {
     ) -> MessageReceiverResult<isize> {
         Err(NoProcessed)
     }
+    ///itype参数：这只是[`capdows::win32::class::WindowClass::crate_window`]参数的一个副本，但是你可以调用所有者/父窗口和菜单上面的方法，因为它们本质是指针
     fn create(
         &mut self,
         id: usize,
@@ -172,7 +174,7 @@ pub trait MessageReceiver {
         class: WindowClass,
         file: ExecutableFile,
         pos: Rectangle,
-        itype: WindowType,
+        itype: &mut WindowType,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
         Err(NoProcessed)
@@ -399,18 +401,18 @@ unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
     }
     unsafe fn is_self_msg(ptr: &RawMessage) -> Result<bool> {
         unsafe {
-            let RawMessage(msg, wparam, lparam) = ptr;
+            let RawMessage(msg, _, lparam) = ptr;
             match *msg {
                 WM_COMMAND => {
                     let param2e = HWND((*lparam) as *mut c_void);
-                    T::ControlType::is_self(&(param2e.into()))
+                    T::ControlType::is_self(&(Window::from_handle(param2e)))
                 }
                 WM_NOTIFY => {
                     if *lparam == 0 {
                         return Err(ERROR_NULL_POINTER);
                     }
                     let ptr = (*((*lparam) as *mut NMHDR)).hwndFrom;
-                    T::ControlType::is_self(&(ptr.into()))
+                    T::ControlType::is_self(&(Window::from_handle(ptr)))
                 }
                 _ => Ok(false),
             }

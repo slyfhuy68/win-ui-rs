@@ -28,34 +28,10 @@ define_control! {
        todo!()
     }
 }
-impl GroupBox {
-    pub fn new(
-        wnd: &mut Window,
-        name: &str,
-        pos: Option<Rectangle>,
-        identifier: WindowID,
-        style: ChildWindowStyles,
-        style_ex: NormalWindowExStyles,
-        font: Option<ControlFont>,
-        parent_draw: bool,
-    ) -> Result<Self> {
-        let control_style_ms = if parent_draw {
-            WINDOW_STYLE(BS_OWNERDRAW as u32)
-        } else {
-            WINDOW_STYLE(0)
-        } | WINDOW_STYLE(BS_GROUPBOX as u32);
-        let hwnd = new_button(
-            wnd,
-            name,
-            pos,
-            identifier,
-            style,
-            style_ex,
-            control_style_ms,
-            font,
-            !parent_draw,
-            None,
-        )?;
-        Ok(GroupBox(hwnd))
+pub struct GroupBoxStyle(ChildWindowStyles);
+impl Into<(WINDOW_STYLE, ChildWindowStyles)> for GroupBoxStyle {
+    fn into(self) -> (WINDOW_STYLE, ChildWindowStyles) {
+        (WINDOW_STYLE(BS_GROUPBOX as u32), self.0)
     }
 }
+impl CommonControl for GroupBox{type Style = GroupBoxStyle;}
