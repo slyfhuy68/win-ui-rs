@@ -48,7 +48,7 @@ pub enum ViewType {
     EnhMetaFile(EnhMetaFile), // SS_ENHMETAFILE
 }
 pub struct ImageTextViewStyle {
-    pub style: ChildWindowStyles, 
+    pub style: ChildWindowStyles,
     pub stype: ViewType,
     pub black_frame: bool,  // SS_BLACKFRAME
     pub black_rect: bool,   // SS_BLACKRECT
@@ -65,7 +65,7 @@ pub struct ImageTextViewStyle {
 impl ImageTextViewStyle {
     pub fn new_icon(icon: Icon) -> Self {
         ImageTextViewStyle {
-            style: Default::default(), 
+            style: Default::default(),
             stype: ViewType::Icon {
                 icon,
                 reasize_control: false,
@@ -86,7 +86,7 @@ impl ImageTextViewStyle {
     }
     pub fn new_text(text: &str) -> Self {
         ImageTextViewStyle {
-            style: Default::default(), 
+            style: Default::default(),
             stype: ViewType::Text {
                 text: text.to_string(),
                 align: Alignment::Center,
@@ -284,26 +284,26 @@ define_control! {
 }
 impl DataControl for ImageTextView {
     type Data = ViewContent;
-    type Style= ImageTextViewStyle;
+    type Style = ImageTextViewStyle;
     fn new(
         wnd: &mut Window,
         name: &str,
         pos: Option<Rectangle>,
         identifier: WindowID,
         control_style: Self::Style,
-        font: Option<ControlFont>
+        font: Option<ControlFont>,
     ) -> Result<Self> {
         let (cs, data, cws) = control_style.into();
         let hwnd = match data {
             ViewContent::Text(text) => ImageTextView(new_control(
-                    wnd,
-                    "STATIC",
-                    &text,
-                    pos,
-                    identifier,
-                    (cs, cws),
-                    font,
-                )?),
+                wnd,
+                "STATIC",
+                &text,
+                pos,
+                identifier,
+                (cs, cws),
+                font,
+            )?),
             other => {
                 let mut ra = ImageTextView(new_control(
                     wnd,

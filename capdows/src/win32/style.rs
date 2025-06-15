@@ -275,7 +275,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowContextBarButton {
 }
 #[derive(Clone, PartialEq, Copy, Debug)]
 pub enum WindowBorderType {
-    NoBorder, //NULL
+    NoBorder,                           //NULL
     DlgFame,                            //WS_DLGFRAME
     ThinLineDlgFame,                    //WS_DLGFRAME | WS_BORDER
     ThinLine,                           //WS_BORDER
@@ -450,7 +450,11 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
         set_style_ex(&mut style_ex, WS_EX_LAYOUTRTL, self.right_layout);
         set_style_ex(&mut style_ex, WS_EX_COMPOSITED, self.com_posited);
         set_style_ex(&mut style_ex, WS_EX_NOACTIVATE, self.no_auto_active);
-        set_style_ex(&mut style_ex, WS_EX_NOREDIRECTIONBITMAP, self.no_redirection_bitmap);
+        set_style_ex(
+            &mut style_ex,
+            WS_EX_NOREDIRECTIONBITMAP,
+            self.no_redirection_bitmap,
+        );
         style |= self.size_state.into();
         style_ex |= self.edge_type.into();
         (style, style_ex)
@@ -521,11 +525,11 @@ pub enum WindowType {
     MessageOnly,
 }
 impl WindowType {
-    pub fn nullify_menu (&mut self) {
+    pub fn nullify_menu(&mut self) {
         let _ = match self {
-            WindowType::Overlapped {menu, ..} => menu.take().map(|mut x| x.nullify()), 
-            WindowType::Popup {menu, ..} => menu.take().map(|mut x| x.nullify()), 
-            _ => Some(())
+            WindowType::Overlapped { menu, .. } => menu.take().map(|mut x| x.nullify()),
+            WindowType::Popup { menu, .. } => menu.take().map(|mut x| x.nullify()),
+            _ => Some(()),
         };
     }
 }
@@ -607,7 +611,12 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND)> for WindowType {
 }
 impl WindowType {
     ///确保wnd是Rust拥有的
-    pub unsafe fn from_data(style: WINDOW_STYLE, style_ex:WINDOW_EX_STYLE, menu:HMENU, wnd:HWND) -> Self {
+    pub unsafe fn from_data(
+        style: WINDOW_STYLE,
+        style_ex: WINDOW_EX_STYLE,
+        menu: HMENU,
+        wnd: HWND,
+    ) -> Self {
         use WindowType::*;
         if wnd == HWND_MESSAGE {
             return MessageOnly;
@@ -615,7 +624,7 @@ impl WindowType {
         let w: Option<Window> = if wnd.is_invalid() {
             None
         } else {
-            unsafe {Some(Window::from_handle(wnd))}
+            unsafe { Some(Window::from_handle(wnd)) }
         };
         let m: Option<MenuBar> = if wnd.is_invalid() {
             None

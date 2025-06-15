@@ -1,19 +1,19 @@
-use capdows::win32::*;
 use capdows::win32::control::Control;
 use capdows::win32::control::ControlMsgType;
 use capdows::win32::mouse::release_mouse;
+use capdows::win32::*;
 use capdows_controls::view::*;
 use msg::ButtonState::*;
 use std::sync::LazyLock;
 pub struct WindowFinder(pub ImageTextView);
-use window::Window;
+use capdows::win32::core::*;
+use capdows::win32::window::WindowID;
+use capdows_controls::DataControl;
 use class::WindowClass;
- use image::*;
- use capdows_controls::DataControl;
- use module::ExecutableFile;
- use capdows::win32::window::WindowID;
- use capdows::win32::core::*;
- use msg::*;
+use image::*;
+use module::ExecutableFile;
+use msg::*;
+use window::Window;
 impl Control for WindowFinder {
     const CLASS_NAME: &'static str = "Static";
     type MsgType = WindowFinderMsg;
@@ -70,13 +70,11 @@ impl WindowFinder {
     pub fn new(window: &mut Window, pos: Option<Rectangle>, id: WindowID) -> Result<WindowFinder> {
         let mut view = ImageTextView::new(
             window,
+            "wndfiner",
             pos,
             id,
             ImageTextViewStyle::new_icon(ICON_FULL.clone()),
-            Default::default(),
-            Default::default(),
-            true,
-            false,
+            Some(font::ControlFont::CaptionFont),
         )?;
         view.get_window_mut().add_msg_receiver(
             10,
@@ -199,9 +197,10 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
                                     //返回大于或等于零表示允许继续查找
                                     return Err(NoProcessed);
                                 };
-                                unsafe {ImageTextView::from_window(&window.copy_handle())?.change_content(
+
+                                ImageTextView::from_window(&window.copy_handle())?.change_content(
                                     ViewContent::Icon((*ICON_EMPTY).copy_handle()),
-                                )?;}
+                                )?;
                                 self.currect_wnd = Some(window.copy_handle());
                                 draw_window_border(&mut self.currect_wnd)?;
                                 window.capture_mouse();
@@ -219,9 +218,9 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
                                         erase_window_border(&mut self.currect_wnd)?;
                                         release_mouse()?;
                                         Cursor::from_system(SystemCursor::NormalSelection)?.apply();
-                                        unsafe {ImageTextView::from_window(window)?.change_content(
+                                        ImageTextView::from_window(window)?.change_content(
                                             ViewContent::Icon((*ICON_FULL).copy_handle()),
-                                        )?;}
+                                        )?;
                                     };
                                     window.send_control_nofiy(WindowFinderMsg(
                                         unsafe {

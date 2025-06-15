@@ -52,12 +52,26 @@ pub enum ManuallyDrawButtonMsgType {
     GetKeyboardFocus,
 }
 pub struct ManuallyDrawButtonStyle(ChildWindowStyles);
-impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for ManuallyDrawButtonStyle {
-    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles) {
+impl
+    Into<(
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    )> for ManuallyDrawButtonStyle
+{
+    fn into(
+        self,
+    ) -> (
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    ) {
         (WINDOW_STYLE(BS_OWNERDRAW as u32), None, self.0)
     }
 }
-impl ButtonControl for ManuallyDrawButton{type Style = ManuallyDrawButtonStyle;}
+impl ButtonControl for ManuallyDrawButton {
+    type Style = ManuallyDrawButtonStyle;
+}
 
 //-----------------------------------按钮-----------------------------------------
 #[derive(Default)]
@@ -151,15 +165,35 @@ define_control! {
         todo!()
     }
 }
-pub struct ButtonDrawType(pub ButtonAutoDrawType, pub ButtonStyle, pub ChildWindowStyles);
+pub struct ButtonDrawType(
+    pub ButtonAutoDrawType,
+    pub ButtonStyle,
+    pub ChildWindowStyles,
+);
 
 impl Default for ButtonDrawType {
     fn default() -> Self {
-        Self(ButtonAutoDrawType::TextOnly(false), Default::default(), Default::default())
+        Self(
+            ButtonAutoDrawType::TextOnly(false),
+            Default::default(),
+            Default::default(),
+        )
     }
 }
-impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for ButtonDrawType {
-    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles) {
+impl
+    Into<(
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    )> for ButtonDrawType
+{
+    fn into(
+        self,
+    ) -> (
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    ) {
         let ButtonDrawType(dtype, bstyle, style) = self;
         let mut wstyle = WINDOW_STYLE(0);
         let ditype = match dtype {
@@ -186,7 +220,9 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for B
 //
 // 	}
 // }
-impl ButtonControl for Button{type Style = ButtonDrawType;}
+impl ButtonControl for Button {
+    type Style = ButtonDrawType;
+}
 //------------------------------------------分隔按钮----------------------------------
 pub struct SplitButtonStyle {
     pub extra_msg: bool, //BS_NOTIFY
@@ -279,14 +315,34 @@ define_control! {
         todo!()
     }
 }
-pub struct SplitButtonDrawType(pub ButtonAutoDrawType, pub SplitButtonStyle, pub ChildWindowStyles);
+pub struct SplitButtonDrawType(
+    pub ButtonAutoDrawType,
+    pub SplitButtonStyle,
+    pub ChildWindowStyles,
+);
 impl Default for SplitButtonDrawType {
     fn default() -> Self {
-        Self(ButtonAutoDrawType::TextOnly(false), Default::default(), Default::default())
+        Self(
+            ButtonAutoDrawType::TextOnly(false),
+            Default::default(),
+            Default::default(),
+        )
     }
 }
-impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for SplitButtonDrawType {
-    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles) {
+impl
+    Into<(
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    )> for SplitButtonDrawType
+{
+    fn into(
+        self,
+    ) -> (
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    ) {
         let SplitButtonDrawType(dtype, bstyle, aaa) = self;
         let mut wstyle = WINDOW_STYLE(0);
         let ditype = match dtype {
@@ -313,7 +369,9 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for S
 //
 // 	}
 // }
-impl ButtonControl for SplitButton{type Style = SplitButtonDrawType;}
+impl ButtonControl for SplitButton {
+    type Style = SplitButtonDrawType;
+}
 //------------------------------------------链接按钮----------------------------------
 pub struct LinkButtonStyle {
     pub extra_msg: bool, //BS_NOTIFY
@@ -384,14 +442,34 @@ define_control! {
         todo!()
     }
 }
-pub struct LinkButtonDrawType(pub ButtonAutoDrawType, pub LinkButtonStyle, pub ChildWindowStyles);
+pub struct LinkButtonDrawType(
+    pub ButtonAutoDrawType,
+    pub LinkButtonStyle,
+    pub ChildWindowStyles,
+);
 impl Default for LinkButtonDrawType {
     fn default() -> Self {
-        Self(ButtonAutoDrawType::TextOnly(false), Default::default(), Default::default())
+        Self(
+            ButtonAutoDrawType::TextOnly(false),
+            Default::default(),
+            Default::default(),
+        )
     }
 }
-impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for LinkButtonDrawType {
-    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles) {
+impl
+    Into<(
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    )> for LinkButtonDrawType
+{
+    fn into(
+        self,
+    ) -> (
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    ) {
         let LinkButtonDrawType(dtype, bstyle, aaa) = self;
         let mut wstyle = WINDOW_STYLE(0);
         let ditype = match dtype {
@@ -418,7 +496,9 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for L
 //
 // 	}
 // }
-impl ButtonControl for LinkButton{type Style = LinkButtonDrawType;}
+impl ButtonControl for LinkButton {
+    type Style = LinkButtonDrawType;
+}
 impl LinkButton {
     pub fn get_note(&self) -> Result<String> {
         let length = unsafe {

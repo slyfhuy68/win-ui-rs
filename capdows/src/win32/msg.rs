@@ -165,7 +165,7 @@ pub trait MessageReceiver {
     ) -> MessageReceiverResult<isize> {
         Err(NoProcessed)
     }
-    ///itype参数：这只是[`capdows::win32::class::WindowClass::crate_window`]参数的一个副本，但是你可以调用所有者/父窗口和菜单上面的方法，因为它们本质是指针
+    ///itype参数：这只是[`crate::win32::class::WindowClass`]的crate_window方法的参数的一个副本，但是你可以调用所有者/父窗口和菜单上面的方法，因为它们本质是指针
     fn create(
         &mut self,
         id: usize,

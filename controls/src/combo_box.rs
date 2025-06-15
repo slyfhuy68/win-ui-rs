@@ -12,7 +12,7 @@ pub enum ComboBoxShow {
     },
 }
 pub struct ComboBoxStyle {
-    pub style: ChildWindowStyles, 
+    pub style: ChildWindowStyles,
     pub auto_hide_scroll: bool, //取反后的CBS_DISABLENOSCROLL
     pub auto_size: bool,        //取反后的CBS_NOINTEGRALHEIGHT
     pub auto_sort: bool,        //CBS_SORT
@@ -27,14 +27,14 @@ pub struct OwnerDrawType {
 impl Default for ComboBoxStyle {
     fn default() -> Self {
         Self {
-            style: Default::default(), 
+            style: Default::default(),
             auto_hide_scroll: true, //取反后的CBS_DISABLENOSCROLL
             auto_size: true,        //取反后的CBS_NOINTEGRALHEIGHT
-            auto_sort: false,        //CBS_SORT
+            auto_sort: false,       //CBS_SORT
             case_type: CaseType::Normal,
             owner_draw: None,
             show_type: ComboBoxShow::EditLike {
-                auto_scroll: true, //CBS_AUTOHSCROLL
+                auto_scroll: true,  //CBS_AUTOHSCROLL
                 always_show: false, //true CBS_SIMPLE false CBS_DROPDOWN
             },
         }
@@ -91,7 +91,7 @@ impl Into<(WINDOW_STYLE, ChildWindowStyles)> for ComboBoxStyle {
 impl ComboBoxStyle {
     pub fn new_view() -> Self {
         Self {
-            style: Default::default(), 
+            style: Default::default(),
             auto_hide_scroll: true, //取反后的CBS_DISABLENOSCROLL
             auto_size: true,        //取反后的CBS_NOINTEGRALHEIGHT
             auto_sort: false,       //CBS_SORT
@@ -102,7 +102,7 @@ impl ComboBoxStyle {
     }
     pub fn new_edit() -> Self {
         Self {
-            style: Default::default(), 
+            style: Default::default(),
             auto_hide_scroll: true, //取反后的CBS_DISABLENOSCROLL
             auto_size: true,        //取反后的CBS_NOINTEGRALHEIGHT
             auto_sort: false,       //CBS_SORT
@@ -115,7 +115,9 @@ impl ComboBoxStyle {
         }
     }
 }
-impl CommonControl for ComboBox{type Style = ComboBoxStyle;}
+impl CommonControl for ComboBox {
+    type Style = ComboBoxStyle;
+}
 define_control! {
     ComboBox,
     "ComboBox",

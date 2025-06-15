@@ -14,13 +14,12 @@ pub unsafe extern "system" fn window_proc(
     param2: LPARAM,
 ) -> LRESULT {
     unsafe {
-        let mut window = Window::from_handle(window_handle);
-        let user_callback_ptr = match get_proc(&window) {
+        let window = Window::from_handle(window_handle);
+        let user_callback_ptr = match get_proc(window_handle) {
             Ok(x) => x,
             Err(_) => {
                 if msg == WM_NCCREATE {
                     let s = *(param2.0 as *mut CREATESTRUCTW);
-                    //s.lpCreateParams: *mut Box<CallBackObj>
                     let _ = set_proc(window_handle, s.lpCreateParams as *mut Box<CallBackObj>);
                     s.lpCreateParams as *mut Box<CallBackObj>
                 } else {
@@ -42,24 +41,34 @@ pub unsafe extern "system" fn window_proc(
             windows_porc_default_handler,
         ));
         if msg == WM_DESTROY {
-            let _ = set_proc(window_handle, 0 as *mut Box<CallBackObj>);
+            let _ = remove_proc(window_handle);
             let _ = Box::from_raw(user_callback_ptr);
         };
         rusult
     }
 }
 #[inline]
-fn set_proc(wnd: HWND, ptr: *mut Box<CallBackObj>) -> Result<()> {
+fn remove_proc(wnd: HWND) -> Result<()> {
     match unsafe { RemovePropW(wnd, w!("MalibUserCallback"))?.0 } as usize {
         0 => Err(ERROR_NOT_PRESENT),
         _ => Ok(()),
     }
 }
 #[inline]
-pub fn get_proc(wnd: &Window) -> Result<*mut Box<CallBackObj>> {
-    match wnd.get_prop(PROC_KEY_NAME) {
-        Ok(x) => Ok(x as *mut Box<CallBackObj>),
-        Err(x) => Err(x),
+pub fn get_proc(wnd: HWND) -> Result<*mut Box<CallBackObj>> {
+    match unsafe { GetPropW(wnd, w!("MalibUserCallback")).0 } as usize {
+        0 => Err(ERROR_NOT_PRESENT),
+        x => Ok(x as *mut Box<CallBackObj>),
+    }
+}
+#[inline]
+fn set_proc(wnd: HWND, value: *mut Box<CallBackObj>) -> Result<()> {
+    unsafe {
+        Ok(SetPropW(
+            wnd,
+            w!("MalibUserCallback"),
+            Some(wHANDLE(value as *mut c_void)),
+        )?)
     }
 }
 #[inline]
@@ -84,11 +93,11 @@ unsafe fn msg_handler(
                 let s = *(param2 as *mut CREATESTRUCTW);
                 let wc = w.get_class();
                 let mut wtype = WindowType::from_data(
-                        WINDOW_STYLE(s.style as u32),
-                        s.dwExStyle,
-                        s.hMenu,
-                        s.hwndParent,
-                    );
+                    WINDOW_STYLE(s.style as u32),
+                    s.dwExStyle,
+                    s.hMenu,
+                    s.hwndParent,
+                );
                 let result = match c.create(
                     callback_id,
                     &mut w,

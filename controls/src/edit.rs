@@ -13,7 +13,7 @@ pub enum CaseType {
 }
 pub struct EditStyle {
     //AI
-    pub style: ChildWindowStyles, 
+    pub style: ChildWindowStyles,
     pub auto_hscroll: bool, // ES_AUTOHSCROLL
     pub auto_vscroll: bool, // ES_AUTOVSCROLL
     pub center: bool,       // ES_CENTER
@@ -133,7 +133,7 @@ define_control! {
 impl Default for EditStyle {
     fn default() -> Self {
         Self {
-            style: Default::default(), 
+            style: Default::default(),
             auto_hscroll: true, // ES_AUTOHSCROLL
             auto_vscroll: true, // ES_AUTOVSCROLL
             center: false,      // ES_CENTER
@@ -156,7 +156,7 @@ impl DataControl for Edit {
             None => (), //不要直接传给set_passwrd_char，表达的含义不一样
             Some(s) => result.set_passwrd_char(Some(s))?,
         };
-         Ok(result)
+        Ok(result)
     }
 }
 impl Edit {

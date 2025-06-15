@@ -34,4 +34,6 @@ impl Into<(WINDOW_STYLE, ChildWindowStyles)> for GroupBoxStyle {
         (WINDOW_STYLE(BS_GROUPBOX as u32), self.0)
     }
 }
-impl CommonControl for GroupBox{type Style = GroupBoxStyle;}
+impl CommonControl for GroupBox {
+    type Style = GroupBoxStyle;
+}

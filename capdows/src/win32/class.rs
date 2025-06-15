@@ -98,8 +98,8 @@ impl WindowClass {
         let Size(width, height) = size.unwrap_or(Size(CW_USEDEFAULT, CW_USEDEFAULT));
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
-        let result = unsafe {Window::from_handle(
-            CreateWindowExW(
+        let result = unsafe {
+            Window::from_handle(CreateWindowExW(
                 ex_style,
                 cname,
                 wname,
@@ -112,8 +112,8 @@ impl WindowClass {
                 Some(menu),
                 Some(hinstance),
                 Some(ptr as *const c_void),
-            )?
-        )};
+            )?)
+        };
         Ok(result)
     }
 }

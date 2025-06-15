@@ -7,7 +7,7 @@ pub struct Window {
 }
 impl Drop for Window {
     fn drop(&mut self) {
-        if !(std::thread::panicking() || self.handle.is_invalid()){
+        if !(std::thread::panicking() || self.handle.is_invalid()) {
             panic!("debug, window")
         }
     }
@@ -191,7 +191,7 @@ impl WindowZpos {
             0 => WindowZpos::Top,
             -2 => WindowZpos::NoTopMost,
             1 => WindowZpos::Bottom,
-            _ => WindowZpos::PriorWindow(unsafe{Window::from_handle(hwnd)}),
+            _ => WindowZpos::PriorWindow(unsafe { Window::from_handle(hwnd) }),
         }
     }
 }
@@ -219,7 +219,9 @@ pub enum WindowZposGroup {
 }
 impl Default for Window {
     fn default() -> Self {
-        Self{handle: HWND(NULL_PTR())}
+        Self {
+            handle: HWND(NULL_PTR()),
+        }
     }
 }
 pub enum WindowAnimateType {
@@ -245,12 +247,14 @@ impl Window {
         Window { handle }
     }
     pub fn parent(&self) -> Option<Self> {
-        unsafe { let hwnd = GetAncestor(self.handle, GA_PARENT);
-        if hwnd.is_invalid() {
-            None
-        } else {
-            Some(Window::from_handle(hwnd))
-        } }
+        unsafe {
+            let hwnd = GetAncestor(self.handle, GA_PARENT);
+            if hwnd.is_invalid() {
+                None
+            } else {
+                Some(Window::from_handle(hwnd))
+            }
+        }
     }
     pub fn is_child(&self) -> bool {
         unsafe { GetWindowLongPtrW(self.handle, GWL_STYLE) & WS_CHILD.0 as isize != 0 }
@@ -271,12 +275,14 @@ impl Window {
         }
     }
     pub fn root_parent(&self) -> Option<Self> {
-        unsafe { let hwnd = GetAncestor(self.handle, GA_ROOT) ;
-        if hwnd.is_invalid() {
-            None
-        } else {
-            Some(Window::from_handle(hwnd))
-        }}
+        unsafe {
+            let hwnd = GetAncestor(self.handle, GA_ROOT);
+            if hwnd.is_invalid() {
+                None
+            } else {
+                Some(Window::from_handle(hwnd))
+            }
+        }
     }
     #[inline]
     pub fn copy_handle(&self) -> Self {
@@ -411,7 +417,7 @@ impl Window {
     {
         unsafe {
             if id == 0 {
-                return Ok(f((*(get_proc(&self)?)).as_ref()));
+                return Ok(f((*(get_proc(self.handle)?)).as_ref()));
             };
             let mut data: usize = 0usize;
             if GetWindowSubclass(
@@ -434,7 +440,7 @@ impl Window {
     {
         unsafe {
             if id == 0 {
-                return Ok(f((*(get_proc(&self)?)).as_mut()));
+                return Ok(f((*(get_proc(self.handle)?)).as_mut()));
             };
             let mut data: usize = 0usize;
             if GetWindowSubclass(self.handle, Some(subclass_porc), id, Some(&mut data)).into() {

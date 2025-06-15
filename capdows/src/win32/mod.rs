@@ -53,7 +53,9 @@ pub mod core {
         StringId(String),
         NumberId(u16),
     }
+    #[doc(no_inline)]
     pub use super::option_copy_handle;
+    #[doc(no_inline)]
     pub use ResourceID::*;
     impl ResourceID {
         pub fn to_pcwstr(self) -> (PCWSTR, Option<Vec<u16>>) {
@@ -66,9 +68,13 @@ pub mod core {
             }
         }
     }
+    #[doc(no_inline)]
     pub use crate::error::errors::*;
+    #[doc(no_inline)]
     pub use crate::error::*;
+    #[doc(no_inline)]
     pub use crate::last_error;
+    // #[doc(no_inline)]
     // pub use crate::win_error;
     #[derive(Debug, Clone)]
     pub struct Point(pub i32, pub i32);
@@ -88,7 +94,7 @@ pub mod core {
     }
     impl Point {
         ///以窗口左上角为原点  
-        ///以屏幕右、上为正方向，如果创建窗口时指定[`crate::style::NormalWindowExStyles::right_layout`]为false，则与系统语言方向***无关***
+        ///以屏幕右、上为正方向，如果创建窗口时指定[`crate::win32::style::NormalWindowStyles::right_layout`]为false，则与系统语言方向***无关***
         pub fn window_to_screen(&mut self, wnd: &Window) -> Result<Self> {
             let mut point = (*self).into();
             if unsafe { ClientToScreen(wnd.handle(), &mut point) }.0 != 0 {
@@ -164,6 +170,7 @@ use self::core::*;
 //     pub use super::{Error, Result};
 // }
 //----------------------------------------------------------------------------------
+#[doc(no_inline)]
 pub use super::error::{Result, WinError as Error, correct_error, errors::*};
 use super::i18n::*;
 use either::*;

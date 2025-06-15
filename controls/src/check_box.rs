@@ -93,14 +93,34 @@ define_control! {
         todo!()
     }
 }
-pub struct CheckBoxDrawType(pub ButtonAutoDrawType, pub CheckBoxStyle, pub ChildWindowStyles);
+pub struct CheckBoxDrawType(
+    pub ButtonAutoDrawType,
+    pub CheckBoxStyle,
+    pub ChildWindowStyles,
+);
 impl Default for CheckBoxDrawType {
     fn default() -> Self {
-        Self(ButtonAutoDrawType::TextOnly(false), Default::default(), Default::default())
+        Self(
+            ButtonAutoDrawType::TextOnly(false),
+            Default::default(),
+            Default::default(),
+        )
     }
 }
-impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for CheckBoxDrawType {
-    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles) {
+impl
+    Into<(
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    )> for CheckBoxDrawType
+{
+    fn into(
+        self,
+    ) -> (
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    ) {
         let CheckBoxDrawType(dtype, bstyle, aaa) = self;
         let mut wstyle = WINDOW_STYLE(0);
         let ditype = match dtype {
@@ -143,9 +163,10 @@ impl std::fmt::Display for CheckBoxState {
     }
 }
 pub use CheckBoxState::*;
-impl ButtonControl for CheckBox{type Style = CheckBoxDrawType;}
+impl ButtonControl for CheckBox {
+    type Style = CheckBoxDrawType;
+}
 impl CheckBox {
-
     pub fn is_checked(&self) -> Result<CheckBoxState> {
         let result = unsafe {
             SendMessageW(

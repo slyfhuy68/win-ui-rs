@@ -78,14 +78,34 @@ define_control! {
         todo!()
     }
 }
-pub struct RadioButtonDrawType(pub ButtonAutoDrawType, pub RadioButtonStyle, pub ChildWindowStyles);
+pub struct RadioButtonDrawType(
+    pub ButtonAutoDrawType,
+    pub RadioButtonStyle,
+    pub ChildWindowStyles,
+);
 impl Default for RadioButtonDrawType {
     fn default() -> Self {
-        Self(ButtonAutoDrawType::TextOnly(false), Default::default(), Default::default(), )
+        Self(
+            ButtonAutoDrawType::TextOnly(false),
+            Default::default(),
+            Default::default(),
+        )
     }
 }
-impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for RadioButtonDrawType {
-    fn into(self) -> (WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles) {
+impl
+    Into<(
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    )> for RadioButtonDrawType
+{
+    fn into(
+        self,
+    ) -> (
+        WINDOW_STYLE,
+        Option<Either<Bitmap, Icon>>,
+        ChildWindowStyles,
+    ) {
         let RadioButtonDrawType(dtype, bstyle, bbb) = self;
         let mut wstyle = WINDOW_STYLE(0);
         let ditype = match dtype {
@@ -112,7 +132,9 @@ impl Into<(WINDOW_STYLE, Option<Either<Bitmap, Icon>>, ChildWindowStyles)> for R
 //
 // 	}
 // }
-impl ButtonControl for RadioButton{type Style = RadioButtonDrawType;}
+impl ButtonControl for RadioButton {
+    type Style = RadioButtonDrawType;
+}
 impl RadioButton {
     pub fn is_checked(&self) -> Result<bool> {
         let result = unsafe {

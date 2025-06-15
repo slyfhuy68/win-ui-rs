@@ -1,8 +1,19 @@
 use capdows::msg_box;
-use capdows::win32::*;
 use capdows::win32::control::Control;
+use capdows::win32::*;
+use capdows_controls::*;
+use class::*;
+use menu::*;
+use msg::*;
+use window::*;
+// use control::*;
+use capdows::win32::core::*;
 use capdows_controls::{button::*, check_box::*, edit::*, group_box::*, radio::*, view::*};
 use capdows_example::*;
+use font::*;
+use image::*;
+use module::*;
+use style::*;
 struct MyControls {
     a1: RadioButton,
     a2: RadioButton,
@@ -102,14 +113,14 @@ impl MessageReceiver for Mycb {
         _class: WindowClass,
         _file: ExecutableFile,
         _pos: Rectangle,
-        _itype: WindowType,
+        _itype: &mut WindowType,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
-        let mut style = ChildWindowStyles::null();
-        style.visble = true;
+        let mut style = ChildWindowStyles::default();
+        style.style.visble = true;
         style.tab_stop = false;
         let mut style_group = style.clone();
-        style_group.group = true;
+        style_group.group_leader = true;
         let mut link_button_1 = LinkButton::new(
             window,
             "链接按钮01",
@@ -245,10 +256,9 @@ impl MessageReceiver for Mycb {
                 EDIT_01,
                 Default::default(),
                 Default::default(),
-                {
-                    let mut ex_style: NormalWindowExStyles = Default::default();
-                    ex_style.clint_edge = true;
-                    ex_style
+                NormalWindowStyles {
+                    edge_type: WindowEdgeType::Sunken,
+                    ..Default::default()
                 },
                 true,
                 false,
@@ -369,16 +379,27 @@ fn main() -> Result<()> {
         0,
     )
     .unwrap();
+    let mut menu_bar = MenuBar::new().unwrap();
+    menu_bar
+        .insert_item(
+            None,
+            MenuItem::Normal(
+                MenuItemStyle::default(),
+                MenuItemShow::String(MenuCheckIcon::default(), "点击测试1".to_string()),
+                Some(MENU_ITEM_1),
+            ),
+        )
+        .unwrap();
     let mut window = class
         .create_window(
             "中文😝öé English",
             WindowType::Overlapped {
                 style: Default::default(),
-                syle_ex: Default::default(),
-                menu: false,
-                onwer: None,
+                menu: Some(menu_bar),
+                owner: None,
                 is_layered: false,
             },
+            None,
             None,
             Box::new(Mycb {
                 num: 0,
@@ -387,20 +408,7 @@ fn main() -> Result<()> {
         )
         .unwrap();
     window.show(ShowWindowType::Normal).unwrap();
-    window
-        .with_menu(|menu| {
-            menu.insert_item(
-                None,
-                MenuItem::Normal(
-                    MenuItemStyle::default(),
-                    MenuItemShow::String(MenuCheckIcon::default(), "点击测试1".to_string()),
-                    Some(MENU_ITEM_1),
-                ),
-            )
-            .unwrap();
-        })
-        .unwrap();
-    window.redraw_menu_bar().unwrap();
+    // window.redraw_menu_bar().unwrap();
     println!("ok");
     capdows::win32::msg::msg_loop();
     Ok(())

@@ -4,11 +4,12 @@ use windows::Win32::UI::Input::KeyboardAndMouse::*;
 impl Window {
     ///获取***当前线程***中的捕获鼠标的窗口。
     ///如果当前线程中没有窗口捕获鼠标，则返回 None。
-    pub fn with_mouse_capture<F, T>(f: F) -> Option<T> 
+    pub fn with_mouse_capture<F, T>(f: F) -> Option<T>
     where
-        F: FnOnce(&mut Window) -> T,{
+        F: FnOnce(&mut Window) -> T,
+    {
         unsafe {
-            let mut result = GetCapture();
+            let result = GetCapture();
             if result.is_invalid() {
                 None
             } else {

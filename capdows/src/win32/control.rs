@@ -11,7 +11,7 @@ unsafe impl NotifyMessage for NMHDR {
         self.code
     }
     unsafe fn wnd_from(&self) -> Window {
-        unsafe {Window::from_handle(self.hwndFrom)}
+        unsafe { Window::from_handle(self.hwndFrom) }
     }
     fn id_from(&self) -> WindowID {
         self.idFrom as u16
@@ -48,7 +48,7 @@ pub trait Control {
         }
     }
     fn get_class() -> WindowClass {
-        unsafe {WindowClass::from_str(Self::CLASS_NAME)}
+        unsafe { WindowClass::from_str(Self::CLASS_NAME) }
     }
 }
 impl<T: Control> From<T> for Window {
@@ -96,7 +96,7 @@ unsafe impl<T> NotifyMessage for DefaultNMHDR<T> {
         self.nmhdr.code
     }
     unsafe fn wnd_from(&self) -> Window {
-       unsafe{Window::from_handle( self.nmhdr.hwndFrom)}
+        unsafe { Window::from_handle(self.nmhdr.hwndFrom) }
     }
     fn id_from(&self) -> WindowID {
         self.nmhdr.idFrom as u16
