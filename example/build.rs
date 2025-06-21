@@ -2,6 +2,7 @@ extern crate capdows_resource;
 // use either::Either;
 // use either::Either::*;
 use capdows_resource::menu::*;
+use capdows_resource::string_table::*;
 use capdows_resource::*;
 use capdows_resource::{image::*, version::*};
 use std::collections::HashMap;
@@ -22,10 +23,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ftype: Default::default(),
     }
     .pre_compile()?;
-    let icon1 = Icon("./res/ICON1.ico".into()).pre_compile(NumberId(1))?;
-    let icon2 = Icon("./res/ICON2.ico".into()).pre_compile(NumberId(2))?;
-    let icon3 = Icon("./res/ICON3.ico".into()).pre_compile(NumberId(3))?;
-    let cursor1 = Cursor("./res/CURSOR1.cur".into()).pre_compile(NumberId(4))?;
+    let icon1 = Icon("./res/ICON1.ico".into(), None).pre_compile(NumberId(1))?;
+    let icon2 = Icon("./res/ICON2.ico".into(), None).pre_compile(NumberId(2))?;
+    let icon3 = Icon("./res/ICON3.ico".into(), None).pre_compile(NumberId(3))?;
+    let cursor1 = Cursor("./res/CURSOR1.cur".into(), None).pre_compile(NumberId(4))?;
     let menu1 = MenuTemplate {
         language: None,
         items: vec![
@@ -67,6 +68,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ],
     }
     .pre_compile(NumberId(5))?;
-    compile_all!(vstr, icon1, icon2, icon3, cursor1, menu1)?;
+    let st = StringTable{
+        language: None, 
+        strings: HashMap::from([
+            (50, "Hello, {1}!".to_string()),
+            (51, "Bye, {1}!".to_string()),
+            (52, "中文".to_string()),
+            (53, "{1}爱吃𰻞𰻞面".to_string()),
+        ])
+    }.pre_compile()?;
+    compile_all!(vstr, icon1, icon2, icon3, cursor1, menu1, st)?;
     Ok(())
 }

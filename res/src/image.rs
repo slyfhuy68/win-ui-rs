@@ -1,37 +1,46 @@
 use super::*;
 #[derive(Debug)]
-#[repr(transparent)]
-pub struct Bitmap(pub PathBuf);
+pub struct Bitmap(pub PathBuf, pub Option<LangID>);
 impl Bitmap {
     pub fn pre_compile(self, id: ResourceID) -> Result<PreCompilePruduct> {
         Ok(PreCompilePruduct::from(format!(
-            "{} BITMAP {:?}",
+            "{}{} BITMAP {}",
+            pre_compile_lang_id(self.1).get(),
             pre_compile_resource_id(id)?.get(),
-            (std::fs::canonicalize(self.0)?).as_os_str()
+            (std::fs::canonicalize(self.0)?)
+                .into_os_string()
+                .into_string()
+                .map_err(|_| ERROR_NO_UNICODE_TRANSLATION)?
         )))
     }
 }
 #[derive(Debug)]
-#[repr(transparent)]
-pub struct Icon(pub PathBuf);
+pub struct Icon(pub PathBuf, pub Option<LangID>);
 impl Icon {
     pub fn pre_compile(self, id: ResourceID) -> Result<PreCompilePruduct> {
         Ok(PreCompilePruduct::from(format!(
-            "{} ICON {:?}",
+            "{}{} ICON {}",
+            pre_compile_lang_id(self.1).get(),
             pre_compile_resource_id(id)?.get(),
-            (std::fs::canonicalize(self.0)?).as_os_str()
+            (std::fs::canonicalize(self.0)?)
+                .into_os_string()
+                .into_string()
+                .map_err(|_| ERROR_NO_UNICODE_TRANSLATION)?
         )))
     }
 }
 #[derive(Debug)]
-#[repr(transparent)]
-pub struct Cursor(pub PathBuf);
+pub struct Cursor(pub PathBuf, pub Option<LangID>);
 impl Cursor {
     pub fn pre_compile(self, id: ResourceID) -> Result<PreCompilePruduct> {
         Ok(PreCompilePruduct::from(format!(
-            "{} CURSOR {:?}",
+            "{}{} CURSOR {}",
+            pre_compile_lang_id(self.1).get(),
             pre_compile_resource_id(id)?.get(),
-            (std::fs::canonicalize(self.0)?).as_os_str()
+            (std::fs::canonicalize(self.0)?)
+                .into_os_string()
+                .into_string()
+                .map_err(|_| ERROR_NO_UNICODE_TRANSLATION)?
         )))
     }
 }

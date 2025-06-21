@@ -118,7 +118,7 @@ fn new_button<
 }
 fn is_some_window(wnd: &Window, class: &'static str) -> Result<bool> {
     let mut array1 = vec![0u16; 8];
-    if unsafe { GetClassNameW(wnd.copy_handle().into(), &mut array1[..]) } == 0 {
+    if unsafe { GetClassNameW(wnd.handle(), &mut array1[..]) } == 0 {
         return Err(Error::correct_error());
     }
     let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };

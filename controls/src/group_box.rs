@@ -1,11 +1,7 @@
 use super::*;
-// pub struct GroupBox(HWND);
-// unsafe impl Send for GroupBox {}
-// unsafe impl Sync for GroupBox {}
 pub enum GroupBoxMsgType {
     Draw(usize),
 }
-// pub struct GroupBoxMsg(pub usize, HWND);
 define_control! {
     GroupBox,
     "Button",
@@ -28,6 +24,7 @@ define_control! {
        todo!()
     }
 }
+#[derive(Default)]
 pub struct GroupBoxStyle(ChildWindowStyles);
 impl Into<(WINDOW_STYLE, ChildWindowStyles)> for GroupBoxStyle {
     fn into(self) -> (WINDOW_STYLE, ChildWindowStyles) {

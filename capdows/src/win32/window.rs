@@ -1,14 +1,20 @@
 use super::*;
 use std::fmt;
 #[derive(Eq, PartialEq)] //不实现Clone
+#[repr(transparent)]
 ///已明确由Rust拥有的窗口
 pub struct Window {
     handle: HWND,
 }
+#[cfg(debug_assertions)]
 impl Drop for Window {
     fn drop(&mut self) {
         if !(std::thread::panicking() || self.handle.is_invalid()) {
-            panic!("debug, window")
+            println!("debug, {:?}", self);
+            println!("Backtrace:\n{}", std::backtrace::Backtrace::capture());
+            println!(
+                "note: run with `RUST_BACKTRACE=1` or `RUST_BACKTRACE=full` for a verbose backtrace."
+            );
         }
     }
 }
@@ -242,6 +248,14 @@ pub enum WindowAnimateShowType {
     NoActivate(WindowAnimateType),
 }
 impl Window {
+    #[inline]
+    pub fn from_mut_ref(handle: &mut HWND) -> &mut Window {
+        unsafe { std::mem::transmute(handle) }
+    }
+    #[inline]
+    pub fn from_ref(handle: &HWND) -> &Window {
+        unsafe { std::mem::transmute(handle) }
+    }
     #[inline]
     pub unsafe fn from_handle(handle: HWND) -> Self {
         Window { handle }

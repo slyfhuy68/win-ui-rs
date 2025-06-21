@@ -367,7 +367,7 @@ pub struct NormalWindowStyles {
     pub vertical_roll: bool,         // WS_VSCROLL
     pub clip_children: bool,         // WS_CLIPCHILDREN
     pub disabled: bool,              // WS_DISABLED
-    pub visble: bool,                // WS_VISIBLE
+    pub invisible: bool,             // !WS_VISIBLE
     pub dlg_modal_frame: bool,       // WS_EX_DLGMODALFRAME
     pub top_most: bool,              // WS_EX_TOPMOST
     pub accept_files: bool,          // WS_EX_ACCEPTFILES
@@ -387,7 +387,7 @@ pub struct NormalWindowStyles {
     pub size_state: WindowSizeState,
     pub border_type: WindowBorderType,
 }
-#[derive(Clone, PartialEq, Copy, Default, Debug)]
+#[derive(Clone, PartialEq, Copy, Debug)]
 #[repr(packed)]
 pub struct ChildWindowStyles {
     pub style: NormalWindowStyles,
@@ -397,6 +397,20 @@ pub struct ChildWindowStyles {
     pub no_parent_notify: bool, //WS_EX_NOPARENTNOTIFY
                              // pub mid_child: bool, //WS_EX_MDICHILD
 }
+impl Default for ChildWindowStyles {
+    fn default() -> Self {
+        Self {
+            style: NormalWindowStyles {
+                border_type: WindowBorderType::NoBorder,
+                ..Default::default()
+            },
+            tab_stop: true,
+            group_leader: false,
+            clip_isblings: false,
+            no_parent_notify: false,
+        }
+    }
+}
 impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
     fn from((style, style_ex): (WINDOW_STYLE, WINDOW_EX_STYLE)) -> Self {
         Self {
@@ -405,7 +419,7 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
             vertical_roll: style.contains(WS_VSCROLL),
             clip_children: style.contains(WS_CLIPCHILDREN),
             disabled: style.contains(WS_DISABLED),
-            visble: style.contains(WS_VISIBLE),
+            invisible: !style.contains(WS_VISIBLE),
             dlg_modal_frame: style_ex.contains(WS_EX_DLGMODALFRAME),
             top_most: style_ex.contains(WS_EX_TOPMOST),
             accept_files: style_ex.contains(WS_EX_ACCEPTFILES),
@@ -435,7 +449,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
         set_style(&mut style, WS_VSCROLL, self.vertical_roll);
         set_style(&mut style, WS_CLIPCHILDREN, self.clip_children);
         set_style(&mut style, WS_DISABLED, self.disabled);
-        set_style(&mut style, WS_VISIBLE, self.visble);
+        set_style(&mut style, WS_VISIBLE, !self.invisible);
         set_style_ex(&mut style_ex, WS_EX_DLGMODALFRAME, self.dlg_modal_frame);
         set_style_ex(&mut style_ex, WS_EX_TOPMOST, self.top_most);
         set_style_ex(&mut style_ex, WS_EX_ACCEPTFILES, self.accept_files);

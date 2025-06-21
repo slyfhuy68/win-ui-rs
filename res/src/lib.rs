@@ -42,14 +42,15 @@ impl Add for PreCompilePruduct {
 pub use capdows::win32::core::{NumberId, ResourceID, StringId};
 pub mod image;
 pub mod menu;
+pub mod string_table;
 pub mod version;
 #[macro_export]
-macro_rules! compile_all {
+macro_rules! compile_all {//ai宏
     ($first:expr, $($rest:expr),+ $(,)?) => {
         ($first $(+ $rest)+).compile()
     };
 }
-//ai宏
+
 fn pre_compile_resource_id(id: ResourceID) -> Result<PreCompilePruduct> {
     Ok(PreCompilePruduct::from(match id {
         StringId(y) => {
@@ -61,3 +62,13 @@ fn pre_compile_resource_id(id: ResourceID) -> Result<PreCompilePruduct> {
         NumberId(x) => x.to_string(),
     }))
 }
+fn pre_compile_lang_id(id: Option<LangID>) -> PreCompilePruduct {
+    PreCompilePruduct::from(match id {
+        None => String::from("\nLANGUAGE 0x000, 0x00\n"),//LANG_NEUTRAL, SUBLANG_NEUTRAL
+        Some(id) => {
+            let (lang_id, sub_lang_id) = id.split();
+            format!("\nLANGUAGE 0x{:03x}, 0x{:02x}\n", lang_id, sub_lang_id)
+        }
+    })
+}
+pub use capdows::i18n::LangID;

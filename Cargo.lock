@@ -36,7 +36,7 @@ dependencies = [
 name = "capdows"
 version = "0.0.1"
 dependencies = [
- "capdows_macros",
+ "capdows_utility",
  "either",
  "tokio",
  "windows",
@@ -82,6 +82,10 @@ dependencies = [
  "embed-resource",
  "windows",
 ]
+
+[[package]]
+name = "capdows_utility"
+version = "0.0.1"
 
 [[package]]
 name = "cc"

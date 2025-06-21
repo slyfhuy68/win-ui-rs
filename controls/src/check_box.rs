@@ -107,6 +107,18 @@ impl Default for CheckBoxDrawType {
         )
     }
 }
+impl CheckBoxDrawType {
+    pub fn three_state() -> Self {
+        Self(
+            ButtonAutoDrawType::TextOnly(false),
+            CheckBoxStyle {
+                three_state: true,
+                ..Default::default()
+            },
+            Default::default(),
+        )
+    }
+}
 impl
     Into<(
         WINDOW_STYLE,

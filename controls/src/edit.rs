@@ -133,7 +133,14 @@ define_control! {
 impl Default for EditStyle {
     fn default() -> Self {
         Self {
-            style: Default::default(),
+            style: ChildWindowStyles {
+                style: NormalWindowStyles {
+                    edge_type: WindowEdgeType::Sunken,
+                    border_type: WindowBorderType::NoBorder,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
             auto_hscroll: true, // ES_AUTOHSCROLL
             auto_vscroll: true, // ES_AUTOVSCROLL
             center: false,      // ES_CENTER

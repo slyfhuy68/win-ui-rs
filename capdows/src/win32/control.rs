@@ -21,13 +21,13 @@ unsafe impl NotifyMessage for NMHDR {
 pub trait Control {
     type MsgType: UnsafeControlMsg;
     const CLASS_NAME: &'static str;
-    fn from_window(wnd: &Window) -> Result<Self>
+    fn from_window(wnd: Window) -> Result<Self>
     where
         Self: Sized,
     {
         unsafe {
             if Self::is_self(&wnd)? {
-                Ok(Self::force_from_window(wnd.copy_handle()))
+                Ok(Self::force_from_window(wnd))
             } else {
                 Err(ERROR_INVALID_WINDOW_HANDLE)
             }

@@ -105,6 +105,7 @@ impl MessageReceiver for Mycb {
         println!("发生错误: {:?}", err);
         Ok(err.code() as isize)
     }
+
     fn create(
         &mut self,
         _id: usize,
@@ -116,21 +117,14 @@ impl MessageReceiver for Mycb {
         _itype: &mut WindowType,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
-        let mut style = ChildWindowStyles::default();
-        style.style.visble = true;
-        style.tab_stop = false;
-        let mut style_group = style.clone();
-        style_group.group_leader = true;
+        const FONT: ControlFont = ControlFont::CaptionFont;
         let mut link_button_1 = LinkButton::new(
             window,
             "链接按钮01",
             Some(Rectangle::PointSize(Point(400, 0), Size(150, 50))),
             LINK_BUTTON_01,
             Default::default(),
-            style.clone(),
-            Default::default(),
-            true,
-            false,
+            Some(FONT),
         )
         .unwrap();
         link_button_1.set_note("114514abc中文").unwrap();
@@ -139,13 +133,10 @@ impl MessageReceiver for Mycb {
             "分组框01",
             Some(Rectangle::PointSize(Point(575, 0), Size(300, 100))),
             GROUP_BOX_01,
-            style.clone(),
             Default::default(),
-            true,
-            false,
+            Some(FONT),
         )
-        .unwrap()
-        .to_window();
+        .unwrap();
         self.controls = Some(MyControls {
             button1: Button::new(
                 window,
@@ -153,10 +144,7 @@ impl MessageReceiver for Mycb {
                 Some(Rectangle::PointSize(Point(0, 0), Size(150, 50))),
                 BUTTON_01,
                 Default::default(),
-                style.clone(),
-                Default::default(),
-                true,
-                false,
+                Some(FONT),
             )
             .unwrap(),
             link_button_1,
@@ -166,46 +154,43 @@ impl MessageReceiver for Mycb {
                 Some(Rectangle::PointSize(Point(200, 0), Size(150, 50))),
                 SPLIT_BUTTON_01,
                 Default::default(),
-                style.clone(),
-                Default::default(),
-                true,
-                false,
+                Some(FONT),
+            )
+            .unwrap(),
+            a1: RadioButton::new(
+                g_b.get_window_mut(),
+                "单选按钮a01",
+                Some(Rectangle::PointSize(Point(20, 20), Size(100, 20))),
+                RADIO_BUTTON_01_01,
+                RadioButtonDrawType::group_leader(),
+                Some(FONT),
             )
             .unwrap(),
             a2: RadioButton::new(
-                &mut g_b,
+                g_b.get_window_mut(),
                 "单选按钮a02",
                 Some(Rectangle::PointSize(Point(150, 20), Size(100, 20))),
                 RADIO_BUTTON_01_02,
                 Default::default(),
-                style.clone(),
-                Default::default(),
-                true,
-                false,
+                Some(FONT),
             )
             .unwrap(),
             b1: RadioButton::new(
-                &mut g_b,
+                g_b.get_window_mut(),
                 "单选按钮b01",
                 Some(Rectangle::PointSize(Point(20, 70), Size(100, 20))),
                 RADIO_BUTTON_02_01,
-                Default::default(),
-                style_group.clone(),
-                Default::default(),
-                true,
-                false,
+                RadioButtonDrawType::group_leader(),
+                Some(FONT),
             )
             .unwrap(),
             b2: RadioButton::new(
-                &mut g_b,
+                g_b.get_window_mut(),
                 "单选按钮b02",
                 Some(Rectangle::PointSize(Point(150, 70), Size(100, 20))),
                 RADIO_BUTTON_02_02,
                 Default::default(),
-                style.clone(),
-                Default::default(),
-                true,
-                false,
+                Some(FONT),
             )
             .unwrap(),
             boxed1: CheckBox::new(
@@ -214,10 +199,7 @@ impl MessageReceiver for Mycb {
                 Some(Rectangle::PointSize(Point(900, 0), Size(150, 50))),
                 CHECK_BOX_01,
                 Default::default(),
-                style.clone(),
-                Default::default(),
-                true,
-                false,
+                Some(FONT),
             )
             .unwrap(),
             boxed2: CheckBox::new(
@@ -225,43 +207,18 @@ impl MessageReceiver for Mycb {
                 "选择框02",
                 Some(Rectangle::PointSize(Point(900, 50), Size(150, 50))),
                 CHECK_BOX_02,
-                CheckBoxDrawType(ButtonAutoDrawType::TextOnly(false), {
-                    let mut state: CheckBoxStyle = Default::default();
-                    state.three_state = true;
-                    state
-                }),
-                style.clone(),
-                Default::default(),
-                true,
-                false,
+                CheckBoxDrawType::three_state(),
+                Some(FONT),
             )
             .unwrap(),
-            a1: RadioButton::new(
-                &mut g_b,
-                "单选按钮a01",
-                Some(Rectangle::PointSize(Point(20, 20), Size(100, 20))),
-                RADIO_BUTTON_01_01,
-                Default::default(),
-                style_group.clone(),
-                Default::default(),
-                true,
-                false,
-            )
-            .unwrap(),
-            g_b: GroupBox::from_window(&g_b).unwrap(),
+            g_b,
             edit: Edit::new(
                 window,
                 "编辑框01",
                 Some(Rectangle::PointSize(Point(15, 75), Size(130, 50))),
                 EDIT_01,
                 Default::default(),
-                Default::default(),
-                NormalWindowStyles {
-                    edge_type: WindowEdgeType::Sunken,
-                    ..Default::default()
-                },
-                true,
-                false,
+                Some(FONT),
             )
             .unwrap(),
             finder: WindowFinder::new(
@@ -272,13 +229,11 @@ impl MessageReceiver for Mycb {
             .unwrap(),
             text: ImageTextView::new(
                 window,
+                "展示框01",
                 Some(Rectangle::PointSize(Point(400, 100), Size(130, 50))),
                 VIEW_02,
                 ImageTextViewStyle::new_text("文字"),
-                Default::default(),
-                Default::default(),
-                true,
-                true,
+                Some(FONT),
             )
             .unwrap(),
         });

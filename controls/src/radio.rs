@@ -92,6 +92,18 @@ impl Default for RadioButtonDrawType {
         )
     }
 }
+impl RadioButtonDrawType {
+    pub fn group_leader() -> Self {
+        Self(
+            ButtonAutoDrawType::TextOnly(false),
+            Default::default(),
+            ChildWindowStyles {
+                group_leader: true,
+                ..Default::default()
+            },
+        )
+    }
+}
 impl
     Into<(
         WINDOW_STYLE,

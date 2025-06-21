@@ -73,7 +73,7 @@ impl WindowFinder {
             "wndfiner",
             pos,
             id,
-            ImageTextViewStyle::new_icon(ICON_FULL.clone()),
+            ImageTextViewStyle::new_icon(ICON_FULL.clone()).enable_notify(),
             Some(font::ControlFont::CaptionFont),
         )?;
         view.get_window_mut().add_msg_receiver(
@@ -92,6 +92,13 @@ pub enum WindowFinderMsgType {
 // use ButtonState::*;
 pub use WindowFinderMsgType::*;
 pub struct WindowFinderMsg(WindowFinder, WindowFinderMsgType);
+    impl Drop for WindowFinderMsg {
+        fn drop(&mut self) {
+            
+                self.0.get_window_mut().nullify()
+                
+        }
+    }
 impl WindowFinderMsg {
     pub fn get_type(&self) -> &WindowFinderMsgType {
         &self.1
@@ -100,9 +107,9 @@ impl WindowFinderMsg {
 use capdows::win32::control::ControlMsg;
 impl ControlMsg for WindowFinderMsg {
     type ControlMsgDataType = Window;
-    fn into_raw_control_msg(self) -> Result<(u32, Option<Self::ControlMsgDataType>)> {
+    fn into_raw_control_msg(mut self) -> Result<(u32, Option<Self::ControlMsgDataType>)> {
         Ok((
-            match self.1 {
+            match std::mem::replace(&mut self.1, WindowFinderMsgType::EndFind) {
                 BeginFind => 114,
                 EndFind => 514,
                 SelChanged(x) => {
@@ -198,7 +205,7 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
                                     return Err(NoProcessed);
                                 };
 
-                                ImageTextView::from_window(&window.copy_handle())?.change_content(
+                                ImageTextView::from_window(window.copy_handle())?.change_content(
                                     ViewContent::Icon((*ICON_EMPTY).copy_handle()),
                                 )?;
                                 self.currect_wnd = Some(window.copy_handle());
@@ -218,9 +225,10 @@ impl MessageReceiver for WindowsFinderMessageReceiver {
                                         erase_window_border(&mut self.currect_wnd)?;
                                         release_mouse()?;
                                         Cursor::from_system(SystemCursor::NormalSelection)?.apply();
-                                        ImageTextView::from_window(window)?.change_content(
-                                            ViewContent::Icon((*ICON_FULL).copy_handle()),
-                                        )?;
+                                        ImageTextView::from_window(window.copy_handle())?
+                                            .change_content(ViewContent::Icon(
+                                                (*ICON_FULL).copy_handle(),
+                                            ))?;
                                     };
                                     window.send_control_nofiy(WindowFinderMsg(
                                         unsafe {

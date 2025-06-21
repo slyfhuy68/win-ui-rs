@@ -102,7 +102,13 @@ impl ComboBoxStyle {
     }
     pub fn new_edit() -> Self {
         Self {
-            style: Default::default(),
+            style: ChildWindowStyles {
+                style: NormalWindowStyles {
+                    edge_type: WindowEdgeType::Sunken,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
             auto_hide_scroll: true, //取反后的CBS_DISABLENOSCROLL
             auto_size: true,        //取反后的CBS_NOINTEGRALHEIGHT
             auto_sort: false,       //CBS_SORT

@@ -5,7 +5,8 @@ members = [
     "controls",
     "example", 
     "macros",
-    "res"
+    "res",
+    "utility"
 ]
 [workspace.package]
 authors = ["slyfhuy68(github.com)"]

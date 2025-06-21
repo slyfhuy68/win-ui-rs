@@ -1,7 +1,8 @@
-use super::Result;
 use crate::PreCompilePruduct;
+use crate::pre_compile_lang_id;
 use crate::pre_compile_resource_id;
-pub use capdows::i18n::LangID;
+use capdows::i18n::LangID;
+use capdows::win32::Result;
 use capdows::win32::core::ResourceID;
 pub use capdows::win32::help::HelpId;
 pub use capdows::win32::menu::MenuItemID;
@@ -54,7 +55,7 @@ impl MenuTemplateItem {
             } => {
                 let (mtype, state) = style.into();
                 format!(
-                    "POPUP \"{}\", 0, {}, {}, {} {{\n{}\n}}",
+                    "POPUP \"{}\", 0, {}, {}, {} \n{{\n{}\n}}",
                     content,
                     mtype.0,
                     state.0,
@@ -84,13 +85,7 @@ impl MenuTemplate {
         Ok(PreCompilePruduct::from(format!(
             "{} MENUEX{}{{\n{}\n}}",
             pre_compile_resource_id(id)?.get(),
-            match self.language {
-                None => String::from(" "),
-                Some(id) => {
-                    let (lang_id, sub_lang_id) = id.split();
-                    format!("\nLANGUAGE 0x{:03x}, 0x{:02x}\n", lang_id, sub_lang_id)
-                }
-            },
+            pre_compile_lang_id(self.language).get(),
             self.items
                 .into_iter()
                 .map(|i| {

@@ -46,12 +46,18 @@ use style::*;
 pub mod sys_prop;
 pub mod timer;
 pub mod window;
+pub mod utility {
+    #[doc(no_inline)]
+    pub use capdows_utility::*;
+}
 use window::*;
 pub mod core {
     use super::*;
+    pub type ResourceStringId = String;
+    pub type ResourceNumberId = u16;
     pub enum ResourceID {
-        StringId(String),
-        NumberId(u16),
+        StringId(ResourceStringId),
+        NumberId(ResourceNumberId),
     }
     #[doc(no_inline)]
     pub use super::option_copy_handle;
