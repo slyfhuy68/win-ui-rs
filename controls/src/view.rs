@@ -31,21 +31,28 @@ pub enum ViewType {
     },
     Bitmap {
         image: Bitmap,
+        name: String,
         reasize_image: bool, // SS_REALSIZEIMAGE
         right_just: bool,    // SS_RIGHTJUST
         center_image: bool,  // SS_CENTERIMAGE
     },
     Icon {
         icon: Icon,
+        name: String,
         reasize_control: bool, // SS_REALSIZECONTROL
         right_just: bool,      // SS_RIGHTJUST
     },
     Cursor {
         cursor: Cursor,
+        name: String,
         reasize_control: bool, // SS_REALSIZECONTROL
         right_just: bool,      // SS_RIGHTJUST
     },
-    EnhMetaFile(EnhMetaFile), // SS_ENHMETAFILE
+    EnhMetaFile {
+        // SS_ENHMETAFILE
+        enh_meta_file: EnhMetaFile,
+        name: String,
+    },
 }
 pub struct ImageTextViewStyle {
     pub style: ChildWindowStyles,
@@ -67,11 +74,22 @@ impl ImageTextViewStyle {
         self.extra_notify = true;
         self
     }
+    pub fn text(mut self, new_text: &str) -> Self {
+        use ViewType::*;
+        match &mut self.stype {
+            Text { text, .. } => text = new_text.to_string(),
+            Bitmap { name, .. } => name = new_text.to_string(),
+            Icon { name, .. } => name = new_text.to_string(),
+            Cursor { name, .. } => name = new_text.to_string(),
+        };
+        self
+    }
     pub fn new_icon(icon: Icon) -> Self {
         ImageTextViewStyle {
             style: Default::default(),
             stype: ViewType::Icon {
                 icon,
+                name: icon.handle().0.to_string(),
                 reasize_control: false,
                 right_just: false,
             },
@@ -137,7 +155,10 @@ impl Into<ViewContent> for ViewType {
                 reasize_control: _,
                 right_just: _,
             } => ViewContent::Cursor(s),
-            EnhMetaFile(e) => ViewContent::EnhMetaFile(e),
+            EnhMetaFile {
+                enh_meta_file: e,
+                name,
+            } => ViewContent::EnhMetaFile(e),
         }
     }
 }

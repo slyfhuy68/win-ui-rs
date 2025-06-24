@@ -115,10 +115,6 @@ pub enum MouseActivateState {
     NoActivate,
     NoActivateClick,
 }
-//ai结束-----
-pub enum WindowNotify {
-    Null, //WM_NULL
-}
 #[derive(Debug)]
 pub enum MenuCommandMsgItemPos<'a> {
     CostomId(MenuItemID),
@@ -147,13 +143,8 @@ pub trait MessageReceiver {
     fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
         Ok(err.code() as isize)
     }
-    ///不常用的wParam与lParam都未使用、处理消息返回零的消息与WM_NULL
-    fn notifications(
-        &mut self,
-        id: usize,
-        window: &mut Window,
-        notification_type: WindowNotify,
-    ) -> MessageReceiverResult<()> {
+    ///WM_NULL, 用于系统处理程序是否响应，一般不处理
+    fn null_msg(&mut self, id: usize, window: &mut Window) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     fn control_message(
@@ -165,7 +156,7 @@ pub trait MessageReceiver {
     ) -> MessageReceiverResult<isize> {
         Err(NoProcessed)
     }
-    ///itype参数：这只是[`crate::win32::class::WindowClass`]的crate_window方法的参数的一个副本，但是你可以调用所有者/父窗口和菜单上面的方法，因为它们本质是指针
+    ///itype参数：这只是[`crate::ui::class::WindowClass`]的crate_window方法的参数的一个副本，但是你可以调用所有者/父窗口和菜单上面的方法，因为它们本质是指针
     fn create(
         &mut self,
         id: usize,

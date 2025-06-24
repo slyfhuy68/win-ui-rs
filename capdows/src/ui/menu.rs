@@ -546,7 +546,7 @@ impl Menu {
     }
     pub fn item_count(&self) -> Result<MenuItemID> {
         match unsafe { GetMenuItemCount(Some(self.handle)) } {
-            -1 => Err(correct_error()),
+            -1 => Err(WinError::correct_error()),
             x => Ok(x as MenuItemID),
         }
     }
@@ -595,7 +595,7 @@ impl Menu {
         };
         match unsafe { DeleteMenu(self.handle, id as u32, flag) } {
             Ok(()) => Ok(()),
-            Err(_) => Err(correct_error()),
+            Err(_) => Err(WinError::correct_error()),
         }
     }
     pub fn clear(&mut self) -> Result<()> {

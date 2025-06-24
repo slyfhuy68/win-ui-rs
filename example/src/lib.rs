@@ -92,13 +92,11 @@ pub enum WindowFinderMsgType {
 // use ButtonState::*;
 pub use WindowFinderMsgType::*;
 pub struct WindowFinderMsg(WindowFinder, WindowFinderMsgType);
-    impl Drop for WindowFinderMsg {
-        fn drop(&mut self) {
-            
-                self.0.get_window_mut().nullify()
-                
-        }
+impl Drop for WindowFinderMsg {
+    fn drop(&mut self) {
+        self.0.get_window_mut().nullify()
     }
+}
 impl WindowFinderMsg {
     pub fn get_type(&self) -> &WindowFinderMsgType {
         &self.1

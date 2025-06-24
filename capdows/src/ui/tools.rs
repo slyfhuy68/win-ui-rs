@@ -1,5 +1,6 @@
 use super::*;
-
+use crate::error::WinError;
+use crate::error::sResult;
 pub fn msg_box(
     text: &str,
     caption: Option<&str>,
@@ -14,7 +15,7 @@ pub fn msg_box(
     let (style1, lang_id) = options.into();
     let (style2, hwnd) = owner.into();
     match unsafe { MessageBoxExW(Some(hwnd), text, caption, style1 | style2, lang_id) } {
-        MESSAGEBOX_RESULT(0) => Err(correct_error()),
+        MESSAGEBOX_RESULT(0) => Err(WinError::correct_error()),
         x => Ok(x.try_into()?),
     }
 }
@@ -27,6 +28,7 @@ pub fn msg_box_timeout(
     owner: MessageBoxOwnerWindow,
     options: MessageBoxOptions,
 ) -> Result<MessageBoxResult> {
+    windows_link::link!("user32.dll" "system" fn MessageBoxTimeoutW(hwnd : HWND, lptext : windows::core::PCWSTR, lpcaption : windows::core::PCWSTR, utype : MESSAGEBOX_STYLE, wlanguageid : u16, dwMilliseconds: u32) -> MESSAGEBOX_RESULT);
     let (text, _buffer1) = str_to_pcwstr(text);
     let (caption, _buffer2) = match caption {
         None => (PCWSTR::null(), Vec::new()),
@@ -66,11 +68,8 @@ macro_rules! msg_box {
         $crate::win32::tools::msg_box($text, Some($caption), $owner, $options)
     };
 }
-windows_link::link!("user32.dll" "system" fn MessageBoxTimeoutW(hwnd : HWND, lptext : windows::core::PCWSTR, lpcaption : windows::core::PCWSTR, utype : MESSAGEBOX_STYLE, wlanguageid : u16, dwMilliseconds: u32) -> MESSAGEBOX_RESULT);
 pub mod msg_box_style {
-    use super::HWND;
-    use crate::win32::LangID;
-    use crate::win32::Window;
+    use super::*;
     use std::ffi::c_void;
     use windows::Win32::UI::WindowsAndMessaging::*;
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -274,6 +273,7 @@ pub mod msg_box_style {
         }
     }
 }
+#[doc(no_inline)]
 pub use msg_box_style::{MessageBoxOptions, MessageBoxOwnerWindow};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageBoxResult {

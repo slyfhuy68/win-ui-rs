@@ -73,7 +73,7 @@ impl WindowClass {
             })
         };
         if result == 0 {
-            return Err(correct_error());
+            return Err(WinError::correct_error());
         };
         Ok(Self {
             name: class_name,

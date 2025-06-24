@@ -1,9 +1,6 @@
-use capdows::win32::*;
-use std::env;
-// use either::Either;
-// use either::Either::*;
-//use windows::core::*;
+use capdows::prelude::*;
 use std::collections::HashMap;
+use std::env;
 use std::path::PathBuf;
 extern crate embed_resource;
 use embed_resource::*;
@@ -14,6 +11,7 @@ capdows::import_foundation!();
 use windows::Win32::Storage::FileSystem::*;
 pub struct PreCompilePruduct(String);
 use std::ops::Add;
+pub mod dialog;
 impl PreCompilePruduct {
     pub fn from(s: String) -> Self {
         Self(s)
@@ -39,7 +37,7 @@ impl Add for PreCompilePruduct {
         PreCompilePruduct(format!("{}\n{}", self.0, other.0))
     }
 }
-pub use capdows::win32::core::{NumberId, ResourceID, StringId};
+pub use capdows::ui::core::{NumberId, ResourceID, StringId};
 pub mod image;
 pub mod menu;
 pub mod string_table;
@@ -64,7 +62,7 @@ fn pre_compile_resource_id(id: ResourceID) -> Result<PreCompilePruduct> {
 }
 fn pre_compile_lang_id(id: Option<LangID>) -> PreCompilePruduct {
     PreCompilePruduct::from(match id {
-        None => String::from("\nLANGUAGE 0x000, 0x00\n"),//LANG_NEUTRAL, SUBLANG_NEUTRAL
+        None => String::from("\nLANGUAGE 0x000, 0x00\n"), //LANG_NEUTRAL, SUBLANG_NEUTRAL
         Some(id) => {
             let (lang_id, sub_lang_id) = id.split();
             format!("\nLANGUAGE 0x{:03x}, 0x{:02x}\n", lang_id, sub_lang_id)

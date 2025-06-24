@@ -1,11 +1,5 @@
-use super::Result;
-use crate::PreCompilePruduct;
-use crate::pre_compile_lang_id;
-use capdows::i18n::LangID;
-use capdows::win32::core::ResourceNumberId;
-pub use capdows::win32::help::HelpId;
-pub use capdows::win32::menu::MenuItemID;
-pub use capdows::win32::menu::MenuItemStyle;
+use super::*;
+use capdows::ui::core::ResourceNumberId;
 use std::collections::HashMap;
 //STRINGTABLE  [optional-statements] {stringID string  ...}
 pub struct StringTable {

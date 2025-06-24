@@ -214,7 +214,7 @@ unsafe fn msg_handler(
                     Err(x) => callback_error(c, x),
                 }
             }
-            WM_NULL => match c.notifications(callback_id, &mut w, WindowNotify::Null) {
+            WM_NULL => match c.null_msg(callback_id, &mut w) {
                 Ok(_) => 0,
                 Err(NoProcessed) => default_handler(hwnd, msg, param1, param2),
                 Err(x) => callback_error(c, x),

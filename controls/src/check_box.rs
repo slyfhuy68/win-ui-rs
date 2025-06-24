@@ -1,6 +1,12 @@
 use super::*;
-use button::*;
+pub use button::{
+    BottonContentPos as CheckBoxContentPos, ButtonContent as CheckBoxContent,
+    ButtonMsgType as CheckBoxMsgType,
+};
 pub struct CheckBoxStyle {
+    pub style: ChildWindowStyles,
+    pub contect: CheckBoxContent,
+    pub pos: CheckBoxContentPos,
     pub extra_msg: bool,   //BS_NOTIFY
     pub auto: bool,        //if
     pub three_state: bool, //if
@@ -8,9 +14,32 @@ pub struct CheckBoxStyle {
     pub like_button: bool, //BS_PUSHLIKE
     pub left_text: bool,   //BS_LEFTTEXT
 }
-impl Into<WINDOW_STYLE> for CheckBoxStyle {
-    fn into(self) -> WINDOW_STYLE {
-        let mut ms_style = WINDOW_STYLE(0u32);
+impl CheckBoxStyle {
+    #[inline]
+    pub const fn three_state(mut self) -> Self {
+        self.three_state = true;
+        self
+    }
+    #[inline]
+    pub fn new_text(text: &str) -> Self {
+        Self {
+            style: Default::default(),
+            contect: CheckBoxContent::new_text(text),
+            pos: Default::default(),
+            extra_msg: false,
+            auto: true,
+            three_state: false,
+            flat: false,
+            like_button: false,
+            left_text: false,
+        }
+    }
+}
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for CheckBoxStyle {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
+        let (mut ms_style, ex) = self.style.into();
+        let (style2, ditype, text) = self.contect.into();
+        ms_style |= style2 | self.pos.into() | WS_CHILD;
         if self.extra_msg {
             ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
         };
@@ -37,22 +66,9 @@ impl Into<WINDOW_STYLE> for CheckBoxStyle {
             ms_style |= WINDOW_STYLE(BS_LEFTTEXT as u32);
         };
 
-        ms_style
+        (ms_style, ex, ditype, text)
     }
 }
-impl Default for CheckBoxStyle {
-    fn default() -> Self {
-        Self {
-            extra_msg: false,
-            auto: true,
-            three_state: false,
-            flat: true,
-            like_button: false,
-            left_text: false,
-        }
-    }
-}
-pub use button::ButtonMsgType as CheckBoxMsgType;
 define_control! {
     CheckBox,
     "Button",
@@ -93,78 +109,13 @@ define_control! {
         todo!()
     }
 }
-pub struct CheckBoxDrawType(
-    pub ButtonAutoDrawType,
-    pub CheckBoxStyle,
-    pub ChildWindowStyles,
-);
-impl Default for CheckBoxDrawType {
-    fn default() -> Self {
-        Self(
-            ButtonAutoDrawType::TextOnly(false),
-            Default::default(),
-            Default::default(),
-        )
-    }
-}
-impl CheckBoxDrawType {
-    pub fn three_state() -> Self {
-        Self(
-            ButtonAutoDrawType::TextOnly(false),
-            CheckBoxStyle {
-                three_state: true,
-                ..Default::default()
-            },
-            Default::default(),
-        )
-    }
-}
-impl
-    Into<(
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    )> for CheckBoxDrawType
-{
-    fn into(
-        self,
-    ) -> (
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    ) {
-        let CheckBoxDrawType(dtype, bstyle, aaa) = self;
-        let mut wstyle = WINDOW_STYLE(0);
-        let ditype = match dtype {
-            ButtonAutoDrawType::IconOnly(boi) => Some(boi),
-            ButtonAutoDrawType::TextOnly(a) => {
-                if a {
-                    wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);
-                };
-                None
-            }
-            ButtonAutoDrawType::IconAndText(boi, a) => {
-                if a {
-                    wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)
-                };
-                Some(boi)
-            }
-        };
-        wstyle |= bstyle.into();
-        (wstyle, ditype, aaa)
-    }
-}
-// impl From(WINDOW_STYLE, Option<BitmapOrIcon>) for CheckBoxDrawType {
-// 	fn from(data: (WINDOW_STYLE, Option<BitmapOrIcon>)) -> Self {
-//
-// 	}
-// }
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum CheckBoxState {
     Checked,
     Indeterminate,
     UnChecked,
 }
+pub use CheckBoxState::*;
 impl std::fmt::Display for CheckBoxState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
@@ -174,29 +125,28 @@ impl std::fmt::Display for CheckBoxState {
         }
     }
 }
-pub use CheckBoxState::*;
-impl ButtonControl for CheckBox {
-    type Style = CheckBoxDrawType;
+impl CommonControl for CheckBox {
+    type Style = CheckBoxStyle;
+    fn new(
+        wnd: &mut Window,
+        pos: Option<Rectangle>,
+        identifier: WindowID,
+        control_style: Self::Style,
+        font: Option<ControlFont>,
+    ) -> Result<Self> {
+        let (style, ex, draw, name) = control_style.into();
+        Ok(Self(new_button(wnd, name, pos, identifier, style, ex, font, draw)?))
+    }
 }
 impl CheckBox {
     pub fn is_checked(&self) -> Result<CheckBoxState> {
-        let result = unsafe {
-            SendMessageW(
-                self.0.handle(),
-                BM_GETCHECK,
-                Some(WPARAM(0)),
-                Some(LPARAM(0)),
-            )
-            .0
-        };
-        match DLG_BUTTON_CHECK_STATE(match result.try_into() {
-            Ok(x) => x,
-            Err(_) => return Err(ERROR_NOT_SUPPORTED),
+        match DLG_BUTTON_CHECK_STATE(unsafe {
+            SendMessageW(self.0.handle(), BM_GETCHECK, None, None).0 as u32
         }) {
             BST_CHECKED => Ok(Checked),
             BST_UNCHECKED => Ok(UnChecked),
             BST_INDETERMINATE => Ok(Indeterminate),
-            _ => return Err(Error::correct_error()),
+            _ => return Err(ERROR_NOT_SUPPORTED),
         }
     }
 }

@@ -79,14 +79,14 @@ define_control! {
     }
 }
 pub struct RadioButtonDrawType(
-    pub ButtonAutoDrawType,
+    pub ButtonContent,
     pub RadioButtonStyle,
     pub ChildWindowStyles,
 );
 impl Default for RadioButtonDrawType {
     fn default() -> Self {
         Self(
-            ButtonAutoDrawType::TextOnly(false),
+            ButtonContent::TextOnly(false),
             Default::default(),
             Default::default(),
         )
@@ -95,7 +95,7 @@ impl Default for RadioButtonDrawType {
 impl RadioButtonDrawType {
     pub fn group_leader() -> Self {
         Self(
-            ButtonAutoDrawType::TextOnly(false),
+            ButtonContent::TextOnly(false),
             Default::default(),
             ChildWindowStyles {
                 group_leader: true,
@@ -104,31 +104,19 @@ impl RadioButtonDrawType {
         )
     }
 }
-impl
-    Into<(
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    )> for RadioButtonDrawType
-{
-    fn into(
-        self,
-    ) -> (
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    ) {
+impl Into<(WINDOW_STYLE, Option<ButtonImage>, ChildWindowStyles)> for RadioButtonDrawType {
+    fn into(self) -> (WINDOW_STYLE, Option<ButtonImage>, ChildWindowStyles) {
         let RadioButtonDrawType(dtype, bstyle, bbb) = self;
         let mut wstyle = WINDOW_STYLE(0);
         let ditype = match dtype {
-            ButtonAutoDrawType::IconOnly(boi) => Some(boi),
-            ButtonAutoDrawType::TextOnly(a) => {
+            ButtonContent::IconOnly(boi) => Some(boi),
+            ButtonContent::TextOnly(a) => {
                 if a {
                     wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);
                 };
                 None
             }
-            ButtonAutoDrawType::IconAndText(boi, a) => {
+            ButtonContent::IconAndText(boi, a) => {
                 if a {
                     wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)
                 };

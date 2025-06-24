@@ -68,15 +68,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ],
     }
     .pre_compile(NumberId(5))?;
-    let st = StringTable{
-        language: None, 
+    let st = StringTable {
+        language: None,
         strings: HashMap::from([
             (50, "Hello, {1}!".to_string()),
             (51, "Bye, {1}!".to_string()),
             (52, "中文".to_string()),
             (53, "{1}爱吃𰻞𰻞面".to_string()),
-        ])
-    }.pre_compile()?;
+        ]),
+    }
+    .pre_compile()?;
     compile_all!(vstr, icon1, icon2, icon3, cursor1, menu1, st)?;
     Ok(())
 }

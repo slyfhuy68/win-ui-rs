@@ -188,7 +188,7 @@ impl ComboBox {
         }
         .0 as i32
         {
-            0 => correct_error_result(Some(0)),
+            0 => Error::correct_error_result(Some(0)),
             CB_ERR => Ok(None),
             CB_ERRSPACE => Err(ERROR_NOT_ENOUGH_MEMORY),
             x => Ok(Some(x as ListBoxItemPos)),
@@ -205,7 +205,7 @@ impl ComboBox {
         }
         .0 as i32
         {
-            0 => correct_error_result(Some(0)),
+            0 => Error::correct_error_result(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxMaxSize)),
         }
@@ -228,7 +228,7 @@ impl ComboBox {
         }
         .0 as i32
         {
-            0 => correct_error_result(Some(0)),
+            0 => Error::correct_error_result(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxItemPos)),
         }
@@ -251,7 +251,7 @@ impl ComboBox {
         }
         .0 as i32
         {
-            0 => correct_error_result(Some(0)),
+            0 => Error::correct_error_result(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxItemPos)),
         }
@@ -270,7 +270,7 @@ impl ComboBox {
         }
         .0 as i32
         {
-            0 => correct_error_result(Some(0)),
+            0 => Error::correct_error_result(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxMaxSize)),
         }
@@ -286,7 +286,7 @@ impl ComboBox {
         }
         .0 as i32
         {
-            0 => correct_error_result(Some(0)),
+            0 => Error::correct_error_result(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxItemPos)),
         }
@@ -303,52 +303,10 @@ impl ComboBox {
         }
         .0;
         match data as i32 {
-            0 => correct_error_result(Some(0)),
+            0 => Error::correct_error_result(Some(0)),
             CB_ERR => Ok(None),
             _ => Ok(Some(data)),
         }
-    }
-    pub fn get_text(&self) -> Result<String> {
-        let length = unsafe {
-            SendMessageW(
-                self.0.handle(),
-                WM_GETTEXTLENGTH,
-                Some(WPARAM(0)),
-                Some(LPARAM(0)),
-            )
-            .0
-        } as usize;
-        if length == 0 {
-            return Ok(String::new());
-        };
-        let mut buffer: Vec<u16> = vec![0; length + 2];
-        unsafe {
-            SendMessageW(
-                self.0.handle(),
-                WM_GETTEXT,
-                Some(WPARAM(length + 2)),
-                Some(LPARAM(buffer.as_mut_ptr() as isize)),
-            )
-            .0;
-        }
-        Ok(String::from_utf16_lossy(&buffer[..length]))
-    }
-    pub fn set_text(&mut self, text: &str) -> Result<()> {
-        let (text_ptr, _text_u16) = str_to_pcwstr(text);
-
-        if unsafe {
-            SendMessageW(
-                self.0.handle(),
-                WM_SETTEXT,
-                Some(WPARAM(0)),
-                Some(LPARAM(text_ptr.0 as isize)),
-            )
-        }
-        .0 == 0
-        {
-            return Err(Error::correct_error());
-        }
-        Ok(())
     }
     // CB_GETITEMHEIGHT
     // CB_GETLBTEXT
@@ -373,4 +331,7 @@ impl ComboBox {
     // CB_SETMINVISIBLE
     // CB_SETTOPINDEX
     // CB_SHOWDROPDOWN
+}
+impl TextControl for ComboBox {
+    const INSUFFICIENT_SPACE_RESULT: u32 = CB_ERRSPACE;
 }

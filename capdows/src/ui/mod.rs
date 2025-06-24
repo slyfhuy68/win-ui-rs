@@ -4,14 +4,6 @@
 //    | (_| | | |_| | | |_  | | | | | (_) | | |     _  \__ \ | | | |_| | |  _| | | | | | |_| | | |_| | | (_) | | (_) | | | (_| | | (_| | | | | |_  | | | | | |_| | | |_) |
 //     \____|  \____|  \__| |_| |_|  \___/  |_|    (_) |___/ |_|  \____| |_|   |_| |_|  \____|  \____|  \___/   \___/   \ \____|  \____| |_|  \__| |_| |_|  \____| |____/
 //                                                                |___/                         |___/                    \____/   |___/
-// #![allow(dead_code)]
-// #![allow(unused_variables)]
-// #![allow(unused_mut)]
-// #![allow(unused_imports)]
-// #![allow(non_upper_case_globals)]
-// #![allow(unused_unsafe)]
-// #![allow(non_snake_case)]
-// #![allow(unused_must_use)]
 // author:slyfhuy68@github
 pub const PROC_KEY_NAME: &'static str = "MalibUserCallback";
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -50,6 +42,8 @@ pub mod utility {
     #[doc(no_inline)]
     pub use capdows_utility::*;
 }
+use crate::error::{Result, WinError as Error, WinError, errors::*};
+// use crate::prelude::*;
 use window::*;
 pub mod core {
     use super::*;
@@ -59,8 +53,6 @@ pub mod core {
         StringId(ResourceStringId),
         NumberId(ResourceNumberId),
     }
-    #[doc(no_inline)]
-    pub use super::option_copy_handle;
     #[doc(no_inline)]
     pub use ResourceID::*;
     impl ResourceID {
@@ -74,14 +66,6 @@ pub mod core {
             }
         }
     }
-    #[doc(no_inline)]
-    pub use crate::error::errors::*;
-    #[doc(no_inline)]
-    pub use crate::error::*;
-    #[doc(no_inline)]
-    pub use crate::last_error;
-    // #[doc(no_inline)]
-    // pub use crate::win_error;
     #[derive(Debug, Clone)]
     pub struct Point(pub i32, pub i32);
     impl Copy for Point {}
@@ -100,11 +84,11 @@ pub mod core {
     }
     impl Point {
         ///以窗口左上角为原点  
-        ///以屏幕右、上为正方向，如果创建窗口时指定[`crate::win32::style::NormalWindowStyles::right_layout`]为false，则与系统语言方向***无关***
+        ///以屏幕右、上为正方向，如果创建窗口时指定[`crate::ui::style::NormalWindowStyles::right_layout`]为false，则与系统语言方向***无关***
         pub fn window_to_screen(&mut self, wnd: &Window) -> Result<Self> {
             let mut point = (*self).into();
             if unsafe { ClientToScreen(wnd.handle(), &mut point) }.0 != 0 {
-                Err(correct_error())
+                Err(WinError::correct_error())
             } else {
                 Ok(point.into())
             }
@@ -159,25 +143,7 @@ pub mod core {
     }
 }
 use self::core::*;
-// pub mod allmods {
-//     pub use super::brush::*;
-//     pub use super::class::*;
-//     pub use super::core::*;
-//     pub use super::help::*;
-//     pub use super::image::*;
-//     pub use super::menu::*;
-//     pub use super::module::*;
-//     pub use super::msg::*;
-//     // pub use super::prop::*;
-//     pub use super::style::*;
-//     pub use super::font::*;
-//     pub use super::window::*;
-//
-//     pub use super::{Error, Result};
-// }
 //----------------------------------------------------------------------------------
-#[doc(no_inline)]
-pub use super::error::{Result, WinError as Error, correct_error, errors::*};
 use super::i18n::*;
 use either::*;
 #[allow(unused_imports)]
@@ -234,10 +200,6 @@ pub fn hash<T: Hash>(t: &T) -> u64 {
 //         Error::from_win32($const)
 //     };
 // }
-#[macro_export]
-macro_rules! last_error {
-    ($code:expr) => {{ WinError::correct_error_data($code) }};
-}
 #[macro_export]
 macro_rules! import_foundation {
     () => {

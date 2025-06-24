@@ -1,12 +1,5 @@
-use crate::PreCompilePruduct;
-use crate::pre_compile_lang_id;
-use crate::pre_compile_resource_id;
-use capdows::i18n::LangID;
-use capdows::win32::Result;
-use capdows::win32::core::ResourceID;
-pub use capdows::win32::help::HelpId;
-pub use capdows::win32::menu::MenuItemID;
-pub use capdows::win32::menu::MenuItemStyle;
+use super::*;
+pub use capdows::ui::{help::HelpId, menu::*};
 ///菜单模板只能定义OwnDraw与字符串项或分隔符，位图类型的项需要在运行时添加
 // menuID MENUEX
 // LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL

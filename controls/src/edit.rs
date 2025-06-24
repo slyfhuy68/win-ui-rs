@@ -166,6 +166,7 @@ impl DataControl for Edit {
         Ok(result)
     }
 }
+impl TextControl for Edit {}
 impl Edit {
     // fn can_undo(&self) -> Result<bool>{
     //     unsafe { SendMessageW(self.0, EM_CANUNDO, Some(WPARAM(0)), Some(LPARAM(0))).0 }
@@ -208,47 +209,5 @@ impl Edit {
             Some(x) => Ok(x),
             None => Err(ERROR_NO_UNICODE_TRANSLATION),
         }
-    }
-    pub fn get_text(&self) -> Result<String> {
-        let length = unsafe {
-            SendMessageW(
-                self.0.handle(),
-                WM_GETTEXTLENGTH,
-                Some(WPARAM(0)),
-                Some(LPARAM(0)),
-            )
-            .0
-        } as usize;
-        if length == 0 {
-            return Ok(String::new());
-        };
-        let mut buffer: Vec<u16> = vec![0; length + 2];
-        unsafe {
-            SendMessageW(
-                self.0.handle(),
-                WM_GETTEXT,
-                Some(WPARAM(length + 2)),
-                Some(LPARAM(buffer.as_mut_ptr() as isize)),
-            )
-            .0;
-        }
-        Ok(String::from_utf16_lossy(&buffer[..length]))
-    }
-    pub fn set_text(&mut self, text: &str) -> Result<()> {
-        let (text_ptr, _text_u16) = str_to_pcwstr(text);
-
-        if unsafe {
-            SendMessageW(
-                self.0.handle(),
-                WM_SETTEXT,
-                Some(WPARAM(0)),
-                Some(LPARAM(text_ptr.0 as isize)),
-            )
-        }
-        .0 == 0
-        {
-            return Err(Error::correct_error());
-        }
-        Ok(())
     }
 }

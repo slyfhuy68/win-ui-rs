@@ -2,22 +2,8 @@ pub use std::result::Result as sResult;
 use std::string::FromUtf8Error;
 use windows::Win32::Foundation as win32f;
 pub type Result<T> = sResult<T, WinError>;
-use std::string::FromUtf16Error;
-pub fn correct_error_data<T>(data: T) -> Result<T> {
-    WinError::correct_error_data(data)
-}
-pub fn correct_error() -> WinError {
-    WinError::correct_error()
-}
-pub fn correct_error_result<T>(data: T) -> Result<T> {
-    let code = wError::from_win32().code();
-    if code.is_ok() {
-        Ok(data)
-    } else {
-        Err(code.into())
-    }
-}
 use std::fmt::Debug;
+use std::string::FromUtf16Error;
 use windows::{
     Win32::Foundation::{GetLastError, NTSTATUS, WIN32_ERROR},
     core::{Error as wError, HRESULT},
@@ -79,6 +65,7 @@ impl WinError {
             _ => return None,
         })
     }
+    #[inline]
     pub const fn code(&self) -> i32 {
         match self.0 {
             Win32(i) => i,
@@ -86,7 +73,8 @@ impl WinError {
             WinErrorKind::NotSupport => -1554,
         }
     }
-    pub fn correct_error_data<T>(data: T) -> Result<T> {
+    #[inline]
+    pub fn correct_error_result<T>(data: T) -> Result<T> {
         #[allow(unused_unsafe)]
         let error = unsafe { GetLastError() };
         if error.is_ok() {
@@ -95,9 +83,11 @@ impl WinError {
             Err(Self::from_win32(error))
         }
     }
+    #[inline]
     pub fn correct_error() -> Self {
         wError::from_win32().into()
     }
+    #[inline]
     pub const fn from_win32(werror: WIN32_ERROR) -> Self {
         let WIN32_ERROR(error) = werror;
         Self(Win32(if error as i32 <= 0 {
@@ -106,6 +96,7 @@ impl WinError {
             (error & 0x0000_FFFF) | (7 << 16) | 0x8000_0000
         } as i32))
     }
+    #[inline]
     pub const fn from_nt(nerror: NTSTATUS) -> Self {
         let NTSTATUS(error) = nerror;
         Self(Win32(if error >= 0 {
@@ -114,6 +105,7 @@ impl WinError {
             error | 0x1000_0000
         }))
     }
+    #[inline]
     pub const fn from_local(code: u32) -> Self {
         Self(Local(code))
     }
@@ -126,27 +118,32 @@ impl fmt::Display for WinError {
     }
 }
 impl From<WIN32_ERROR> for WinError {
+    #[inline]
     fn from(err: WIN32_ERROR) -> Self {
         Self::from_win32(err)
     }
 }
 impl From<wError> for WinError {
+    #[inline]
     fn from(err: wError) -> Self {
         err.code().into()
     }
 }
 impl From<NTSTATUS> for WinError {
+    #[inline]
     fn from(err: NTSTATUS) -> Self {
         Self::from_nt(err)
     }
 }
 impl From<HRESULT> for WinError {
+    #[inline]
     fn from(err: HRESULT) -> Self {
         Self(Win32(err.0))
     }
 }
 use std::num::TryFromIntError;
 impl From<TryFromIntError> for WinError {
+    #[inline]
     fn from(_: TryFromIntError) -> Self {
         ERROR_INT_OVERFLOW
     }
@@ -163,11 +160,15 @@ impl From<std::io::Error> for WinError {
     }
 }
 impl From<FromUtf8Error> for WinError {
+    #[inline]
+
     fn from(_: FromUtf8Error) -> Self {
         ERROR_NO_UNICODE_TRANSLATION
     }
 }
 impl From<FromUtf16Error> for WinError {
+    #[inline]
+
     fn from(_: FromUtf16Error) -> Self {
         ERROR_NO_UNICODE_TRANSLATION
     }
@@ -179,9 +180,16 @@ macro_rules! def_windows_error {
         )*
     };
 }
+macro_rules! def_local_error {
+    ($($name:ident => $num:expr),* $(,)?) => {
+        $(
+            pub const $name: WinError = WinError::from_local($num);
+        )*
+    };
+}
 pub mod errors {
     use super::*;
-    def_windows_error!(
+    def_windows_error! {
         ERROR_NO_UNICODE_TRANSLATION,
         ERROR_INVALID_WINDOW_HANDLE,
         ERROR_INVALID_DATA,
@@ -213,38 +221,40 @@ pub mod errors {
         ERROR_FILE_TOO_LARGE,
         ERROR_LOCK_VIOLATION,
         ERROR_IO_PENDING,
-    );
-    //---------自定义----------------------------------------------------------------------------
-    pub const ERROR_CLASS_NAME_TOO_LONG: WinError = WinError::from_local(1);
-    pub const ERROR_TIME_TOO_LONG: WinError = WinError::from_local(2);
-    pub const ERROR_INT_OVERFLOW: WinError = WinError::from_local(3);
-    pub const ERROR_INVALID_RESOURCE_ID: WinError = WinError::from_local(4);
-    pub const ERROR_NULL_POINTER: WinError = WinError::from_local(5);
-    pub const ERROR_MSG_CODE_NOT_SUPPORT: WinError = WinError::from_local(6);
-    pub const ERROR_NOT_SUPPORT_ZERO: WinError = WinError::from_local(7);
-    pub const ERROR_NOT_PRESENT: WinError = WinError::from_local(8);
-    pub const ERROR_CANNOT_REMOVE_DEFAULT: WinError = WinError::from_local(9);
-    pub const ERROR_WINDOW_TYPE_NOT_SUPPORT: WinError = WinError::from_local(10);
-    pub const ERROR_INVALID_STRING_ID: WinError = WinError::from_local(11);
-    pub const ERROR_CONNECTION_REFUSED: WinError = WinError::from_local(12);
-    pub const ERROR_NOT_CONNECTED: WinError = WinError::from_local(13);
-    pub const ERROR_FILESYSTEM_LOOP: WinError = WinError::from_local(14);
-    pub const ERROR_TIMED_OUT: WinError = WinError::from_local(15);
-    pub const ERROR_UNEXPECTED_EOF: WinError = WinError::from_local(16);
-    pub const ERROR_NOT_SEEKABLE: WinError = WinError::from_local(17);
-    pub const ERROR_RESOURCE_BUSY: WinError = WinError::from_local(18);
-    pub const ERROR_EXECUTABLE_FILE_BUSY: WinError = WinError::from_local(19);
-    pub const ERROR_CROSSES_DEVICES: WinError = WinError::from_local(20);
-    pub const ERROR_TOO_MANY_LINKS: WinError = WinError::from_local(21);
-    // ERROR_UNSUPPORTED = ERROR_NOT_SUPPORTED;
-    pub const ERROR_COMBO_BOX_ERR: WinError = WinError::from_local(22);
-    pub const ERROR_CONNECTION_RESET: WinError = WinError::from_local(23);
-    pub const ERROR_NETWORK_DOWN: WinError = WinError::from_local(24);
-    pub const ERROR_ADDRESS_NOT_AVAILABLE: WinError = WinError::from_local(25);
-    pub const ERROR_WOULD_BLOCK: WinError = WinError::from_local(26);
-    pub const ERROR_DIRECTORY_NAME_INVALID: WinError = WinError::from_local(27);
-    pub const ERROR_INVALID_COMBINE: WinError = WinError::from_local(28);
-    pub const ERROR_MUSTNOT_CHILD: WinError = WinError::from_local(29);
-    pub const ERROR_NOT_HAVE_MENU: WinError = WinError::from_local(30);
+    }
+    #[rustfmt::skip]
+    def_local_error! {
+        ERROR_CLASS_NAME_TOO_LONG       => 01,
+        ERROR_TIME_TOO_LONG             => 02,
+        ERROR_INT_OVERFLOW              => 03,
+        ERROR_INVALID_RESOURCE_ID       => 04,
+        ERROR_NULL_POINTER              => 05,
+        ERROR_MSG_CODE_NOT_SUPPORT      => 06,
+        ERROR_NOT_SUPPORT_ZERO          => 07,
+        ERROR_NOT_PRESENT               => 08,
+        ERROR_CANNOT_REMOVE_DEFAULT     => 09,
+        ERROR_WINDOW_TYPE_NOT_SUPPORT   => 10,
+        ERROR_INVALID_STRING_ID         => 11,
+        ERROR_CONNECTION_REFUSED        => 12,
+        ERROR_NOT_CONNECTED             => 13,
+        ERROR_FILESYSTEM_LOOP           => 14,
+        ERROR_TIMED_OUT                 => 15,
+        ERROR_UNEXPECTED_EOF            => 16,
+        ERROR_NOT_SEEKABLE              => 17,
+        ERROR_RESOURCE_BUSY             => 18,
+        ERROR_EXECUTABLE_FILE_BUSY      => 19,
+        ERROR_CROSSES_DEVICES           => 20,
+        ERROR_TOO_MANY_LINKS            => 21,
+        ERROR_COMBO_BOX_ERR             => 22,
+        ERROR_CONNECTION_RESET          => 23,
+        ERROR_NETWORK_DOWN              => 24,
+        ERROR_ADDRESS_NOT_AVAILABLE     => 25,
+        ERROR_WOULD_BLOCK               => 26,
+        ERROR_DIRECTORY_NAME_INVALID    => 27,
+        ERROR_INVALID_COMBINE           => 28,
+        ERROR_MUSTNOT_CHILD             => 29,
+        ERROR_NOT_FOUND_MENU            => 30,
+        ERROR_INSUFFICIENT_SPACE        => 31,
+    }
 }
 use errors::*;

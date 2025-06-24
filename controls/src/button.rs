@@ -1,79 +1,4 @@
 use super::*;
-pub enum ButtonMsgType {
-    MouseEntering,
-    MouseLeaving,
-    Clicked,
-    DoubleClicked,
-    LoseKeyboardFocus,
-    GetKeyboardFocus,
-    Draw(usize),
-}
-define_control! {
-    ManuallyDrawButton,
-    "Button",
-    {
-        match code {
-            BCN_HOTITEMCHANGE => {
-                let data = *(ptr as *mut NMBCHOTITEM);
-                if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-                    ManuallyDrawButtonMsgType::MouseEntering
-                } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                    ManuallyDrawButtonMsgType::MouseLeaving
-                } else {
-                    return Err(ERROR_MSG_CODE_NOT_SUPPORT);
-                }
-            }
-            BN_CLICKED => ManuallyDrawButtonMsgType::Clicked,
-            BN_DBLCLK => ManuallyDrawButtonMsgType::DoubleClicked,
-            BN_KILLFOCUS => ManuallyDrawButtonMsgType::LoseKeyboardFocus,
-            BN_SETFOCUS => ManuallyDrawButtonMsgType::GetKeyboardFocus,
-            _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
-        }
-    },
-    {
-        if !is_button_window(wnd)? {
-            return Ok(false);
-        }
-        Ok(
-            style_of(wnd)
-                .contains(WINDOW_STYLE(BS_OWNERDRAW as u32)),
-        )
-    },
-    {
-        todo!()
-    }
-}
-pub enum ManuallyDrawButtonMsgType {
-    MouseEntering,
-    MouseLeaving,
-    Clicked,
-    DoubleClicked,
-    LoseKeyboardFocus,
-    GetKeyboardFocus,
-}
-pub struct ManuallyDrawButtonStyle(ChildWindowStyles);
-impl
-    Into<(
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    )> for ManuallyDrawButtonStyle
-{
-    fn into(
-        self,
-    ) -> (
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    ) {
-        (WINDOW_STYLE(BS_OWNERDRAW as u32), None, self.0)
-    }
-}
-impl ButtonControl for ManuallyDrawButton {
-    type Style = ManuallyDrawButtonStyle;
-}
-
-//-----------------------------------按钮-----------------------------------------
 #[derive(Default)]
 pub enum BottonContentPos {
     #[default]
@@ -87,175 +12,124 @@ pub enum BottonContentPos {
     BottomLeft,  //BS_BOTTOM | BS_LEFT
     BottomRight, //BS_BOTTOM | BS_RIGHT
 }
-pub struct ButtonStyle {
-    pub extra_msg: bool, //BS_NOTIFY
-    pub light: bool,     //if light BS_DEFPUSHBUTTON else BS_PUSHBUTTON
-    pub flat: bool,      //BS_FLAT
-}
-impl Into<WINDOW_STYLE> for ButtonStyle {
+impl Into<WINDOW_STYLE> for BottonContentPos {
     fn into(self) -> WINDOW_STYLE {
-        let mut ms_style = WINDOW_STYLE(0u32);
+        use BottonContentPos::*;
+        WINDOW_STYLE(match self {
+            Center => BS_CENTER | BS_VCENTER,
+            Left => BS_LEFT | BS_VCENTER,
+            Right => BS_RIGHT | BS_VCENTER,
+            Top => BS_TOP | BS_CENTER,
+            Bottom => BS_BOTTOM | BS_CENTER,
+            TopLeft => BS_TOP | BS_LEFT,
+            TopRight => BS_TOP | BS_RIGHT,
+            BottomLeft => BS_BOTTOM | BS_LEFT,
+            BottomRight => BS_BOTTOM | BS_RIGHT,
+        } as u32)
+    }
+}
+#[derive(Default)]
+pub enum ButtonType {
+    #[default]
+    Normal,
+    Split,
+    Link,
+}
+pub struct ButtonStyle {
+    pub style: ChildWindowStyles,
+    pub btype: ButtonType,
+    pub contect: ButtonContent,
+    pub pos: BottonContentPos,
+    pub extra_msg: bool, //BS_NOTIFY
+    pub flat: bool,      //BS_FLAT
+    pub focused: bool,
+}
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for ButtonStyle {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
+        let (mut ms_style, ex) = self.style.into();
+        use ButtonType::*;
+        ms_style |= WINDOW_STYLE(match (self.btype, self.focused) {
+            (Normal, false) => BS_PUSHBUTTON,
+            (Normal, true) => BS_DEFPUSHBUTTON,
+            (Split, false) => BS_SPLITBUTTON,
+            (Split, true) => BS_DEFSPLITBUTTON,
+            (Link, false) => BS_COMMANDLINK,
+            (Link, true) => BS_DEFCOMMANDLINK,
+        } as u32);
         if self.extra_msg {
             ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
         };
         if self.flat {
             ms_style |= WINDOW_STYLE(BS_FLAT as u32);
         };
-        if self.light {
-            ms_style |= WINDOW_STYLE(BS_DEFPUSHBUTTON as u32);
-        } else {
-            ms_style |= WINDOW_STYLE(BS_PUSHBUTTON as u32);
-        };
-        ms_style
-    }
-}
-impl Default for ButtonStyle {
-    fn default() -> Self {
-        Self {
-            extra_msg: false,
-            light: false,
-            flat: true,
-        }
-    }
-}
-pub enum ButtonAutoDrawType {
-    IconOnly(Either<Bitmap, Icon>),          //BS_ICON
-    TextOnly(bool),                          //bool:multiple_lines BS_TEXT
-    IconAndText(Either<Bitmap, Icon>, bool), //bool:BS_MULTILINE, BS_TEXT BS_ICON
-}
-define_control! {
-    Button,
-    "Button",
-    {
-        match code {
-            BCN_HOTITEMCHANGE => {
-                let data = *(ptr as *mut NMBCHOTITEM);
-                if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-                    MouseEntering
-                } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                    MouseLeaving
-                } else {
-                    return Err(ERROR_MSG_CODE_NOT_SUPPORT);
-                }
-            }
-            BN_CLICKED => Clicked,
-            BN_DBLCLK => DoubleClicked,
-            BN_KILLFOCUS => LoseKeyboardFocus,
-            BN_SETFOCUS => GetKeyboardFocus,
-            NM_CUSTOMDRAW => Draw(ptr),
-            _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
-        }
-    },
-    {
-        if !is_button_window(wnd)? {
-            return Ok(false);
-        }
-        let style = style_of_raw(wnd);
-        if (style & BS_3STATE)==0 && (style & BS_AUTO3STATE)==0 && (style & BS_AUTOCHECKBOX)==0 &&
-        (style & BS_AUTORADIOBUTTON)==0 && (style & BS_CHECKBOX)==0 && (style & BS_COMMANDLINK)==0 &&
-        (style & BS_DEFCOMMANDLINK)==0 && (style & BS_DEFSPLITBUTTON)==0 &&
-        (style & BS_GROUPBOX)==0 && (style & BS_OWNERDRAW)==0 &&
-        (style & BS_RADIOBUTTON)==0 && (style & BS_SPLITBUTTON)==0
-        {
-            return Ok(true);
-        }
-        Ok(false)
-    },
-    {
-        todo!()
-    }
-}
-pub struct ButtonDrawType(
-    pub ButtonAutoDrawType,
-    pub ButtonStyle,
-    pub ChildWindowStyles,
-);
-
-impl Default for ButtonDrawType {
-    fn default() -> Self {
-        Self(
-            ButtonAutoDrawType::TextOnly(false),
-            Default::default(),
-            Default::default(),
+        let (style2, ditype, text) = self.contect.into();
+        (
+            ms_style | style2 | self.pos.into() | WS_CHILD,
+            ex,
+            ditype,
+            text,
         )
     }
 }
-impl
-    Into<(
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    )> for ButtonDrawType
-{
-    fn into(
-        self,
-    ) -> (
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    ) {
-        let ButtonDrawType(dtype, bstyle, style) = self;
-        let mut wstyle = WINDOW_STYLE(0);
-        let ditype = match dtype {
-            ButtonAutoDrawType::IconOnly(boi) => Some(boi),
-            ButtonAutoDrawType::TextOnly(a) => {
-                if a {
-                    wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);
-                };
-                None
-            }
-            ButtonAutoDrawType::IconAndText(boi, a) => {
-                if a {
-                    wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)
-                };
-                Some(boi)
-            }
-        };
-        wstyle |= bstyle.into();
-        (wstyle, ditype, style)
-    }
+pub enum ButtonContent {
+    TextOnly {
+        //BS_TEXT
+        text: String,
+        multiple_lines: bool, //BS_MULTILINE
+    },
+    IconOnly {
+        //BS_ICON
+        icon: ButtonImage,
+        name: String,
+    },
+    IconAndText {
+        //BS_TEXT BS_ICON
+        icon: ButtonImage,
+        text: String,
+        multiple_lines: bool, //BS_MULTILINE
+    },
 }
-// impl From(WINDOW_STYLE, Option<Either<Bitmap, Icon>>) for ButtonDrawType {
-// 	fn from(data: (WINDOW_STYLE, Option<Either<Bitmap, Icon>>)) -> Self {
-//
-// 	}
-// }
-impl ButtonControl for Button {
-    type Style = ButtonDrawType;
-}
-//------------------------------------------分隔按钮----------------------------------
-pub struct SplitButtonStyle {
-    pub extra_msg: bool, //BS_NOTIFY
-    pub light: bool,     //if light BS_DEFSPLITBUTTON else BS_SPLITBUTTON
-    pub flat: bool,      //BS_FLAT
-}
-impl Into<WINDOW_STYLE> for SplitButtonStyle {
-    fn into(self) -> WINDOW_STYLE {
-        let mut ms_style = WINDOW_STYLE(0u32);
-        if self.extra_msg {
-            ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
-        };
-        if self.flat {
-            ms_style |= WINDOW_STYLE(BS_FLAT as u32);
-        };
-        if self.light {
-            ms_style |= WINDOW_STYLE(BS_DEFSPLITBUTTON as u32);
-        } else {
-            ms_style |= WINDOW_STYLE(BS_SPLITBUTTON as u32);
-        };
-        ms_style
-    }
-}
-impl Default for SplitButtonStyle {
-    fn default() -> Self {
-        Self {
-            extra_msg: false,
-            light: false,
-            flat: true,
+impl ButtonContent {
+    pub fn new_text(text: &str) -> Self {
+        Self::TextOnly {
+            text: text.to_string(),
+            multiple_lines: false,
         }
     }
 }
-pub enum SplitButtonMsgType {
+impl Into<(WINDOW_STYLE, Option<ButtonImage>, String)> for ButtonContent {
+    fn into(self) -> (WINDOW_STYLE, Option<ButtonImage>, String) {
+        match self {
+            ButtonContent::TextOnly {
+                text,
+                multiple_lines,
+            } => (
+                if multiple_lines {
+                    WINDOW_STYLE(BS_MULTILINE as u32)
+                } else {
+                    WINDOW_STYLE(0)
+                }, 
+                None,
+                text,
+            ),
+            ButtonContent::IconOnly { icon, name , ..} => (WINDOW_STYLE(0), Some(icon), name),
+            ButtonContent::IconAndText {
+                icon,
+                text,
+                multiple_lines,
+            } => (
+                if multiple_lines {
+                    WINDOW_STYLE(BS_MULTILINE as u32)
+                } else {
+                    WINDOW_STYLE(0)
+                }, 
+                Some(icon),
+                text,
+            ),
+        }
+    }
+}
+pub enum ButtonMsgType {
     MouseEntering,
     MouseLeaving,
     Clicked,
@@ -269,7 +143,7 @@ pub enum SplitButtonMsgType {
 }
 const BCN_FFFFFB21_MSG: u32 = 4294966049;
 define_control! {
-    SplitButton,
+    Button,
     "Button",
     {
         match code {
@@ -302,204 +176,32 @@ define_control! {
         }
     },
     {
-        if !is_button_window(wnd)? {
-            return Ok(false);
-        }
-        let style = style_of_raw(wnd);
-        if (style & BS_DEFSPLITBUTTON) != 0 || (style & BS_SPLITBUTTON) != 0 {
-            return Ok(true);
-        }
-        Ok(false)
+        is_button_window(wnd)
     },
     {
         todo!()
     }
 }
-pub struct SplitButtonDrawType(
-    pub ButtonAutoDrawType,
-    pub SplitButtonStyle,
-    pub ChildWindowStyles,
-);
-impl Default for SplitButtonDrawType {
-    fn default() -> Self {
-        Self(
-            ButtonAutoDrawType::TextOnly(false),
-            Default::default(),
-            Default::default(),
-        )
-    }
-}
-impl
-    Into<(
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    )> for SplitButtonDrawType
-{
-    fn into(
-        self,
-    ) -> (
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    ) {
-        let SplitButtonDrawType(dtype, bstyle, aaa) = self;
-        let mut wstyle = WINDOW_STYLE(0);
-        let ditype = match dtype {
-            ButtonAutoDrawType::IconOnly(boi) => Some(boi),
-            ButtonAutoDrawType::TextOnly(a) => {
-                if a {
-                    wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);
-                };
-                None
-            }
-            ButtonAutoDrawType::IconAndText(boi, a) => {
-                if a {
-                    wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)
-                };
-                Some(boi)
-            }
-        };
-        wstyle |= bstyle.into();
-        (wstyle, ditype, aaa)
-    }
-}
-// impl From(WINDOW_STYLE, Option<BitmapOrIcon>) for SplitButtonDrawType {
-// 	fn from(data: (WINDOW_STYLE, Option<BitmapOrIcon>)) -> Self {
+// impl From(WINDOW_STYLE, Option<ButtonImage>) for ButtonDrawType {
+// 	fn from(data: (WINDOW_STYLE, Option<ButtonImage>)) -> Self {
 //
 // 	}
 // }
-impl ButtonControl for SplitButton {
-    type Style = SplitButtonDrawType;
-}
-//------------------------------------------链接按钮----------------------------------
-pub struct LinkButtonStyle {
-    pub extra_msg: bool, //BS_NOTIFY
-    pub light: bool,     //if light BS_DEFCOMMANDLINK else BS_COMMANDLINK
-    pub flat: bool,      //BS_FLAT
-}
-impl Into<WINDOW_STYLE> for LinkButtonStyle {
-    fn into(self) -> WINDOW_STYLE {
-        let mut ms_style = WINDOW_STYLE(0u32);
-        if self.extra_msg {
-            ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
-        };
-        if self.flat {
-            ms_style |= WINDOW_STYLE(BS_FLAT as u32);
-        };
-        if self.light {
-            ms_style |= WINDOW_STYLE(BS_DEFCOMMANDLINK as u32);
-        } else {
-            ms_style |= WINDOW_STYLE(BS_COMMANDLINK as u32);
-        };
-        ms_style
+impl TextControl for Button {}
+impl CommonControl for Button {
+    type Style = ButtonStyle;
+    fn new(
+        wnd: &mut Window,
+        pos: Option<Rectangle>,
+        identifier: WindowID,
+        control_style: Self::Style,
+        font: Option<ControlFont>,
+    ) -> Result<Self> {
+        let (style, ex, draw, name) = control_style.into();
+        Ok(Self(new_button(wnd, name, pos, identifier, style, ex, font, draw)?))
     }
 }
-impl Default for LinkButtonStyle {
-    fn default() -> Self {
-        Self {
-            extra_msg: false,
-            light: false,
-            flat: true,
-        }
-    }
-}
-pub use ButtonMsgType as LinkButtonMsgType;
-define_control! {
-    LinkButton,
-    "Button",
-    {
-        match code {
-            BCN_HOTITEMCHANGE => {
-                let data = *(ptr as *mut NMBCHOTITEM);
-                if data.dwFlags == HICF_MOUSE | HICF_ENTERING {
-                    MouseEntering
-                } else if data.dwFlags == HICF_MOUSE | HICF_LEAVING {
-                    MouseLeaving
-                } else {
-                    return Err(ERROR_MSG_CODE_NOT_SUPPORT);
-                }
-            }
-            BN_CLICKED => Clicked,
-            BN_DOUBLECLICKED => DoubleClicked,
-            BN_KILLFOCUS => LoseKeyboardFocus,
-            BN_SETFOCUS => GetKeyboardFocus,
-            NM_CUSTOMDRAW => Draw(ptr),
-            _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
-        }
-    },
-    {
-        if !is_button_window(wnd)? {
-            return Ok(false);
-        }
-        let style = style_of_raw(wnd);
-        if (style & BS_DEFCOMMANDLINK) != 0 || (style & BS_COMMANDLINK) != 0 {
-            return Ok(true);
-        }
-        Ok(false)
-    },
-    {
-        todo!()
-    }
-}
-pub struct LinkButtonDrawType(
-    pub ButtonAutoDrawType,
-    pub LinkButtonStyle,
-    pub ChildWindowStyles,
-);
-impl Default for LinkButtonDrawType {
-    fn default() -> Self {
-        Self(
-            ButtonAutoDrawType::TextOnly(false),
-            Default::default(),
-            Default::default(),
-        )
-    }
-}
-impl
-    Into<(
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    )> for LinkButtonDrawType
-{
-    fn into(
-        self,
-    ) -> (
-        WINDOW_STYLE,
-        Option<Either<Bitmap, Icon>>,
-        ChildWindowStyles,
-    ) {
-        let LinkButtonDrawType(dtype, bstyle, aaa) = self;
-        let mut wstyle = WINDOW_STYLE(0);
-        let ditype = match dtype {
-            ButtonAutoDrawType::IconOnly(boi) => Some(boi),
-            ButtonAutoDrawType::TextOnly(a) => {
-                if a {
-                    wstyle |= WINDOW_STYLE(BS_MULTILINE as u32);
-                };
-                None
-            }
-            ButtonAutoDrawType::IconAndText(boi, a) => {
-                if a {
-                    wstyle |= WINDOW_STYLE(BS_MULTILINE as u32)
-                };
-                Some(boi)
-            }
-        };
-        wstyle |= bstyle.into();
-        (wstyle, ditype, aaa)
-    }
-}
-// impl From(WINDOW_STYLE, Option<BitmapOrIcon>) for LinkButtonDrawType {
-// 	fn from(data: (WINDOW_STYLE, Option<BitmapOrIcon>)) -> Self {
-//
-// 	}
-// }
-impl ButtonControl for LinkButton {
-    type Style = LinkButtonDrawType;
-}
-impl LinkButton {
+impl Button {
     pub fn get_note(&self) -> Result<String> {
         let length = unsafe {
             SendMessageW(

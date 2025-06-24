@@ -283,7 +283,7 @@ impl Window {
             };
             let mut menu = GetMenu(self.handle);
             if menu.is_invalid() {
-                return Err(ERROR_NOT_HAVE_MENU);
+                return Err(ERROR_NOT_FOUND_MENU);
             };
             Ok(f(Menu::from_mut_ref(&mut menu)))
         }
@@ -336,7 +336,7 @@ impl Window {
         unsafe {
             let mut menu = GetSystemMenu(self.handle, false);
             if menu.is_invalid() {
-                return Err(ERROR_NOT_HAVE_MENU);
+                return Err(ERROR_NOT_FOUND_MENU);
             };
             Ok(f(Menu::from_mut_ref(&mut menu)))
         }
@@ -347,14 +347,19 @@ impl Window {
         }
     }
     pub fn get_class(&self) -> Result<WindowClass> {
-        let mut array1 = vec![0u16; 255];
-        if unsafe { GetClassNameW(self.handle, &mut array1[..]) } == 0 {
-            return Err(correct_error());
+        // https://learn.microsoft.com/zh-cn/windows/win32/dataxchg/about-atom-tables
+        // 文档：与字符串原子关联的字符串的大小不能超过 255 字节。 此限制适用于所有原子函数。
+        // 不需要为\0多预留为256缓冲区因为GetClassNameW直接返回字符串长度且项默认是0
+        // 所以缓冲区大小255
+        let mut buffer = [0u16; 255];
+        let len = unsafe { GetClassNameW(self.handle, &mut buffer) } as usize;
+        if len == 0 {
+            return Err(WinError::correct_error());
         }
-        let result1 = PCWSTR(array1.as_ptr());
+        let vec = buffer[..len].to_vec();
         Ok(WindowClass {
-            name: result1,
-            owner: Some(array1),
+            name: PCWSTR(vec.as_ptr()),
+            owner: Some(vec),
         })
     }
     pub fn get_context_help_id(&self) -> Option<HelpId> {
@@ -402,7 +407,7 @@ impl Window {
                 let _ = Box::from_raw(ptr);
                 Ok(())
             } else {
-                return Err(correct_error());
+                return Err(WinError::correct_error());
             }
         }
     }
@@ -421,7 +426,7 @@ impl Window {
             {
                 Ok(())
             } else {
-                Err(correct_error())
+                Err(WinError::correct_error())
             }
         }
     }
@@ -444,7 +449,7 @@ impl Window {
             {
                 Ok(f((*(data as *const Box<CallBackObj>)).as_ref()))
             } else {
-                Err(correct_error())
+                Err(WinError::correct_error())
             }
         }
     }
@@ -460,7 +465,7 @@ impl Window {
             if GetWindowSubclass(self.handle, Some(subclass_porc), id, Some(&mut data)).into() {
                 Ok(f((*(data as *mut Box<CallBackObj>)).as_mut()))
             } else {
-                Err(correct_error())
+                Err(WinError::correct_error())
             }
         }
     }
@@ -616,14 +621,14 @@ impl Window {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
-            last_error!(
+            WinError::correct_error_result(
                 SendMessageW(
                     self.handle,
                     code,
                     Some(WPARAM(wparam)),
-                    Some(LPARAM(lparam))
+                    Some(LPARAM(lparam)),
                 )
-                .0
+                .0,
             )
         }
     }
