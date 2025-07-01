@@ -1,4 +1,5 @@
 use capdows::prelude::*;
+use capdows::prelude::*;
 use capdows::ui::{control::*, image::*, style::*, window::*, *};
 capdows::import_foundation!();
 use std::ffi::c_void;
@@ -24,7 +25,7 @@ fn new_control(
     wnd: &mut Window,
     control_class: PCWSTR,
     name: String,
-    pos: Option<Rectangle>,
+    pos: Option<Rect>,
     id: u16,
     style: WINDOW_STYLE,
     style_ex: WINDOW_EX_STYLE,
@@ -70,7 +71,7 @@ fn new_control(
 fn new_button(
     wnd: &mut Window,
     name: String,
-    pos: Option<Rectangle>,
+    pos: Option<Rect>,
     id: u16,
     style: WINDOW_STYLE,
     style_ex: WINDOW_EX_STYLE,
@@ -122,7 +123,7 @@ pub trait CommonControl: Control + Sized {
     type Style: Send + Sync;
     fn new(
         wnd: &mut Window,
-        pos: Option<Rectangle>,
+        pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,

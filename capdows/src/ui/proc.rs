@@ -114,7 +114,7 @@ unsafe fn msg_handler(
                     &s.lpszName.to_string().unwrap_or(String::from("")),
                     wc,
                     HMODULE(s.hInstance.0).into(),
-                    Rectangle::PointSize(Point(s.x, s.y), Size(s.cx, s.cy)),
+                    rect(s.x, s.y, s.cx, s.cy),
                     &mut wtype,
                 ) {
                     Ok(x) => match x {
@@ -231,7 +231,7 @@ unsafe fn msg_handler(
                         button_type: MouseButton::Left,
                         state: ButtonState::Down,
                         is_nc: false,
-                        pos: Point(
+                        pos: point2(
                             (param2 & 0xFFFF) as u16 as i32,
                             (param2 >> 16) as u16 as i32,
                         ),
@@ -250,7 +250,7 @@ unsafe fn msg_handler(
                         button_type: MouseButton::Left,
                         state: ButtonState::Up,
                         is_nc: false,
-                        pos: Point(
+                        pos: point2(
                             (param2 & 0xFFFF) as u16 as i32,
                             (param2 >> 16) as u16 as i32,
                         ),

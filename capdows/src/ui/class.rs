@@ -69,16 +69,16 @@ impl WindowClassBuilder {
         self
     }
     #[inline]
-    pub fn default_cursor(mut self) -> Self {
-        self.cursor = Some(Cursor::from_system(SystemCursor::NormalSelection));
-        self
+    pub fn default_cursor(mut self) -> Result<Self> {
+        self.cursor = Some(Cursor::from_system(SystemCursor::NormalSelection)?);
+        Ok(self)
     }
     #[inline]
     pub const fn executable_file(mut self, e: ExecutableFile) -> Self {
         self.executable_file = Some(e);
         self
     }
-    pub fn build(self) -> WindowClass {
+    pub fn build(self) -> Result<WindowClass> {
         if self.class_name.len() < 4 || self.class_name.len() >= 255 {
             return Err(ERROR_CLASS_NAME_TOO_LONG);
         }
@@ -90,10 +90,10 @@ impl WindowClassBuilder {
                 lpfnWndProc: Some(window_proc),
                 cbClsExtra: self.class_extra as i32 * 8,
                 cbWndExtra: self.window_extra as i32 * 8,
-                hInstance: self
-                    .executable_file
-                    .unwrap_or_else(ExecutableFile::from_current_file)
-                    .into(),
+                hInstance: match self.executable_file {
+                    Some(x) => x.into(), 
+                    None => ExecutableFile::from_current_file()?.into()
+                },
                 hIcon: self.icon.unwrap_or(Icon::null()).into(),
                 hCursor: self.cursor.unwrap_or(Cursor::null()).handle,
                 hbrBackground: match self.background_brush {
@@ -101,7 +101,7 @@ impl WindowClassBuilder {
                     Some(x) => x.into(),
                 },
                 lpszMenuName: match self.default_menu_resource {
-                    None => (PCWSTR::null(), None),
+                    None => PCWSTR::null(),
                     Some(x) => x.to_pcwstr(),
                 },
                 lpszClassName: self.class_name.to_pcwstr(),
@@ -111,14 +111,14 @@ impl WindowClassBuilder {
         if result == 0 {
             return Err(WinError::correct_error());
         };
-        Ok(Self {
+        Ok(WindowClass {
             name: self.class_name.to_pcwstr(),
         })
     }
 }
 #[repr(transparent)]
 pub struct WindowClass {
-    name: PCWSTR,
+    pub(crate) name: PCWSTR,
 }
 unsafe impl Send for WindowClass {}
 unsafe impl Sync for WindowClass {}
@@ -184,9 +184,9 @@ impl WindowClass {
     ) -> Result<Window> {
         let (style, ex_style, menu, parent) = wtype.into();
         let (wname, _wnameptr) = str_to_pcwstr(name);
-        let cname = self.get();
-        let Point(x, y) = pos.unwrap_or(Point(CW_USEDEFAULT, CW_USEDEFAULT));
-        let Size(width, height) = size.unwrap_or(Size(CW_USEDEFAULT, CW_USEDEFAULT));
+        let cname = self.get_raw();
+        let (x, y) = pos.unwrap_or(Point::new(CW_USEDEFAULT, CW_USEDEFAULT)).to_tuple();
+        let (width, height) = size.unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT)).to_tuple();
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
         let result = unsafe {

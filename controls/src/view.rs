@@ -313,7 +313,7 @@ impl DataControl for ImageTextView {
     fn new(
         wnd: &mut Window,
         name: &str,
-        pos: Option<Rectangle>,
+        pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,

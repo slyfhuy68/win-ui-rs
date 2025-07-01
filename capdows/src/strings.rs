@@ -3,6 +3,58 @@
 pub struct widestr([u16]);
 #[repr(transparent)]
 pub struct WideString(Vec<u16>);
+impl From<String> for WideString {
+    #[inline]
+    fn from(s: String) -> WideString {
+        Self(s.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>())
+    }
+}
+impl Into<String> for WideString {
+    #[inline]
+    fn into(self) -> String {
+        //创建self时已检查是否为有效utf16
+        String::from_utf16_lossy(&self.0)
+    }
+}
+impl AsRef<widestr> for WideString {
+    #[inline]
+    fn as_ref(&self) -> &widestr {
+        //创建self时已检查self，使用unchecked提高性能
+        unsafe {widestr::from_utf16_unchecked(&self.0)}
+    }
+}
+impl AsMut<widestr> for WideString {
+    #[inline]
+    fn as_mut(&mut self) -> &mut widestr {
+        //创建self时已检查self，使用unchecked提高性能
+        unsafe {widestr::from_utf16_unchecked_mut(&mut self.0)}
+    }
+}
+pub trait ToWideString{
+    fn to_wide_string(&self) -> WideString;
+}
+impl <T: ToString + ?Sized> ToWideString for T{
+    #[inline]
+    fn to_wide_string(&self) -> WideString {
+        self.to_string().into()
+    }
+}
+use std::fmt::Display;
+impl Display for widestr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use std::fmt::Write;
+        for c in char::decode_utf16(self.as_wide().iter().cloned()) {
+            f.write_char(c.unwrap_or(char::REPLACEMENT_CHARACTER))?
+        }
+        Ok(())
+    }
+}
+impl Display for WideString {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_ref().fmt(f)
+    }
+}
 pub struct Utf16Error {
     ///最大有效字符的索引
     pub(crate) valid_up_to: usize,
@@ -84,7 +136,7 @@ impl widestr {
     }
     #[inline]
     pub const fn len(&self) -> usize {
-        self.as_bytes().len()
+        self.as_wide().len()
     }
     #[inline]
     pub const fn is_empty(&self) -> bool {
@@ -122,25 +174,25 @@ impl widestr {
             index == self.len()
         } else {
             // 判断code unit 是不是 low surrogate
-            0xDC00 <= self.as_bytes()[index] && self.as_bytes()[index] <= 0xDFFF
+            0xDC00 <= self.as_wide()[index] && self.as_wide()[index] <= 0xDFFF
         }
     }
     #[inline]
     pub const fn is_ascii(&self) -> bool {
         let i = 0;
         while i < self.len() {
-            if self.as_bytes()[i] > 127 {
+            if self.as_wide()[i] > 127 {
                 return false;
             }
         }
         true
     }
     #[inline]
-    pub const fn as_bytes(&self) -> &[u16] {
+    pub const fn as_wide(&self) -> &[u16] {
         unsafe { std::mem::transmute(self) }
     }
     #[inline]
-    pub const unsafe fn as_bytes_mut(&mut self) -> &mut [u16] {
+    pub const unsafe fn as_wide_mut(&mut self) -> &mut [u16] {
         unsafe { &mut *(self as *mut widestr as *mut [u16]) }
     }
     #[inline]
@@ -156,7 +208,7 @@ impl widestr {
 impl AsRef<[u16]> for widestr {
     #[inline]
     fn as_ref(&self) -> &[u16] {
-        self.as_bytes()
+        self.as_wide()
     }
 }
 
@@ -172,7 +224,7 @@ impl Default for &mut widestr {
     /// Creates an empty mutable widestr
     #[inline]
     fn default() -> Self {
-        // SAFETY: The empty widestring is valid UTF-8.
+        // SAFETY: The empty widestring is valid UTF-16.
         unsafe { widestr::from_utf16_unchecked_mut(&mut []) }
     }
 }
@@ -390,8 +442,8 @@ mod tests {
     fn test_macro_L() {
         let ws = L!("Hello 😄");
         assert_eq!(ws.len(), 7); // H e l l o  (空格) 😄 -> 7 code units
-        assert!(ws.as_bytes()[5] == 0x0020); // 空格
-        assert!(ws.as_bytes()[6] == 0xDE00); // 😄 的 low surrogate
+        assert!(ws.as_wide()[5] == 0x0020); // 空格
+        assert!(ws.as_wide()[6] == 0xDE00); // 😄 的 low surrogate
     }
 
     // 默认值测试

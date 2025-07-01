@@ -1,10 +1,4 @@
 use super::*;
-use capdows::ui::{
-    core::{Point, Size},
-    font::FontCharSet,
-    help::HelpId,
-    window::WindowID,
-};
 use windows::Win32::UI::WindowsAndMessaging::*;
 pub type ControlPreCompilePruduct = PreCompilePruduct;
 pub trait DialogTempleControl {

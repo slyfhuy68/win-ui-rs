@@ -29,15 +29,17 @@ use module::*;
 pub mod msg;
 use msg::*;
 pub mod font;
-mod proc;
 // use font::*;
+mod proc;
 use proc::*;
 pub mod prop;
+// use prop::*;
 pub mod style;
 use style::*;
 pub mod sys_prop;
 pub mod timer;
 pub mod window;
+use window::*;
 pub mod utility {
     #[doc(no_inline)]
     pub use capdows_utility::*;
@@ -45,11 +47,11 @@ pub mod utility {
 
 use crate::error::{Result, WinError as Error, WinError, errors::*};
 use crate::positioning::*;
+use crate::positioning::ext_methods::*;
+use euclid::{point2, rect};
 use crate::strings::*;
-use window::*;
 pub mod core {
     use super::*;
-    use crate::strings::*;
     pub type ResourceStringId = String;
     pub type ResourceNumberId = u16;
     pub enum ResourceID {
@@ -62,11 +64,8 @@ pub mod core {
         #[inline]
         pub fn to_pcwstr(self) -> PCWSTR {
             match self {
-                NumberId(x) => (make_int_resource(x as usize), None),
-                StringId(y) => {
-                    let (pcw, owner) = str_to_pcwstr(&y);
-                    (pcw, Some(owner))
-                }
+                NumberId(x) => PCWSTR(x as *mut u16),
+                StringId(y) => y.to_pcwstr()
             }
         }
     }
@@ -103,10 +102,6 @@ use windows::core::*;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 //                              工具函数
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
-#[inline]
-pub fn make_int_resource(i: usize) -> PCWSTR {
-    PCWSTR(i as *mut u16)
-}
 pub fn str_to_pcwstr(s: &str) -> (PCWSTR, Vec<u16>) {
     let wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
     let wide_str_ptr = wide_str.as_ptr();

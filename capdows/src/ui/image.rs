@@ -22,14 +22,11 @@ impl Icon {
     pub fn load_from_module(
         module: ExecutableFile,
         id: ResourceID,
-        width: Option<Size>,
+        size: Option<Size>,
         share: bool,
     ) -> Result<Self> {
-        let (pcw, _pcw) = match id {
-            StringId(l) => str_to_pcwstr(&l),
-            NumberId(r) => str_to_pcwstr(&("#".to_owned() + &r.to_string())),
-        };
-        let Size(cx, cy) = width.unwrap_or(Size(0, 0));
+        let pcw = id.to_pcwstr();
+        let (cx, cy) = size.unwrap_or(Size::new(0, 0)).to_tuple();
         Ok(Self {
             handle: HICON(
                 unsafe {
@@ -167,11 +164,8 @@ impl Cursor {
         width: Option<Size>,
         share: bool,
     ) -> Result<Self> {
-        let (pcw, _pcw) = match id {
-            StringId(l) => str_to_pcwstr(&l),
-            NumberId(r) => str_to_pcwstr(&("#".to_owned() + &r.to_string())),
-        };
-        let Size(cx, cy) = width.unwrap_or(Size(0, 0));
+        let pcw = id.to_pcwstr();
+        let (cx, cy) = width.unwrap_or(Size::new(0, 0)).to_tuple();
         Ok(Self {
             handle: HCURSOR(
                 unsafe {
@@ -221,20 +215,6 @@ impl Bitmap {
     }
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
-    } //width或hight为0使用实际资源大小，如果资源包含多个图像，则使用第一个图像的大小。
-    // width或hight为负使用系统指标值指定的宽度或高度。
-    pub fn load_from_module(// module: ExecutableFile,
-        // id: Either<&str, usize>,
-        // width: i32,
-        // hight: i32,
-        // black: bool,
-        // map3d_colours: bool,
-        // transparent: bool,
-        // shared: bool,
-        // vga_colour: bool,
-        // DIB: bool,
-    ) -> Self {
-        todo!()
     }
 }
 impl From<HCURSOR> for Cursor {

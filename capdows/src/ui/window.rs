@@ -388,7 +388,7 @@ impl Window {
     }
     pub fn from_screen_point(point: Point) -> Option<Window> {
         unsafe {
-            let hwnd = WindowFromPoint(point.into());
+            let hwnd = WindowFromPoint(point.to_win32_point());
             if hwnd.is_invalid() {
                 None
             } else {
@@ -497,10 +497,10 @@ impl Window {
     }
     //未实现区--------------------------------------
     pub fn adjust_window_rect(
-        _rect: Rectangle,
+        _rect: Rect,
         _wtype: WindowType,
         _have_menu: bool,
-    ) -> Result<Rectangle> {
+    ) -> Result<Rect> {
         todo!() //AdjustWindowRectEx
     }
     pub fn arrange_iconic(&mut self) -> Result<u32> {
@@ -522,7 +522,7 @@ impl Window {
     pub fn cascade_child(
         &mut self,
         _skip_mdi_disabled: bool,
-        _area: Option<Rectangle>,
+        _area: Option<Rect>,
         _wnd: Option<&[Window]>,
     ) -> Result<u16> {
         todo!() //CascadeWindows
@@ -546,7 +546,7 @@ impl Window {
     }
     pub fn cascade_window(
         _skip_mdi_disabled: bool,
-        _area: Option<Rectangle>,
+        _area: Option<Rect>,
         _wnd: Option<&[Window]>,
     ) -> Result<u16> {
         todo!() //CascadeWindows

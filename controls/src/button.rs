@@ -136,7 +136,7 @@ pub enum ButtonMsgType {
     DoubleClicked,
     LoseKeyboardFocus,
     GetKeyboardFocus,
-    DropDown(Rectangle),
+    DropDown(Rect),
     Draw(usize),
     #[doc(hidden)]
     Fffffb21Msg, //4294966049这是什么？
@@ -163,7 +163,7 @@ define_control! {
             BN_SETFOCUS => GetKeyboardFocus,
             BCN_DROPDOWN => {
                 let data = (*(ptr as *mut NMBCDROPDOWN)).rcButton;
-                DropDown(Rectangle::Points(
+                DropDown(Rect::Points(
                     Point(data.left, data.top),
                     Point(data.right, data.bottom),
                 ))
@@ -192,7 +192,7 @@ impl CommonControl for Button {
     type Style = ButtonStyle;
     fn new(
         wnd: &mut Window,
-        pos: Option<Rectangle>,
+        pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,

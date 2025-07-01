@@ -164,7 +164,7 @@ pub trait MessageReceiver {
         name: &str,
         class: WindowClass,
         file: ExecutableFile,
-        pos: Rectangle,
+        pos: Rect,
         itype: &mut WindowType,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {

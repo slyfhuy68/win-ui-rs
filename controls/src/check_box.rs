@@ -129,7 +129,7 @@ impl CommonControl for CheckBox {
     type Style = CheckBoxStyle;
     fn new(
         wnd: &mut Window,
-        pos: Option<Rectangle>,
+        pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,
