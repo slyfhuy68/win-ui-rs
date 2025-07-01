@@ -3,6 +3,7 @@ use std::fmt;
 #[derive(Eq, PartialEq)] //不实现Clone
 #[repr(transparent)]
 ///已明确由Rust拥有的窗口
+///如果一个窗口不一定是rust拥有的而又要调用这上面的方法，请使用Window::from_ref直接创建引用
 pub struct Window {
     handle: HWND,
 }
@@ -346,21 +347,21 @@ impl Window {
             let _ = GetSystemMenu(self.handle, true);
         }
     }
-    pub fn get_class(&self) -> Result<WindowClass> {
-        // https://learn.microsoft.com/zh-cn/windows/win32/dataxchg/about-atom-tables
-        // 文档：与字符串原子关联的字符串的大小不能超过 255 字节。 此限制适用于所有原子函数。
-        // 不需要为\0多预留为256缓冲区因为GetClassNameW直接返回字符串长度且项默认是0
-        // 所以缓冲区大小255
-        let mut buffer = [0u16; 255];
+    pub fn with_class<F, T>(&self, f: F) -> Result<T>
+    where
+        F: FnOnce(&mut WindowClass) -> T,
+    {
+        // https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/ns-winuser-wndclassexw
+        // 文档：lpszClassName 的最大长度为 256。 如果 lpszClassName 大于最大长度，则 RegisterClassEx 函数将失败。
+        let mut buffer = [0u16; 256];
         let len = unsafe { GetClassNameW(self.handle, &mut buffer) } as usize;
         if len == 0 {
             return Err(WinError::correct_error());
-        }
-        let vec = buffer[..len].to_vec();
-        Ok(WindowClass {
-            name: PCWSTR(vec.as_ptr()),
-            owner: Some(vec),
-        })
+        };
+        let mut vec = buffer[..len].to_vec();
+        let _ = buffer;
+        vec.push(0);
+        Ok(f(&mut WindowClass::from_raw(PCWSTR(vec.as_ptr()))))
     }
     pub fn get_context_help_id(&self) -> Option<HelpId> {
         HelpId::try_from(unsafe { GetWindowContextHelpId(self.handle) } as i32)
@@ -376,7 +377,7 @@ impl Window {
         todo!() //SetWindowBand windows未公开api
     }
     pub fn get_z_group(&self) -> Result<WindowZposGroup> {
-        todo!() //SetWindowBand windows未公开api
+        todo!() //GetWindowBand windows未公开api
     }
     pub fn destroy(&mut self) -> Result<()> {
         unsafe {

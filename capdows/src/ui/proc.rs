@@ -91,7 +91,17 @@ unsafe fn msg_handler(
         let result = match msg {
             WM_CREATE => {
                 let s = *(param2 as *mut CREATESTRUCTW);
-                let wc = w.get_class();
+                let (wc, _buffer) = {
+                    let mut buffer = [0u16; 256];
+                    let len = GetClassNameW(hwnd, &mut buffer) as usize;
+                    if len == 0 {
+                        (WindowClass::from_raw(s.lpszClass), None)
+                    } else {
+                        let mut vec = buffer[..len].to_vec();
+                        vec.push(0);
+                        (WindowClass::from_raw(PCWSTR(vec.as_ptr())), Some(vec))
+                    }
+                };
                 let mut wtype = WindowType::from_data(
                     WINDOW_STYLE(s.style as u32),
                     s.dwExStyle,
@@ -102,13 +112,7 @@ unsafe fn msg_handler(
                     callback_id,
                     &mut w,
                     &s.lpszName.to_string().unwrap_or(String::from("")),
-                    match wc {
-                        Err(_) => WindowClass {
-                            name: s.lpszClass,
-                            owner: None,
-                        },
-                        Ok(x) => x,
-                    },
+                    wc,
                     HMODULE(s.hInstance.0).into(),
                     Rectangle::PointSize(Point(s.x, s.y), Size(s.cx, s.cy)),
                     &mut wtype,

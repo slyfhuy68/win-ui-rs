@@ -1,14 +1,17 @@
 pub mod error;
 pub mod i18n;
+pub mod strings;
 pub mod ui;
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
         error::{Result, WinError as Error, WinError, errors::*},
+        positioning::{DPIAwareDeviceUnit, DeviceUnit, DialogTemplateUnit, Point, Rect, Size},
+        strings::{WideString, widestr},
         ui::{
             class::WindowClass,
             control::{Control, ControlMsg, ControlMsgType, DefaultNMHDR, NotifyMessage},
-            core::{Point, Rectangle, Size},
+            core::ResourceID,
             font::{ControlFont, Font},
             image::{Bitmap, Cursor, Icon},
             menu::{
@@ -27,4 +30,186 @@ pub mod prelude {
             window::{ShowWindowType, Window},
         },
     };
+}
+pub mod positioning {
+    pub trait Win32Unit: Copy{}
+    pub trait Win32Point: Copy{
+        type Unit: Win32Unit;
+        fn new(x:i32, y:i32) -> Self;
+        fn to_tuple(self) -> (i32, i32);
+        ///以窗口左上角为原点  
+        ///以屏幕右、上为正方向，如果创建窗口时指定[`crate::ui::style::NormalWin32tyles::right_layout`]为false，则与系统语言方向***无关***
+        fn window_to_screen(&mut self, wnd: &crate::ui::window::Window) -> crate::error::Result<()>{
+            let (x, y) = self.to_tuple();
+            let mut point = windows::Win32::Foundation::POINT{x, y};
+            unsafe { windows::Win32::Graphics::Gdi::ClientToScreen(wnd.handle(), &mut point) }.ok()?;
+            *self = Self::new(point.x, point.y);
+            Ok(())
+        }
+    }
+    pub trait Win32Size: Copy{
+        type Unit: Win32Unit;
+        fn new(width:i32, height:i32) -> Self;
+        fn to_tuple(self) -> (i32, i32);
+    }
+    pub trait Win32Rect: Copy {
+        type Point: Win32Point;
+        type Size: Win32Size<Unit = <<Self as Win32Rect>::Point as Win32Point>::Unit>;
+        fn new(origin:Self::Point, size:Self::Size) -> Self;
+        fn to_tuple(self) -> (Self::Point, Self::Size);
+    }
+    /// 没有经过任何dpi、逻辑变换的单位，原点为屏幕左上角(0, 0)，x正方向向右，y正方向向下，
+    /// 表示像素（屏幕）或点（打印机）等
+    /// 通常对应一个屏幕上的物理像素。所有实际的绘图操作最终都使用设备单位进行。
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct DeviceUnit;
+    impl Win32Unit for DeviceUnit {}
+    ///逻辑单位
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct LogicalUnit<
+        const Y_SCALING: i32,
+        const X_SCALING: i32,
+        const X_ORG: i32,
+        const Y_ORG: i32,
+    >;
+    impl<const Y_SCALING: i32, const X_SCALING: i32, const X_ORG: i32, const Y_ORG: i32> Win32Unit
+        for LogicalUnit<Y_SCALING, X_SCALING, X_ORG, Y_ORG>{}
+    ///对话框单位，已考虑DPI
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct DialogTemplateUnit;
+    impl Win32Unit for DialogTemplateUnit {}
+    ///经DPI缩放的设备单位
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct DPIAwareDeviceUnit;
+    impl Win32Unit for DPIAwareDeviceUnit {}
+    ///经DPI缩放的逻辑单位
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct DPIAwareLogicalUnit<
+        const Y_SCALING: i32,
+        const X_SCALING: i32,
+        const X_ORG: i32,
+        const Y_ORG: i32,
+    >;
+    impl<const Y_SCALING: i32,const X_SCALING: i32,const X_ORG: i32,const Y_ORG: i32,> Win32Unit 
+        for DPIAwareLogicalUnit<Y_SCALING, X_SCALING, X_ORG, Y_ORG> {}
+    pub type Point = euclid::Point2D<i32, DPIAwareDeviceUnit>;
+    pub type Size = euclid::Size2D<i32, DPIAwareDeviceUnit>;
+    pub type Rect = euclid::Rect<i32, DPIAwareDeviceUnit>;
+    pub type DialogPonit = euclid::Point2D<i32, DialogTemplateUnit>;
+    pub type DialogSize = euclid::Size2D<i32, DialogTemplateUnit>;
+    pub type DialogRect = euclid::Rect<i32, DialogTemplateUnit>;
+    impl<U> Win32Point for euclid::Point2D<i32, U>
+    where
+        U: Win32Unit{
+        type Unit = U;
+        #[inline]
+        fn new(x:i32, y:i32) -> Self {
+            euclid::Point2D::new(x, y)
+        }
+        #[inline]
+        fn to_tuple(self) -> (i32, i32) {
+            (self.x, self.y)
+        }
+    }
+    impl<U> Win32Size for euclid::Size2D<i32, U>
+    where
+        U: Win32Unit{
+        type Unit = U;
+        #[inline]
+        fn new(width:i32, height:i32) -> Self {
+            euclid::Size2D::new(width, height)
+        }
+        #[inline]
+        fn to_tuple(self) -> (i32, i32) {
+            (self.width, self.height)
+        }
+    }
+    impl<U> Win32Rect for euclid::Rect<i32, U>
+    where
+        U: Win32Unit{
+        type Point = euclid::Point2D<i32, U>;
+        type Size = euclid::Size2D<i32, U>;
+        #[inline]
+        fn new(origin:Self::Point, size:Self::Size) -> Self{
+            euclid::Rect::new(origin, size)
+        }
+        #[inline]
+        fn to_tuple(self) -> (Self::Point, Self::Size){
+            (self.origin, self.size)
+        }
+    }
+    impl<U> Win32Rect for euclid::Box2D<i32, U>
+    where
+        U: Win32Unit{
+        type Point = euclid::Point2D<i32, U>;
+        type Size = euclid::Size2D<i32, U>;
+        #[inline]
+        fn new(origin:Self::Point, size:Self::Size) -> Self{
+            euclid::Box2D::from_origin_and_size(origin, size)
+        }
+        #[inline]
+        fn to_tuple(self) -> (Self::Point, Self::Size){
+            (self.min, (self.max - self.min).to_size())
+        }
+    }
+    mod sealed {
+        pub trait SealedPoint {}
+        impl SealedPoint for (i32, i32){}
+        impl SealedPoint for windows::Win32::Foundation::POINT{}
+        pub trait SealedSize {}
+        impl SealedSize for (i32, i32){}
+        impl SealedSize for windows::Win32::Foundation::SIZE{}
+        pub trait SealedRect {}
+        impl SealedRect for windows::Win32::Foundation::RECT{}
+    }
+    pub trait PointExt: sealed::SealedPoint {
+        fn to_point_with_unit<U: Win32Unit>(self) -> euclid::Point2D<i32, U>;
+    }
+    pub trait SizeExt: sealed::SealedSize {
+        fn to_size_with_unit<U: Win32Unit>(self) -> euclid::Size2D<i32, U>;
+    }
+    pub trait RectExt: sealed::SealedRect {
+        fn to_rect_with_unit<U: Win32Unit>(self) -> euclid::Rect<i32, U>;
+    }
+    //{AI----
+    impl PointExt for (i32, i32) {
+        #[inline]
+        fn to_point_with_unit<U: Win32Unit>(self) -> euclid::Point2D<i32, U> {
+            let (x, y) = self;
+            euclid::Point2D::new(x, y)
+        }
+    }
+
+    impl PointExt for windows::Win32::Foundation::POINT {
+        #[inline]
+        fn to_point_with_unit<U: Win32Unit>(self) -> euclid::Point2D<i32, U> {
+            euclid::Point2D::new(self.x, self.y)
+        }
+    }
+
+    impl SizeExt for (i32, i32) {
+        #[inline]
+        fn to_size_with_unit<U: Win32Unit>(self) -> euclid::Size2D<i32, U> {
+            let (width, height) = self;
+            euclid::Size2D::new(width, height)
+        }
+    }
+
+    impl SizeExt for windows::Win32::Foundation::SIZE {
+        #[inline]
+        fn to_size_with_unit<U: Win32Unit>(self) -> euclid::Size2D<i32, U> {
+            euclid::Size2D::new(self.cx, self.cy)
+        }
+    }
+
+    impl RectExt for windows::Win32::Foundation::RECT {
+        #[inline]
+        fn to_rect_with_unit<U: Win32Unit>(self) -> euclid::Rect<i32, U> {
+            euclid::Rect::new(
+                euclid::Point2D::new(self.left, self.top),
+                euclid::Size2D::new(self.right - self.left, self.bottom - self.top),
+            )
+        }
+    }
+    //}AI--
 }

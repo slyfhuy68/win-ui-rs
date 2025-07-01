@@ -108,11 +108,11 @@ impl Into<(WINDOW_STYLE, Option<ButtonImage>, String)> for ButtonContent {
                     WINDOW_STYLE(BS_MULTILINE as u32)
                 } else {
                     WINDOW_STYLE(0)
-                }, 
+                },
                 None,
                 text,
             ),
-            ButtonContent::IconOnly { icon, name , ..} => (WINDOW_STYLE(0), Some(icon), name),
+            ButtonContent::IconOnly { icon, name, .. } => (WINDOW_STYLE(0), Some(icon), name),
             ButtonContent::IconAndText {
                 icon,
                 text,
@@ -122,7 +122,7 @@ impl Into<(WINDOW_STYLE, Option<ButtonImage>, String)> for ButtonContent {
                     WINDOW_STYLE(BS_MULTILINE as u32)
                 } else {
                     WINDOW_STYLE(0)
-                }, 
+                },
                 Some(icon),
                 text,
             ),
@@ -176,7 +176,7 @@ define_control! {
         }
     },
     {
-        is_button_window(wnd)
+        is_some_window(wnd, capdows::L!("Button"))
     },
     {
         todo!()
@@ -198,7 +198,9 @@ impl CommonControl for Button {
         font: Option<ControlFont>,
     ) -> Result<Self> {
         let (style, ex, draw, name) = control_style.into();
-        Ok(Self(new_button(wnd, name, pos, identifier, style, ex, font, draw)?))
+        Ok(Self(new_button(
+            wnd, name, pos, identifier, style, ex, font, draw,
+        )?))
     }
 }
 impl Button {

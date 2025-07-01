@@ -8,10 +8,10 @@ use windows::core::{PCWSTR, w};
 pub mod button;
 pub mod check_box;
 pub mod combo_box;
-pub mod edit;
-pub mod group_box;
-pub mod radio;
-pub mod view;
+// pub mod edit;
+// pub mod group_box;
+// pub mod radio;
+// pub mod view;
 pub type ButtonImage = Either<Bitmap, Icon>;
 use either::*;
 // fn style_of(wnd: &Window) -> WINDOW_STYLE {
@@ -99,16 +99,23 @@ fn new_button(
     };
     Ok(wnd)
 }
-fn is_some_window(wnd: &Window, class: &'static str) -> Result<bool> {
-    let mut array1 = vec![0u16; 8];
-    if unsafe { GetClassNameW(wnd.handle(), &mut array1[..]) } == 0 {
-        return Err(Error::correct_error());
+fn is_some_window(wnd: &Window, class: &'static [u16]) -> Result<bool> {
+    let mut buffer = [0u16; 16]; //控件类名通常不超过16个字符
+    let len = unsafe { GetClassNameW(wnd.handle(), &mut buffer) } as usize;
+    if len == 0 {
+        return Err(WinError::correct_error());
+    };
+    let new_buffer = &buffer[..len];
+    if new_buffer.len() != class.len() {
+        return Ok(false);
     }
-    let meunasfe = unsafe { PCWSTR(array1.as_ptr()).to_string()? };
-    return Ok(meunasfe.to_lowercase() == class.to_lowercase().to_string());
-}
-fn is_button_window(wnd: &Window) -> Result<bool> {
-    is_some_window(wnd, "Button")
+    Ok(new_buffer.iter().zip(class.iter()).all(|(&a, &b)| {
+        if a < 0x80 && b < 0x80 {
+            a.to_ascii_lowercase() == b.to_ascii_lowercase()
+        } else {
+            a == b
+        }
+    }))
 }
 use capdows_macros::define_control;
 pub trait CommonControl: Control + Sized {
@@ -127,14 +134,14 @@ pub trait TextControl: Control + Sized {
     fn get_text(&self) -> Result<String> {
         let length = self.get_text_length()?;
         if length == 0 {
-            return  Ok(String::new());
+            return Ok(String::new());
         };
         let mut buffer: Vec<u16> = vec![0; length + 1];
         unsafe {
             Error::correct_error_result(
                 SendMessageW(
                     self.get_window().handle(),
-                    BCM_GETNOTE,
+                    WM_GETTEXT,
                     Some(WPARAM(length)),
                     Some(LPARAM(buffer.as_mut_ptr() as isize)),
                 )

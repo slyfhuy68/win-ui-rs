@@ -93,7 +93,7 @@ define_control! {
         }
     },
     {
-        if !is_button_window(wnd)? {
+        if !is_some_window(wnd, "Button")? {
             return Ok(false);
         }
         let style = style_of_raw(wnd);
@@ -135,7 +135,9 @@ impl CommonControl for CheckBox {
         font: Option<ControlFont>,
     ) -> Result<Self> {
         let (style, ex, draw, name) = control_style.into();
-        Ok(Self(new_button(wnd, name, pos, identifier, style, ex, font, draw)?))
+        Ok(Self(new_button(
+            wnd, name, pos, identifier, style, ex, font, draw,
+        )?))
     }
 }
 impl CheckBox {

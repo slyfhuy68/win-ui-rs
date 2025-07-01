@@ -42,102 +42,31 @@ pub mod utility {
     #[doc(no_inline)]
     pub use capdows_utility::*;
 }
+
 use crate::error::{Result, WinError as Error, WinError, errors::*};
-// use crate::prelude::*;
+use crate::positioning::*;
+use crate::strings::*;
 use window::*;
 pub mod core {
     use super::*;
+    use crate::strings::*;
     pub type ResourceStringId = String;
     pub type ResourceNumberId = u16;
     pub enum ResourceID {
-        StringId(ResourceStringId),
+        StringId(&'static widestr),
         NumberId(ResourceNumberId),
     }
     #[doc(no_inline)]
     pub use ResourceID::*;
     impl ResourceID {
-        pub fn to_pcwstr(self) -> (PCWSTR, Option<Vec<u16>>) {
+        #[inline]
+        pub fn to_pcwstr(self) -> PCWSTR {
             match self {
                 NumberId(x) => (make_int_resource(x as usize), None),
                 StringId(y) => {
                     let (pcw, owner) = str_to_pcwstr(&y);
                     (pcw, Some(owner))
                 }
-            }
-        }
-    }
-    #[derive(Debug, Clone)]
-    pub struct Point(pub i32, pub i32);
-    impl Copy for Point {}
-    impl From<POINT> for Point {
-        fn from(point: POINT) -> Self {
-            Self(point.x, point.y)
-        }
-    }
-    impl Into<POINT> for Point {
-        fn into(self) -> POINT {
-            POINT {
-                x: self.0,
-                y: self.1,
-            }
-        }
-    }
-    impl Point {
-        ///以窗口左上角为原点  
-        ///以屏幕右、上为正方向，如果创建窗口时指定[`crate::ui::style::NormalWindowStyles::right_layout`]为false，则与系统语言方向***无关***
-        pub fn window_to_screen(&mut self, wnd: &Window) -> Result<Self> {
-            let mut point = (*self).into();
-            if unsafe { ClientToScreen(wnd.handle(), &mut point) }.0 != 0 {
-                Err(WinError::correct_error())
-            } else {
-                Ok(point.into())
-            }
-        }
-    }
-    #[derive(Debug, Clone)]
-    pub struct Size(pub i32, pub i32);
-    impl Copy for Size {}
-    #[derive(Debug, Clone)]
-    pub enum Rectangle {
-        ///通过对角线两点定义矩形
-        Points(Point, Point),
-        ///通过左上角一点和宽高定义矩形
-        PointSize(Point, Size),
-    }
-    impl Copy for Rectangle {}
-    impl Rectangle {
-        pub fn is_points(&self) -> bool {
-            matches!(self, Rectangle::Points(_, _))
-        }
-        pub fn is_size(&self) -> bool {
-            matches!(self, Rectangle::PointSize(_, _))
-        }
-        pub fn to_size(self) -> Self {
-            match self {
-                Rectangle::Points(w, Point(x, y)) => {
-                    Rectangle::PointSize(w, Size(x - w.0, y - w.1))
-                }
-                x => x,
-            }
-        }
-        pub fn to_point(self) -> Self {
-            match self {
-                Rectangle::PointSize(w, Size(x, y)) => {
-                    Rectangle::Points(w, Point(w.0 + x, w.1 + y))
-                }
-                x => x,
-            }
-        }
-        pub fn get_points(self) -> (Point, Point) {
-            match self {
-                Rectangle::PointSize(w, Size(x, y)) => (w, Point(w.0 + x, w.1 + y)),
-                Rectangle::Points(x, y) => (x, y),
-            }
-        }
-        pub fn get_size(self) -> (Point, Size) {
-            match self {
-                Rectangle::Points(w, Point(x, y)) => (w, Size(x - w.0, y - w.1)),
-                Rectangle::PointSize(x, y) => (x, y),
             }
         }
     }
@@ -174,6 +103,7 @@ use windows::core::*;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 //                              工具函数
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
+#[inline]
 pub fn make_int_resource(i: usize) -> PCWSTR {
     PCWSTR(i as *mut u16)
 }

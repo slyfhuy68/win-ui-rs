@@ -12,12 +12,11 @@ define_control! {
         }
     },
     {
-        if !is_button_window(wnd)? {
+        if !is_some_window(wnd, "Button")? {
             return Ok(false);
         }
         Ok(
-            style_of(wnd)
-                .contains(WINDOW_STYLE(BS_GROUPBOX as u32)),
+            (style_of_raw(wnd) & BS_GROUPBOX )!= 0 
         )
     },
    {

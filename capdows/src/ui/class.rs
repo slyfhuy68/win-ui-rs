@@ -1,9 +1,122 @@
 use super::*;
 use windows::Win32::Graphics::Gdi::HBRUSH;
-#[derive(Clone, PartialEq)]
+pub struct WindowClassBuilder {
+    class_name: &'static widestr,
+    style: WindowClassStyle,
+    executable_file: Option<ExecutableFile>,
+    default_menu_resource: Option<ResourceID>,
+    icon: Option<Icon>,
+    icon_small: Option<Icon>,
+    cursor: Option<Cursor>,
+    background_brush: Option<ClassBackgroundBrush>,
+    class_extra: ExtraMemory,
+    window_extra: ExtraMemory,
+}
+impl WindowClassBuilder {
+    #[inline]
+    pub fn new(class_name: &'static widestr) -> Self {
+        WindowClassBuilder {
+            class_name,
+            style: WindowClassStyle::default(),
+            executable_file: None,
+            default_menu_resource: None,
+            icon: None,
+            icon_small: None,
+            cursor: None,
+            background_brush: Some(ClassBackgroundBrush::default()),
+            class_extra: ExtraMemory::default(),
+            window_extra: ExtraMemory::default(),
+        }
+    }
+    #[inline]
+    pub const fn style(mut self, style: WindowClassStyle) -> Self {
+        self.style = style;
+        self
+    }
+    #[inline]
+    pub const fn default_menu(mut self, res: ResourceID) -> Self {
+        self.default_menu_resource = Some(res);
+        self
+    }
+    #[inline]
+    pub const fn icon(mut self, icon: Icon) -> Self {
+        self.icon = Some(icon);
+        self
+    }
+    #[inline]
+    pub const fn small_icon(mut self, icon_small: Icon) -> Self {
+        self.icon_small = Some(icon_small);
+        self
+    }
+    #[inline]
+    pub const fn cursor(mut self, cursor: Cursor) -> Self {
+        self.cursor = Some(cursor);
+        self
+    }
+    #[inline]
+    pub const fn background_brush(mut self, brush: Option<ClassBackgroundBrush>) -> Self {
+        self.background_brush = brush;
+        self
+    }
+    #[inline]
+    pub const fn class_extra(mut self, extra: ExtraMemory) -> Self {
+        self.class_extra = extra;
+        self
+    }
+    #[inline]
+    pub const fn window_extra(mut self, extra: ExtraMemory) -> Self {
+        self.window_extra = extra;
+        self
+    }
+    #[inline]
+    pub fn default_cursor(mut self) -> Self {
+        self.cursor = Some(Cursor::from_system(SystemCursor::NormalSelection));
+        self
+    }
+    #[inline]
+    pub const fn executable_file(mut self, e: ExecutableFile) -> Self {
+        self.executable_file = Some(e);
+        self
+    }
+    pub fn build(self) -> WindowClass {
+        if self.class_name.len() < 4 || self.class_name.len() >= 255 {
+            return Err(ERROR_CLASS_NAME_TOO_LONG);
+        }
+        let result = unsafe {
+            RegisterClassExW(&WNDCLASSEXW {
+                cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
+                style: self.style.into(),
+                //window_proc是一个函数，定义在私有模块cpadows::ui::proc里
+                lpfnWndProc: Some(window_proc),
+                cbClsExtra: self.class_extra as i32 * 8,
+                cbWndExtra: self.window_extra as i32 * 8,
+                hInstance: self
+                    .executable_file
+                    .unwrap_or_else(ExecutableFile::from_current_file)
+                    .into(),
+                hIcon: self.icon.unwrap_or(Icon::null()).into(),
+                hCursor: self.cursor.unwrap_or(Cursor::null()).handle,
+                hbrBackground: match self.background_brush {
+                    None => HBRUSH(NULL_PTR()),
+                    Some(x) => x.into(),
+                },
+                lpszMenuName: match self.default_menu_resource {
+                    None => (PCWSTR::null(), None),
+                    Some(x) => x.to_pcwstr(),
+                },
+                lpszClassName: self.class_name.to_pcwstr(),
+                hIconSm: self.icon_small.unwrap_or(Icon::null()).into(),
+            })
+        };
+        if result == 0 {
+            return Err(WinError::correct_error());
+        };
+        Ok(Self { name: self.class_name.to_pcwstr() })
+    }
+}
+#[repr(transparent)]
 pub struct WindowClass {
-    pub name: PCWSTR,
-    pub owner: Option<Vec<u16>>,
+    name: PCWSTR,
 }
 unsafe impl Send for WindowClass {}
 unsafe impl Sync for WindowClass {}
@@ -19,68 +132,44 @@ impl Drop for WindowClass {
         }
     }
 }
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum ExtraMemory {
+    #[default]
+    NoExtraMemory = 0,
+    OneExtraMemory = 1,
+    DoubleExtraMemory = 2,
+    TripleExtraMemory = 3,
+    QuadrupleExtraMemory = 4,
+}
+impl std::convert::TryFrom<u8> for ExtraMemory {
+    type Error = Error;
+
+    fn try_from(value: u8) -> Result<Self> {
+        use ExtraMemory::*;
+        Ok(match value {
+            0 => NoExtraMemory,
+            1 => OneExtraMemory,
+            2 => DoubleExtraMemory,
+            3 => TripleExtraMemory,
+            4 => QuadrupleExtraMemory,
+            _ => return Err(ERROR_INVALID_DATA),
+        })
+    }
+}
+
 ///如果窗口类名长度大于255或小于4（以字节为单位，而不是字符或字素）将失败并返回ERROR_SECRET_TOO_LONG
 ///如果class_extra和window_extra的值大于4，将失败并返回ERROR_NOT_ENOUGH_MEMORY
 impl WindowClass {
-    pub unsafe fn from_str(name: &'static str) -> Self {
-        let (class_name, buffer) = str_to_pcwstr(name);
+    pub fn from_str(class_name: &'static widestr) -> Self {
         Self {
-            name: class_name,
-            owner: Some(buffer),
+            name: class_name.to_pcwstr(),
         }
     }
-    pub fn register(
-        class_name: &str,
-        style: WindowClassStyle,
-        default_menu_resource: Option<ResourceID>,
-        icon: Option<Icon>,
-        icon_small: Option<Icon>,
-        cursor: Option<Cursor>,
-        background_brush: Option<ClassBackgroundBrush>,
-        class_extra: u8,
-        window_extra: u8,
-    ) -> Result<Self> {
-        if class_name.len() < 4 || class_name.len() > 255 {
-            return Err(ERROR_CLASS_NAME_TOO_LONG);
-        }
-        if class_extra > 4 || window_extra > 4 {
-            return Err(ERROR_NOT_ENOUGH_MEMORY);
-        }
-        let (class_name, classddd) = str_to_pcwstr(class_name);
-        let hinstance = unsafe { GetModuleHandleW(PCWSTR::null()) }?.into();
-        let background_brush = match background_brush {
-            None => HBRUSH(NULL_PTR()),
-            Some(x) => x.into(),
-        };
-        let (dmr, _dmr_ptr) = match default_menu_resource {
-            None => (PCWSTR::null(), None),
-            Some(x) => x.to_pcwstr(),
-        };
-        let result = unsafe {
-            RegisterClassExW(&WNDCLASSEXW {
-                cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
-                style: style.into(),
-                lpfnWndProc: Some(window_proc),
-                cbClsExtra: class_extra as i32 * 8,
-                cbWndExtra: window_extra as i32 * 8,
-                hInstance: hinstance,
-                hIcon: icon.unwrap_or(Icon::null()).into(),
-                hCursor: cursor.unwrap_or(Cursor::null()).handle,
-                hbrBackground: background_brush,
-                lpszMenuName: dmr,
-                lpszClassName: class_name,
-                hIconSm: icon_small.unwrap_or(Icon::null()).into(),
-            })
-        };
-        if result == 0 {
-            return Err(WinError::correct_error());
-        };
-        Ok(Self {
-            name: class_name,
-            owner: Some(classddd),
-        })
+    pub fn from_raw(raw: PCWSTR) -> Self {
+        Self { name: raw }
     }
-    fn get(&self) -> PCWSTR {
+    fn get_raw(&self) -> PCWSTR {
         self.name
     }
     pub fn create_window(

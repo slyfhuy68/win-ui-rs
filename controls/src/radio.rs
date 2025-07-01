@@ -65,7 +65,7 @@ define_control! {
         _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
     }},
     {
-        if !is_button_window(wnd)? {
+        if !is_some_window(wnd, "Button")? {
             return Ok(false);
         }
         let style = style_of_raw(wnd);

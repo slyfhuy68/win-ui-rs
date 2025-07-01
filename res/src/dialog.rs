@@ -1,7 +1,7 @@
 use super::*;
 use capdows::ui::{
     core::{Point, Size},
-    font::ControlFont,
+    font::FontCharSet,
     help::HelpId,
     window::WindowID,
 };
@@ -15,16 +15,29 @@ pub trait DialogTempleControl {
         identifier: WindowID,
     ) -> ControlPreCompilePruduct;
 }
+pub struct DialogTempleFont {
+    /// 字体名称（最多 30 个字符）。
+    pub face_name: &'static str,
+    /// 字体大小
+    pub size: i32,
+    /// 字符集。
+    pub char_set: FontCharSet,
+    /// 是否为斜体。
+    pub italic: bool,
+    /// 字体粗细（0 ~ 1000）。
+    pub weight: Option<i32>,
+}
 pub struct DialogTemple {
     pos: Point,
     size: Size,
     dtype: DialogTempleType,
     caption: String,
     class_name: Option<String>,
-    font: ControlFont,
+    font: DialogTempleFont,
     menu: Option<ResourceID>,
     language: Option<LangID>,
     help_id: Option<HelpId>,
+    /// 可以手动编写，也可以使用DialogTempleControl
     controls: Vec<ControlPreCompilePruduct>,
 }
 impl DialogTemple {
@@ -35,7 +48,7 @@ impl DialogTemple {
 {} DIALOGEX {}, {}, {}, {}, {}
 STYLE 0x{:04X}
 EXSTYLE 0x{:04X}
-CAPTION \"{}\"{}{}{}FONT 9, \"SEGOE UI\", FW_NORMAL, FALSE, 0
+CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
 {{
 {}
 }}",
@@ -66,11 +79,16 @@ CAPTION \"{}\"{}{}{}FONT 9, \"SEGOE UI\", FW_NORMAL, FALSE, 0
                 Some(x) => format!("\nCLASS  \"{}\"", x),
             },
             pre_compile_lang_id(self.language).get(),
+            self.font.size,
+            self.font.face_name,
+            self.font.weight.unwrap_or(400),
+            self.font.italic as u8,
+            self.font.char_set as u8,
             self.controls
                 .into_iter()
                 .map(|x| x.get())
                 .collect::<Vec<_>>()
-                .join("\n")
+                .join("\n"),
         )))
     }
 }

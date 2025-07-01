@@ -1,5 +1,7 @@
 use super::*;
 ///表示 NMHDR 或将 NMHDR 作为其第一个成员的、#[repr(C)]的较大结构
+/// #SAFTY
+/// 确保实现此trait的类型都是将 NMHDR 作为其第一个成员的、#[repr(C)]的结构体
 pub unsafe trait NotifyMessage {
     fn code(&self) -> u32;
     ///返回的窗口可能不是Rust拥有的
@@ -21,6 +23,7 @@ unsafe impl NotifyMessage for NMHDR {
 pub trait Control {
     type MsgType: UnsafeControlMsg;
     const CLASS_NAME: &'static str;
+    const CLASS_NAME_WIDE: &'static [u16];
     fn from_window(wnd: Window) -> Result<Self>
     where
         Self: Sized,
@@ -47,9 +50,9 @@ pub trait Control {
             a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
         }
     }
-    fn get_class() -> WindowClass {
-        unsafe { WindowClass::from_str(Self::CLASS_NAME) }
-    }
+    // fn get_class() -> WindowClass {
+    //     unsafe { WindowClass::from_str(Self::CLASS_NAME) }
+    // }
 }
 impl<T: Control> From<T> for Window {
     fn from(ctl: T) -> Window {

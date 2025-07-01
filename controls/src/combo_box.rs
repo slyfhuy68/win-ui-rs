@@ -13,6 +13,7 @@ pub enum ComboBoxShow {
 }
 pub struct ComboBoxStyle {
     pub style: ChildWindowStyles,
+    pub contect: String,
     pub auto_hide_scroll: bool, //取反后的CBS_DISABLENOSCROLL
     pub auto_size: bool,        //取反后的CBS_NOINTEGRALHEIGHT
     pub auto_sort: bool,        //CBS_SORT
@@ -24,10 +25,11 @@ pub struct OwnerDrawType {
     pub owner_save_list: bool, //CBS_HASSTRINGS
     pub variable_height: bool, //false: CBS_OWNERDRAWFIXED, true: CBS_OWNERDRAWVARIABLE
 }
-impl Default for ComboBoxStyle {
-    fn default() -> Self {
+impl ComboBoxStyle {
+    pub fn new(s: &str) -> Self {
         Self {
             style: Default::default(),
+            contect: s.to_string(),
             auto_hide_scroll: true, //取反后的CBS_DISABLENOSCROLL
             auto_size: true,        //取反后的CBS_NOINTEGRALHEIGHT
             auto_sort: false,       //CBS_SORT
@@ -40,11 +42,12 @@ impl Default for ComboBoxStyle {
         }
     }
 }
-impl Into<(WINDOW_STYLE, ChildWindowStyles)> for ComboBoxStyle {
-    fn into(self) -> (WINDOW_STYLE, ChildWindowStyles) {
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
         use CaseType::*;
         use ComboBoxShow::*;
         let mut style: i32 = 0;
+        let (style1, ex) = self.style.into();
         match self.show_type {
             ViewLike => style |= CBS_DROPDOWNLIST,
             EditLike {
@@ -85,13 +88,14 @@ impl Into<(WINDOW_STYLE, ChildWindowStyles)> for ComboBoxStyle {
                 style |= CBS_OWNERDRAWFIXED;
             }
         }
-        (WINDOW_STYLE(style as u32), self.style)
+        (WINDOW_STYLE(style as u32) | style1, ex, self.contect)
     }
 }
 impl ComboBoxStyle {
-    pub fn new_view() -> Self {
+    pub fn new_view(s: &str) -> Self {
         Self {
             style: Default::default(),
+            contect: s.to_string(),
             auto_hide_scroll: true, //取反后的CBS_DISABLENOSCROLL
             auto_size: true,        //取反后的CBS_NOINTEGRALHEIGHT
             auto_sort: false,       //CBS_SORT
@@ -100,7 +104,7 @@ impl ComboBoxStyle {
             show_type: ComboBoxShow::ViewLike,
         }
     }
-    pub fn new_edit() -> Self {
+    pub fn new_edit(s: &str) -> Self {
         Self {
             style: ChildWindowStyles {
                 style: NormalWindowStyles {
@@ -109,6 +113,7 @@ impl ComboBoxStyle {
                 },
                 ..Default::default()
             },
+            contect: s.to_string(),
             auto_hide_scroll: true, //取反后的CBS_DISABLENOSCROLL
             auto_size: true,        //取反后的CBS_NOINTEGRALHEIGHT
             auto_sort: false,       //CBS_SORT
@@ -292,7 +297,6 @@ impl ComboBox {
         }
     }
     pub fn get_item_raw(&mut self, pos: ListBoxItemPos) -> Result<Option<isize>> {
-        // let (text_ptr, _text_u16) = str_to_pcwstr(text);
         let data = unsafe {
             SendMessageW(
                 self.0.handle(),
