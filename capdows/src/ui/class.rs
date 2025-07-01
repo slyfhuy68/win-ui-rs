@@ -111,7 +111,9 @@ impl WindowClassBuilder {
         if result == 0 {
             return Err(WinError::correct_error());
         };
-        Ok(Self { name: self.class_name.to_pcwstr() })
+        Ok(Self {
+            name: self.class_name.to_pcwstr(),
+        })
     }
 }
 #[repr(transparent)]
