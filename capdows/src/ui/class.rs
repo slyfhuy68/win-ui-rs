@@ -91,8 +91,8 @@ impl WindowClassBuilder {
                 cbClsExtra: self.class_extra as i32 * 8,
                 cbWndExtra: self.window_extra as i32 * 8,
                 hInstance: match self.executable_file {
-                    Some(x) => x.into(), 
-                    None => ExecutableFile::from_current_file()?.into()
+                    Some(x) => x.into(),
+                    None => ExecutableFile::from_current_file()?.into(),
                 },
                 hIcon: self.icon.unwrap_or(Icon::null()).into(),
                 hCursor: self.cursor.unwrap_or(Cursor::null()).handle,
@@ -185,8 +185,12 @@ impl WindowClass {
         let (style, ex_style, menu, parent) = wtype.into();
         let (wname, _wnameptr) = str_to_pcwstr(name);
         let cname = self.get_raw();
-        let (x, y) = pos.unwrap_or(Point::new(CW_USEDEFAULT, CW_USEDEFAULT)).to_tuple();
-        let (width, height) = size.unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT)).to_tuple();
+        let (x, y) = pos
+            .unwrap_or(Point::new(CW_USEDEFAULT, CW_USEDEFAULT))
+            .to_tuple();
+        let (width, height) = size
+            .unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT))
+            .to_tuple();
         let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
         let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
         let result = unsafe {

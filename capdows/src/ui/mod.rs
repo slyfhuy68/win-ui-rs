@@ -46,10 +46,10 @@ pub mod utility {
 }
 
 use crate::error::{Result, WinError as Error, WinError, errors::*};
-use crate::positioning::*;
 use crate::positioning::ext_methods::*;
-use euclid::{point2, rect};
+use crate::positioning::*;
 use crate::strings::*;
+use euclid::{point2, rect};
 pub mod core {
     use super::*;
     pub type ResourceStringId = String;
@@ -65,7 +65,7 @@ pub mod core {
         pub fn to_pcwstr(self) -> PCWSTR {
             match self {
                 NumberId(x) => PCWSTR(x as *mut u16),
-                StringId(y) => y.to_pcwstr()
+                StringId(y) => y.to_pcwstr(),
             }
         }
     }

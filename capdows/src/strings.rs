@@ -1,12 +1,86 @@
+use std::borrow::*;
+use std::cmp::Ordering;
+use std::ffi::OsString;
+use std::hash::Hash;
+use std::hash::Hasher;
+use std::slice;
 #[repr(transparent)]
 #[allow(non_camel_case_types)]
+#[derive(Debug)]
 pub struct widestr([u16]);
 #[repr(transparent)]
-pub struct WideString(Vec<u16>);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WideString(pub(crate) Vec<u16>);
+impl Borrow<widestr> for WideString {
+    fn borrow(&self) -> &widestr {
+        unsafe { widestr::from_utf16_unchecked(&self.0) }
+    }
+}
+use std::ops::Deref;
+use std::ops::DerefMut;
+impl Deref for WideString {
+    type Target = widestr;
+    fn deref(&self) -> &Self::Target {
+        unsafe { widestr::from_utf16_unchecked(self.0.as_slice()) }
+    }
+}
+impl DerefMut for WideString {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { widestr::from_utf16_unchecked_mut(self.0.as_mut_slice()) }
+    }
+}
+impl Into<OsString> for &widestr {
+    #[inline]
+    fn into(self) -> OsString {
+        use std::os::windows::ffi::OsStringExt;
+        OsString::from_wide(self.as_wide())
+    }
+}
+impl Ord for widestr {
+    #[inline]
+    fn cmp(&self, other: &widestr) -> Ordering {
+        self.as_wide().cmp(other.as_wide())
+    }
+}
+impl PartialEq for widestr {
+    #[inline]
+    fn eq(&self, other: &widestr) -> bool {
+        self.as_wide() == other.as_wide()
+    }
+}
+impl PartialOrd for widestr {
+    #[inline]
+    fn partial_cmp(&self, other: &widestr) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Hash for widestr {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in self.as_wide() {
+            state.write_u16(*i)
+        }
+        state.write_u16(0xffff);
+    }
+}
+impl Eq for widestr {}
+impl ToOwned for widestr {
+    type Owned = WideString;
+
+    #[inline]
+    fn to_owned(&self) -> WideString {
+        WideString(self.as_wide().to_owned())
+    }
+}
+impl BorrowMut<widestr> for WideString {
+    fn borrow_mut(&mut self) -> &mut widestr {
+        unsafe { widestr::from_utf16_unchecked_mut(&mut self.0) }
+    }
+}
 impl From<String> for WideString {
     #[inline]
     fn from(s: String) -> WideString {
-        Self(s.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>())
+        Self(s.encode_utf16().collect::<Vec<u16>>())
     }
 }
 impl Into<String> for WideString {
@@ -20,20 +94,20 @@ impl AsRef<widestr> for WideString {
     #[inline]
     fn as_ref(&self) -> &widestr {
         //创建self时已检查self，使用unchecked提高性能
-        unsafe {widestr::from_utf16_unchecked(&self.0)}
+        unsafe { widestr::from_utf16_unchecked(&self.0) }
     }
 }
 impl AsMut<widestr> for WideString {
     #[inline]
     fn as_mut(&mut self) -> &mut widestr {
         //创建self时已检查self，使用unchecked提高性能
-        unsafe {widestr::from_utf16_unchecked_mut(&mut self.0)}
+        unsafe { widestr::from_utf16_unchecked_mut(&mut self.0) }
     }
 }
-pub trait ToWideString{
+pub trait ToWideString {
     fn to_wide_string(&self) -> WideString;
 }
-impl <T: ToString + ?Sized> ToWideString for T{
+impl<T: ToString + ?Sized> ToWideString for T {
     #[inline]
     fn to_wide_string(&self) -> WideString {
         self.to_string().into()
@@ -55,6 +129,7 @@ impl Display for WideString {
         self.as_ref().fmt(f)
     }
 }
+#[derive(Debug)]
 pub struct Utf16Error {
     ///最大有效字符的索引
     pub(crate) valid_up_to: usize,
@@ -77,7 +152,7 @@ pub const fn check_utf16(v: &[u16]) -> Result<(), Utf16Error> {
     while i < v.len() {
         let u = v[i];
         i += 1; //i现在是下一个code unit
-        if 0xD800 > u || u > 0xDFFF {
+        if u < 0xD800 || 0xDFFF < u {
             // 当前 code unit 不是 surrogate, 有效
             continue;
         } else if u >= 0xDC00 {
@@ -128,7 +203,13 @@ pub const fn check_utf16(v: &[u16]) -> Result<(), Utf16Error> {
     }
     Ok(())
 }
+
 //__________________________________________________________________________-
+const ASCII_CASE_MASK: u16 = 0x20;
+const ASCII_A: u16 = b'a' as u16;
+const ASCII_Z: u16 = b'z' as u16;
+const ASCIIU_A: u16 = b'A' as u16;
+const ASCIIU_Z: u16 = b'Z' as u16;
 impl widestr {
     #[inline]
     pub const fn to_pcwstr(&self) -> windows::core::PCWSTR {
@@ -170,23 +251,18 @@ impl widestr {
         if index == 0 {
             return true;
         }
+
         if index >= self.len() {
-            index == self.len()
+            return index == self.len();
+        }
+        let u = self.as_wide()[index];
+        if 0xD800 <= u && u <= 0xDFFF {
+            u <= 0xDBFF
         } else {
-            // 判断code unit 是不是 low surrogate
-            0xDC00 <= self.as_wide()[index] && self.as_wide()[index] <= 0xDFFF
+            true //普通字符
         }
     }
-    #[inline]
-    pub const fn is_ascii(&self) -> bool {
-        let i = 0;
-        while i < self.len() {
-            if self.as_wide()[i] > 127 {
-                return false;
-            }
-        }
-        true
-    }
+
     #[inline]
     pub const fn as_wide(&self) -> &[u16] {
         unsafe { std::mem::transmute(self) }
@@ -203,8 +279,144 @@ impl widestr {
     pub const fn as_mut_ptr(&mut self) -> *mut u16 {
         self as *mut widestr as *mut u16
     }
-}
+    #[inline]
+    pub const fn split_at(&self, mid: usize) -> (&widestr, &widestr) {
+        if self.is_char_boundary(mid) {
+            unsafe { self.split_at_unchecked(mid) }
+        } else {
+            panic!("failed to slice widestr"); //等到intrinsics::const_eval_select稳定改用标准库写法
+        }
+    }
+    #[inline]
+    pub const fn split_at_mut(&mut self, mid: usize) -> (&mut widestr, &mut widestr) {
+        if self.is_char_boundary(mid) {
+            unsafe { self.split_at_mut_unchecked(mid) }
+        } else {
+            panic!("failed to slice widestr"); //等到intrinsics::const_eval_select稳定改用标准库写法
+        }
+    }
+    #[inline]
+    pub const fn split_at_checked(&self, mid: usize) -> Option<(&widestr, &widestr)> {
+        if self.is_char_boundary(mid) {
+            Some(unsafe { self.split_at_unchecked(mid) })
+        } else {
+            None
+        }
+    }
+    #[inline]
+    pub const fn split_at_mut_checked(
+        &mut self,
+        mid: usize,
+    ) -> Option<(&mut widestr, &mut widestr)> {
+        if self.is_char_boundary(mid) {
+            Some(unsafe { self.split_at_mut_unchecked(mid) })
+        } else {
+            None
+        }
+    }
+    #[inline]
+    pub const unsafe fn split_at_unchecked(&self, mid: usize) -> (&widestr, &widestr) {
+        let ptr = self.as_ptr();
+        unsafe {
+            (
+                Self::from_utf16_unchecked(slice::from_raw_parts(ptr, mid)),
+                Self::from_utf16_unchecked(slice::from_raw_parts(ptr.add(mid), self.len() - mid)),
+            )
+        }
+    }
+    #[inline]
+    pub const unsafe fn split_at_mut_unchecked(
+        &mut self,
+        mid: usize,
+    ) -> (&mut widestr, &mut widestr) {
+        let ptr = self.as_mut_ptr();
+        unsafe {
+            (
+                Self::from_utf16_unchecked_mut(slice::from_raw_parts_mut(ptr, mid)),
+                Self::from_utf16_unchecked_mut(slice::from_raw_parts_mut(
+                    ptr.add(mid),
+                    self.len() - mid,
+                )),
+            )
+        }
+    }
+    #[inline]
+    pub const fn is_ascii(&self) -> bool {
+        let mut i = 0;
+        while i < self.len() {
+            if self.as_wide()[i] > 127 {
+                return false;
+            }
+            i = i + 1;
+        }
+        true
+    }
+    #[inline]
+    pub fn eq_ignore_ascii_case(&self, other: &widestr) -> bool {
+        let mut a = self.as_wide();
+        let mut b = other.as_wide();
 
+        if a.len() != b.len() {
+            return false;
+        }
+        while let ([first_a, rest_a @ ..], [first_b, rest_b @ ..]) = (a, b) {
+            if (first_a | (matches!(first_a, ASCIIU_A..=ASCIIU_Z) as u16 * ASCII_CASE_MASK))
+                == (first_b | (matches!(first_b, ASCIIU_A..=ASCIIU_Z) as u16 * ASCII_CASE_MASK))
+            {
+                a = rest_a;
+                b = rest_b;
+            } else {
+                return false;
+            }
+        }
+
+        true
+    }
+    #[inline]
+    pub const fn make_ascii_lowercase(&mut self) {
+        let mut i = 0;
+        let wide = unsafe { self.as_wide_mut() };
+        while i < wide.len() {
+            wide[i] = wide[i] | (matches!(wide[i], ASCIIU_A..=ASCIIU_Z) as u16 * ASCII_CASE_MASK);
+            i += 1;
+        }
+    }
+    #[inline]
+    pub const fn make_ascii_uppercase(&mut self) {
+        let mut i = 0;
+        let wide = unsafe { self.as_wide_mut() };
+        while i < wide.len() {
+            wide[i] = wide[i] & !(matches!(wide[i], ASCII_A..=ASCII_Z) as u16 * ASCII_CASE_MASK);
+            i += 1;
+        }
+    }
+}
+impl widestr {
+    #[inline]
+    pub fn into_boxed_wide(self: Box<widestr>) -> Box<[u16]> {
+        unsafe { Box::from_raw(Box::into_raw(self) as *mut [u16]) }
+    }
+    #[inline]
+    pub fn into_wide_string(self: Box<widestr>) -> WideString {
+        WideString(self.into_boxed_wide().into_vec())
+    }
+    #[inline]
+    pub fn repeat(&self, n: usize) -> WideString {
+        WideString(self.as_wide().repeat(n))
+    }
+    #[inline]
+    pub fn to_ascii_uppercase(&self) -> WideString {
+        let mut s = self.to_owned();
+        s.make_ascii_lowercase();
+        s
+    }
+    #[inline]
+    pub fn to_ascii_lowercase(&self) -> WideString {
+        let mut s = self.to_owned();
+        s.make_ascii_lowercase();
+        s
+    }
+}
 impl AsRef<[u16]> for widestr {
     #[inline]
     fn as_ref(&self) -> &[u16] {
@@ -213,7 +425,6 @@ impl AsRef<[u16]> for widestr {
 }
 
 impl Default for &widestr {
-    /// Creates an empty widestr
     #[inline]
     fn default() -> Self {
         unsafe { widestr::from_utf16_unchecked(&[]) }
@@ -221,10 +432,8 @@ impl Default for &widestr {
 }
 
 impl Default for &mut widestr {
-    /// Creates an empty mutable widestr
     #[inline]
     fn default() -> Self {
-        // SAFETY: The empty widestring is valid UTF-16.
         unsafe { widestr::from_utf16_unchecked_mut(&mut []) }
     }
 }
@@ -305,14 +514,14 @@ macro_rules! L {
                 pos = new_pos;
                 len += if code_point <= 0xffff { 1 } else { 2 };
             }
-            len + 1
+            len
         };
-        const WIDESTR: &[u16; LEN] = {
+        const WIDE: &[u16; LEN] = {
             let mut buffer = [0; LEN];
             $crate::strings::do_input($s.as_bytes(), &mut buffer);
             &{ buffer }
         };
-        unsafe { widestr::from_utf16_unchecked(WIDESTR) }
+        unsafe { widestr::from_utf16_unchecked(WIDE) }
     }};
 }
 #[doc(hidden)]
@@ -336,40 +545,102 @@ pub const fn do_input(input: &[u8], buffer: &mut [u16]) {
 
 #[cfg(test)]
 mod tests {
-    //AI
+    //测试由AI生成
     use super::*;
-
-    // 有效的 ASCII 字符串
+    #[test]
+    fn test_widestr_eq_ignore_ascii_case() {
+        let a = L!("Hello中文不受影响❤اللغة العربية");
+        let b = L!("heLlO中文不受影响❤اللغة العربية");
+        assert!(a.eq_ignore_ascii_case(b));
+    }
+    #[test]
+    fn test_widestr_make_ascii_lowercase() {
+        let wstr = L!("heLlO中文不受影响❤اللغة العربية");
+        assert_eq!(
+            wstr.to_ascii_lowercase(),
+            L!("hello中文不受影响❤اللغة العربية").to_wide_string()
+        );
+    }
+    #[test]
+    fn test_widestr_make_ascii_uppercase() {
+        let wstr = L!("HEllo中文不受影响❤اللغة العربية");
+        assert_eq!(
+            wstr.to_ascii_uppercase(),
+            L!("hello中文不受影响❤اللغة العربية").to_wide_string()
+        );
+    }
+    #[test]
+    #[should_panic(expected = "failed to slice widestr")]
+    fn test_split_at_surrogate_pair_middle() {
+        let data = L!("👨👩👧👦");
+        let _ = data.split_at(1);
+    }
+    #[test]
+    fn test_split_at_valid_boundary() {
+        let ws = L!("👨👩👧👦");
+        let (left, right) = ws.split_at(2);
+        assert_eq!(left, L!("👨"));
+        assert_eq!(right, L!("👩👧👦"));
+    }
+    #[test]
+    #[should_panic]
+    fn test_split_at_invalid_index_out_of_bounds() {
+        let ws = L!("abc");
+        ws.split_at(100);
+    }
+    #[test]
+    fn test_widestr_to_wide_string() {
+        let s = "Hello, World!中文اللغة العربية❤";
+        let wstr = s.to_wide_string();
+        assert_eq!(
+            wstr.as_ref().as_wide(),
+            s.encode_utf16().collect::<Vec<_>>()
+        );
+    }
+    #[test]
+    fn test_widestr_display() {
+        let wstr = L!("HEllo中文اللغة العربية❤");
+        assert_eq!(format!("{}", wstr), "HEllo中文اللغة العربية❤");
+    }
+    #[test]
+    fn test_widestr_hash() {
+        let a = L!("abc");
+        let b = L!("abc");
+        let mut hasher_a = std::collections::hash_map::DefaultHasher::new();
+        a.hash(&mut hasher_a);
+        let mut hasher_b = std::collections::hash_map::DefaultHasher::new();
+        b.hash(&mut hasher_b);
+        assert_eq!(hasher_a.finish(), hasher_b.finish());
+    }
+    #[test]
+    fn test_widestr_const_methods() {
+        const WSTR: &widestr = L!("Hello");
+        assert_eq!(WSTR.len(), 5);
+        assert!(WSTR.is_char_boundary(0));
+        assert!(WSTR.is_char_boundary(5));
+    }
     #[test]
     fn test_valid_ascii() {
-        let valid: &[u16] = &[0x0048, 0x0065, 0x006C, 0x006C, 0x006F]; // "Hello"
+        let valid: &[u16] = &[0x0048, 0x0065, 0x006C, 0x006C, 0x006F];
         assert!(widestr::from_utf16(valid).is_ok());
         assert!(widestr::from_utf16(valid).unwrap().is_ascii());
     }
-
-    // 有效的非 ASCII 字符串（不含代理）
     #[test]
     fn test_valid_non_ascii_no_surrogate() {
         let valid: &[u16] = &[0x03A9]; // GREEK CAPITAL LETTER OMEGA
         assert!(widestr::from_utf16(valid).is_ok());
         assert!(!widestr::from_utf16(valid).unwrap().is_ascii());
     }
-
-    // 有效的代理对（High + Low）
     #[test]
     fn test_valid_surrogate_pair() {
         let valid: &[u16] = &[0xD83D, 0xDE00]; // 😄
         assert!(widestr::from_utf16(valid).is_ok());
     }
-
-    // 多个有效的代理对
     #[test]
     fn test_multiple_valid_surrogate_pairs() {
         let valid: &[u16] = &[0xD83D, 0xDE00, 0xD83D, 0xDE0A]; // 😄😊
         assert!(widestr::from_utf16(valid).is_ok());
     }
-
-    // 单个 High surrogate，无效
     #[test]
     fn test_invalid_single_high_surrogate() {
         let invalid: &[u16] = &[0xD800];
@@ -379,8 +650,6 @@ mod tests {
         assert_eq!(err.valid_up_to(), 0);
         assert_eq!(err.invalid_code(), 0xD800);
     }
-
-    // 单个 Low surrogate，无效
     #[test]
     fn test_invalid_single_low_surrogate() {
         let invalid: &[u16] = &[0xDC00];
@@ -390,8 +659,6 @@ mod tests {
         assert_eq!(err.valid_up_to(), 0);
         assert_eq!(err.invalid_code(), 0xDC00);
     }
-
-    // High surrogate 后跟非 Low surrogate
     #[test]
     fn test_invalid_high_surrogate_followed_by_invalid() {
         let invalid: &[u16] = &[0xD800, 0xD800];
@@ -401,8 +668,6 @@ mod tests {
         assert_eq!(err.valid_up_to(), 0);
         assert_eq!(err.invalid_code(), 0xD800);
     }
-
-    // 高低顺序错误：Low surrogate 在前
     #[test]
     fn test_invalid_low_surrogate_first() {
         let invalid: &[u16] = &[0xDC00, 0xD800];
@@ -412,8 +677,6 @@ mod tests {
         assert_eq!(err.valid_up_to(), 0);
         assert_eq!(err.invalid_code(), 0xDC00);
     }
-
-    // 空字符串
     #[test]
     fn test_empty_string() {
         let empty: &[u16] = &[];
@@ -423,36 +686,28 @@ mod tests {
         assert!(ws.is_empty());
         assert!(ws.is_ascii());
     }
-
-    // char boundary 检查
     #[test]
     fn test_is_char_boundary() {
-        let s: &[u16] = &[0x0048, 0xD83D, 0xDE00, 0x0041]; // H 😄 A
+        let s: &[u16] = &[0x0048, 0xD83D, 0xDE00, 0x0041]; // H😄A
         let ws = widestr::from_utf16(s).unwrap();
 
         assert!(ws.is_char_boundary(0)); // 开头
-        assert!(ws.is_char_boundary(1)); // 第一个字符后
-        assert!(ws.is_char_boundary(3)); // 😄 结束位置
-        assert!(ws.is_char_boundary(4)); // 'A' 位置
-        assert!(!ws.is_char_boundary(2)); // 中间 low surrogate 不是边界
+        assert!(ws.is_char_boundary(1)); // 😄开头
+        assert!(!ws.is_char_boundary(2)); // 😄 结束位置
+        assert!(ws.is_char_boundary(3)); // 'A' 位置
     }
-
-    // 使用宏 L! 构造宽字符串
     #[test]
-    fn test_macro_L() {
+    fn test_macro_l() {
         let ws = L!("Hello 😄");
-        assert_eq!(ws.len(), 7); // H e l l o  (空格) 😄 -> 7 code units
+        assert_eq!(ws.len(), 8); // H e l l o  (空格) 😄 -> 8 u16s
         assert!(ws.as_wide()[5] == 0x0020); // 空格
-        assert!(ws.as_wide()[6] == 0xDE00); // 😄 的 low surrogate
+        assert!(ws.as_wide()[6] == 0xD83D); // 😄 的 high surrogate
     }
-
-    // 默认值测试
     #[test]
     fn test_default() {
-        let default_str: &widestr = &widestr::default();
-        assert!(default_str.is_empty());
-
-        let default_mut_str: &mut widestr = &mut widestr::default();
-        assert!(default_mut_str.is_empty());
+        let default_widestr: &widestr = Default::default();
+        assert!(default_widestr.is_empty());
+        let default_mut_widestr: &mut widestr = Default::default();
+        assert!(default_mut_widestr.is_empty());
     }
 }

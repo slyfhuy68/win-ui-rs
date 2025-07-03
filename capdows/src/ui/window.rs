@@ -496,11 +496,7 @@ impl Window {
         unsafe { AnyPopup() }.as_bool()
     }
     //未实现区--------------------------------------
-    pub fn adjust_window_rect(
-        _rect: Rect,
-        _wtype: WindowType,
-        _have_menu: bool,
-    ) -> Result<Rect> {
+    pub fn adjust_window_rect(_rect: Rect, _wtype: WindowType, _have_menu: bool) -> Result<Rect> {
         todo!() //AdjustWindowRectEx
     }
     pub fn arrange_iconic(&mut self) -> Result<u32> {
