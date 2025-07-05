@@ -23,7 +23,7 @@ unsafe impl NotifyMessage for NMHDR {
 pub trait Control {
     type MsgType: UnsafeControlMsg;
     const CLASS_NAME: &'static str;
-    const CLASS_NAME_WIDE: &'static [u16];
+    const CLASS_NAME_WIDE: &'static widestr;
     fn from_window(wnd: Window) -> Result<Self>
     where
         Self: Sized,

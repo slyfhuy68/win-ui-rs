@@ -56,6 +56,7 @@ version = "0.0.1"
 dependencies = [
  "capdows",
  "capdows_macros",
+ "capdows_resource",
  "either",
  "embed-resource",
  "euclid",

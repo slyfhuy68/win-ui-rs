@@ -1,5 +1,5 @@
 use super::*;
-#[derive(Default)]
+#[derive(Default, Clone, Copy, Hash)]
 pub enum BottonContentPos {
     #[default]
     Center, //BS_CENTER | BS_VCENTER
@@ -28,22 +28,23 @@ impl Into<WINDOW_STYLE> for BottonContentPos {
         } as u32)
     }
 }
-#[derive(Default)]
+#[derive(Default, Clone, Copy, Hash)]
 pub enum ButtonType {
     #[default]
     Normal,
     Split,
     Link,
 }
-pub struct ButtonStyle {
+pub struct ButtonOption<T> {
     pub style: ChildWindowStyles,
     pub btype: ButtonType,
-    pub contect: ButtonContent,
+    pub contect: T,
     pub pos: BottonContentPos,
     pub extra_msg: bool, //BS_NOTIFY
     pub flat: bool,      //BS_FLAT
     pub focused: bool,
 }
+pub type ButtonStyle = ButtonOption<ButtonContent>;
 impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for ButtonStyle {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
         let (mut ms_style, ex) = self.style.into();
@@ -69,6 +70,66 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Butt
             ditype,
             text,
         )
+    }
+}
+pub type ButtonTemple = ButtonOption<ButtonTempleContent>;
+impl DialogTempleControl for  ButtonTemple {
+    fn pre_compile(
+        self,
+        pos: Point,
+        size: Size,
+        identifier: WindowID,
+    ) -> ControlPreCompilePruduct{
+        let (mut ms_style, style_ex) = self.style.into();
+        use ButtonType::*;
+        ms_style |= WINDOW_STYLE(match (self.btype, self.focused) {
+            (Normal, false) => BS_PUSHBUTTON,
+            (Normal, true) => BS_DEFPUSHBUTTON,
+            (Split, false) => BS_SPLITBUTTON,
+            (Split, true) => BS_DEFSPLITBUTTON,
+            (Link, false) => BS_COMMANDLINK,
+            (Link, true) => BS_DEFCOMMANDLINK,
+        } as u32);
+        if self.extra_msg {
+            ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
+        };
+        if self.flat {
+            ms_style |= WINDOW_STYLE(BS_FLAT as u32);
+        };
+        let (style2, ct) = self.contect.into();
+        ControlPreCompilePruduct::from(format!("CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}", 
+            ct, 
+            identifier, 
+            (ms_style | style2 | self.pos.into() | WS_CHILD).0, 
+            pos.x, 
+            pos.y, 
+            size.width, 
+            size.height, 
+            style_ex.0
+        ))
+    }
+}
+pub struct  ButtonTempleContent {
+        //BS_TEXT
+        pub text: String,
+        pub multiple_lines: bool, //BS_MULTILINE
+}
+impl ButtonTempleContent {
+    pub fn new(text: &str) -> Self {
+        Self {
+            text: text.to_string(),
+            multiple_lines: false,
+        }
+    }
+}
+impl Into<(WINDOW_STYLE, String)> for ButtonTempleContent {
+    fn into(self) -> (WINDOW_STYLE, String) {
+        (if self.multiple_lines {
+            WINDOW_STYLE((BS_MULTILINE | BS_TEXT) as u32)
+        } else {
+            WINDOW_STYLE(BS_TEXT as u32)
+        },
+        self.text,)
     }
 }
 pub enum ButtonContent {
@@ -105,23 +166,23 @@ impl Into<(WINDOW_STYLE, Option<ButtonImage>, String)> for ButtonContent {
                 multiple_lines,
             } => (
                 if multiple_lines {
-                    WINDOW_STYLE(BS_MULTILINE as u32)
+                    WINDOW_STYLE((BS_MULTILINE | BS_TEXT) as u32)
                 } else {
-                    WINDOW_STYLE(0)
+                    WINDOW_STYLE(BS_TEXT as u32)
                 },
                 None,
                 text,
             ),
-            ButtonContent::IconOnly { icon, name, .. } => (WINDOW_STYLE(0), Some(icon), name),
+            ButtonContent::IconOnly { icon, name} => (WINDOW_STYLE(if icon.is_left(){BS_BITMAP}else{ BS_ICON} as u32), Some(icon), name),
             ButtonContent::IconAndText {
                 icon,
                 text,
                 multiple_lines,
             } => (
                 if multiple_lines {
-                    WINDOW_STYLE(BS_MULTILINE as u32)
+                    WINDOW_STYLE((BS_MULTILINE|if icon.is_left(){BS_BITMAP}else{ BS_ICON} | BS_TEXT) as u32)
                 } else {
-                    WINDOW_STYLE(0)
+                    WINDOW_STYLE((if icon.is_left(){BS_BITMAP}else{ BS_ICON} | BS_TEXT)as u32)
                 },
                 Some(icon),
                 text,
@@ -163,10 +224,10 @@ define_control! {
             BN_SETFOCUS => GetKeyboardFocus,
             BCN_DROPDOWN => {
                 let data = (*(ptr as *mut NMBCDROPDOWN)).rcButton;
-                DropDown(Rect::Points(
-                    Point(data.left, data.top),
-                    Point(data.right, data.bottom),
-                ))
+                DropDown(euclid::Box2D::new(
+                    Point::new(data.left, data.top),
+                    Point::new(data.right, data.bottom),
+                ).to_rect())
             }
             NM_CUSTOMDRAW => Draw(ptr),
             BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？

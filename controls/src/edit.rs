@@ -13,6 +13,7 @@ pub enum CaseType {
 }
 pub struct EditStyle {
     //AI
+    pub text: String,
     pub style: ChildWindowStyles,
     pub auto_hscroll: bool, // ES_AUTOHSCROLL
     pub auto_vscroll: bool, // ES_AUTOVSCROLL
@@ -26,10 +27,9 @@ pub struct EditStyle {
     pub etype: EditType,
 }
 
-impl Into<(WINDOW_STYLE, Option<char>, ChildWindowStyles)> for EditStyle {
-    //AI
-    fn into(self) -> (WINDOW_STYLE, Option<char>, ChildWindowStyles) {
-        let mut edit_style = WINDOW_STYLE(0u32);
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String)> for EditStyle {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String) {
+        let (mut edit_style, ex) = self.style.into();
         let mut pass: Option<char> = None;
         if self.auto_hscroll {
             edit_style |= WINDOW_STYLE(ES_AUTOHSCROLL as u32);
@@ -80,7 +80,7 @@ impl Into<(WINDOW_STYLE, Option<char>, ChildWindowStyles)> for EditStyle {
                 Upper => edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32),
             }
         }
-        (edit_style, pass, self.style)
+        (edit_style, ex, pass, self.text)
     }
 }
 pub enum EditMsgType {
@@ -124,15 +124,16 @@ define_control! {
             }
     },
     {
-        is_some_window(wnd, "Edit")
+        is_some_window(wnd, L!("Edit"))
     },
     {
         todo!()
     }
 }
-impl Default for EditStyle {
-    fn default() -> Self {
+impl EditStyle {
+    pub fn new(text: &str) -> Self {
         Self {
+            text: text.to_string(),
             style: ChildWindowStyles {
                 style: NormalWindowStyles {
                     edge_type: WindowEdgeType::Sunken,
@@ -154,24 +155,27 @@ impl Default for EditStyle {
         }
     }
 }
-impl DataControl for Edit {
-    type Data = Option<char>;
+impl CommonControl for Edit {
     type Style = EditStyle;
-    fn set_data(wnd: Window, password: Self::Data) -> Result<Self> {
-        let mut result = Edit(wnd);
-        match password {
+    fn new(
+        wnd: &mut Window,
+        pos: Option<Rect>,
+        identifier: WindowID,
+        control_style: Self::Style,
+        font: Option<ControlFont>,
+    ) -> Result<Self> {
+        let (a, b, pass, text) = control_style.into();
+        let mut result = Self(new_control(wnd, w!("Edit"), text, pos, identifier, a, b, font)?);
+        match pass {
             None => (), //不要直接传给set_passwrd_char，表达的含义不一样
             Some(s) => result.set_passwrd_char(Some(s))?,
         };
         Ok(result)
     }
 }
+
 impl TextControl for Edit {}
 impl Edit {
-    // fn can_undo(&self) -> Result<bool>{
-    //     unsafe { SendMessageW(self.0, EM_CANUNDO, Some(WPARAM(0)), Some(LPARAM(0))).0 }
-    //             as usize != 0
-    // }
     pub fn set_passwrd_char(&mut self, pw_char: Option<char>) -> Result<()> {
         let num = match pw_char {
             Some(x) => {

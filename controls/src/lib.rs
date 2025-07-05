@@ -1,4 +1,4 @@
-use capdows::prelude::*;
+use capdows::L;
 use capdows::prelude::*;
 use capdows::ui::{control::*, image::*, style::*, window::*, *};
 capdows::import_foundation!();
@@ -6,10 +6,11 @@ use std::ffi::c_void;
 use windows::Win32::Graphics::Gdi::*;
 use windows::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
 use windows::core::{PCWSTR, w};
+use capdows_resource::{dialog::{DialogTempleControl, ControlPreCompilePruduct}};
 pub mod button;
 pub mod check_box;
 pub mod combo_box;
-// pub mod edit;
+pub mod edit;
 // pub mod group_box;
 // pub mod radio;
 // pub mod view;
@@ -35,12 +36,12 @@ fn new_control(
         let id = Some(HMENU(id as *mut c_void));
         let parent = Some(wnd.handle());
         let (ptr, _ptr_raw) = str_to_pcwstr(&name);
-        let (Point(x, y), Size(width, height)) = match pos {
+        let ((x, y), (width, height)) = match pos {
             None => (
-                Point(CW_USEDEFAULT, CW_USEDEFAULT),
-                Size(CW_USEDEFAULT, CW_USEDEFAULT),
+                (CW_USEDEFAULT, CW_USEDEFAULT),
+                (CW_USEDEFAULT, CW_USEDEFAULT),
             ),
-            Some(x) => x.get_size(),
+            Some(euclid::Rect { origin, size }) => (origin.to_tuple(), size.to_tuple()),
         };
         let hinstance = HINSTANCE(GetWindowLongW(wnd.handle(), GWL_HINSTANCE) as *mut c_void);
         let hwnd = CreateWindowExW(
@@ -100,23 +101,14 @@ fn new_button(
     };
     Ok(wnd)
 }
-fn is_some_window(wnd: &Window, class: &'static [u16]) -> Result<bool> {
+fn is_some_window(wnd: &Window, class: &'static widestr) -> Result<bool> {
     let mut buffer = [0u16; 16]; //控件类名通常不超过16个字符
     let len = unsafe { GetClassNameW(wnd.handle(), &mut buffer) } as usize;
     if len == 0 {
         return Err(WinError::correct_error());
     };
     let new_buffer = &buffer[..len];
-    if new_buffer.len() != class.len() {
-        return Ok(false);
-    }
-    Ok(new_buffer.iter().zip(class.iter()).all(|(&a, &b)| {
-        if a < 0x80 && b < 0x80 {
-            a.to_ascii_lowercase() == b.to_ascii_lowercase()
-        } else {
-            a == b
-        }
-    }))
+    Ok(unsafe { class.eq_ignore_ascii_case(widestr::from_utf16_unchecked(new_buffer)) })
 }
 use capdows_macros::define_control;
 pub trait CommonControl: Control + Sized {

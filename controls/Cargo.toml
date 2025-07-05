@@ -27,3 +27,5 @@ features = [
 path = "../capdows"
 [dependencies.capdows_macros]
 path = "../macros"
+[dependencies.capdows_resource]
+path = "../res"

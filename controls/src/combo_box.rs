@@ -128,6 +128,25 @@ impl ComboBoxStyle {
 }
 impl CommonControl for ComboBox {
     type Style = ComboBoxStyle;
+    fn new(
+        wnd: &mut Window,
+        pos: Option<Rect>,
+        identifier: WindowID,
+        control_style: Self::Style,
+        font: Option<ControlFont>,
+    ) -> Result<Self> {
+        let (a, b, c) = control_style.into();
+        Ok(Self(new_control(
+            wnd,
+            w!("ComboBox"),
+            c,
+            pos,
+            identifier,
+            a,
+            b,
+            font,
+        )?))
+    }
 }
 define_control! {
     ComboBox,
@@ -154,7 +173,7 @@ define_control! {
         }
     },
     {
-        is_some_window(wnd, "ComboBox")
+        is_some_window(wnd, L!("ComboBox"))
     },
     {
         todo!()
@@ -337,5 +356,5 @@ impl ComboBox {
     // CB_SHOWDROPDOWN
 }
 impl TextControl for ComboBox {
-    const INSUFFICIENT_SPACE_RESULT: u32 = CB_ERRSPACE;
+    const INSUFFICIENT_SPACE_RESULT: u32 = CB_ERRSPACE as u32;
 }

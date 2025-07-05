@@ -52,10 +52,11 @@ macro_rules! compile_all {//ai宏
 fn pre_compile_resource_id(id: ResourceID) -> Result<PreCompilePruduct> {
     Ok(PreCompilePruduct::from(match id {
         StringId(y) => {
-            if y.parse::<f32>().is_ok() {
+            let result = y.to_string();
+            if result.parse::<f32>().is_ok() {
                 return Err(ERROR_INVALID_STRING_ID);
             };
-            y
+            result
         }
         NumberId(x) => x.to_string(),
     }))

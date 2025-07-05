@@ -1,9 +1,14 @@
 use super::*;
+use capdows::ui::font::FontCharSet;
+use capdows::ui::help::HelpId;
+use capdows::ui::window::WindowID;
 use windows::Win32::UI::WindowsAndMessaging::*;
+///由DialogTempleControl的pre_compile方法得到
 pub type ControlPreCompilePruduct = PreCompilePruduct;
+//CONTROL <content>, <id>, "<class>", <style>, <x>, <y>, <w>, <h>, <ex_style>
 pub trait DialogTempleControl {
     fn pre_compile(
-        &mut self,
+        self,
         pos: Point,
         size: Size,
         identifier: WindowID,
@@ -47,10 +52,10 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
 {}
 }}",
             pre_compile_resource_id(id)?.get(),
-            self.pos.0,
-            self.pos.1,
-            self.size.0,
-            self.size.1,
+            self.pos.x,
+            self.pos.y,
+            self.size.width,
+            self.size.height,
             match self.help_id {
                 None => 0,
                 Some(help_id) => help_id.get(),
@@ -60,10 +65,11 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
             self.caption,
             match self.menu {
                 Some(StringId(y)) => {
-                    if y.parse::<f32>().is_ok() {
+                    let result = y.to_string();
+                    if result.parse::<f32>().is_ok() {
                         return Err(ERROR_INVALID_STRING_ID);
                     };
-                    format!("\nMENU \"{}\"", y)
+                    format!("\nMENU \"{}\"", result)
                 }
                 Some(NumberId(x)) => format!("\nMENU {}", x),
                 None => "".to_string(),

@@ -93,7 +93,7 @@ define_control! {
         }
     },
     {
-        if !is_some_window(wnd, "Button")? {
+        if !is_some_window(wnd, L!("Button"))? {
             return Ok(false);
         }
         let style = style_of_raw(wnd);

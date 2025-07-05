@@ -58,7 +58,7 @@ pub fn define_control(input: TokenStream) -> TokenStream {
         impl Control for #control_name {
             type MsgType = #msg_name_ident;
             const CLASS_NAME: &'static str = #class_name;
-            const CLASS_NAME_WIDE: &[u16] = capdows::L!(#class_name);
+            const CLASS_NAME_WIDE: &'static widestr = capdows::L!(#class_name);
             unsafe fn force_from_window(wnd: Window) -> Self {
                 Self(wnd)
             }
