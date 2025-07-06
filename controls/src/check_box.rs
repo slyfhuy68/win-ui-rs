@@ -1,11 +1,11 @@
 use super::*;
 pub use button::{
     BottonContentPos as CheckBoxContentPos, ButtonContent as CheckBoxContent,
-    ButtonMsgType as CheckBoxMsgType,
+    ButtonMsgType as CheckBoxMsgType, ButtonTempleContent as CheckBoxTempleContent
 };
-pub struct CheckBoxStyle {
+pub struct CheckBoxOption<T> {
     pub style: ChildWindowStyles,
-    pub contect: CheckBoxContent,
+    pub contect: T,
     pub pos: CheckBoxContentPos,
     pub extra_msg: bool,   //BS_NOTIFY
     pub auto: bool,        //if
@@ -14,17 +14,84 @@ pub struct CheckBoxStyle {
     pub like_button: bool, //BS_PUSHLIKE
     pub left_text: bool,   //BS_LEFTTEXT
 }
-impl CheckBoxStyle {
+pub type CheckBoxStyle = CheckBoxOption<CheckBoxContent>;
+pub type CheckBoxTemple = CheckBoxOption<CheckBoxTempleContent>;
+impl DialogTempleControl for CheckBoxTemple {
+    fn pre_compile(
+        self,
+        pos: Point,
+        size: Size,
+        identifier: WindowID,
+    ) -> ControlPreCompilePruduct{
+        let (mut ms_style, ex) = self.style.into();
+        let (style2, ct) = self.contect.into();
+        ms_style |= style2 | self.pos.into() | WS_CHILD;
+        if self.extra_msg {
+            ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
+        };
+        if self.flat {
+            ms_style |= WINDOW_STYLE(BS_FLAT as u32);
+        };
+        if self.three_state {
+            if self.auto {
+                ms_style |= WINDOW_STYLE(BS_AUTO3STATE as u32);
+            } else {
+                ms_style |= WINDOW_STYLE(BS_3STATE as u32);
+            };
+        } else {
+            if self.auto {
+                ms_style |= WINDOW_STYLE(BS_AUTOCHECKBOX as u32);
+            } else {
+                ms_style |= WINDOW_STYLE(BS_CHECKBOX as u32);
+            };
+        };
+        if self.like_button {
+            ms_style |= WINDOW_STYLE(BS_PUSHLIKE as u32);
+        };
+        if self.left_text {
+            ms_style |= WINDOW_STYLE(BS_LEFTTEXT as u32);
+        };
+        ControlPreCompilePruduct::from(format!("CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}", 
+            ct, 
+            identifier, 
+            (ms_style | style2 | self.pos.into() | WS_CHILD).0, 
+            pos.x, 
+            pos.y, 
+            size.width, 
+            size.height, 
+            ex.0
+        ))
+    }
+}
+impl<T> CheckBoxOption<T> {
     #[inline]
     pub const fn three_state(mut self) -> Self {
         self.three_state = true;
         self
     }
+}
+impl CheckBoxStyle{
     #[inline]
     pub fn new_text(text: &str) -> Self {
         Self {
             style: Default::default(),
             contect: CheckBoxContent::new_text(text),
+            pos: Default::default(),
+            extra_msg: false,
+            auto: true,
+            three_state: false,
+            flat: false,
+            like_button: false,
+            left_text: false,
+        }
+    }
+}
+impl CheckBoxTemple{
+    #[inline]
+    pub fn new(text: &str) -> Self {
+        Self {
+            style: Default::default(),
+            contect: CheckBoxTempleContent::new(text),
             pos: Default::default(),
             extra_msg: false,
             auto: true,

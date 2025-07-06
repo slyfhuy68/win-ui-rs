@@ -73,7 +73,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Butt
     }
 }
 pub type ButtonTemple = ButtonOption<ButtonTempleContent>;
-impl DialogTempleControl for  ButtonTemple {
+impl DialogTempleControl for ButtonTemple {
     fn pre_compile(
         self,
         pos: Point,
@@ -109,10 +109,10 @@ impl DialogTempleControl for  ButtonTemple {
         ))
     }
 }
-pub struct  ButtonTempleContent {
-        //BS_TEXT
-        pub text: String,
-        pub multiple_lines: bool, //BS_MULTILINE
+pub struct ButtonTempleContent {
+    //BS_TEXT
+    pub text: String,
+    pub multiple_lines: bool, //BS_MULTILINE
 }
 impl ButtonTempleContent {
     pub fn new(text: &str) -> Self {

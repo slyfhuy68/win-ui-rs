@@ -12,7 +12,7 @@ define_control! {
         }
     },
     {
-        if !is_some_window(wnd, "Button")? {
+        if !is_some_window(wnd, L!("Button"))? {
             return Ok(false);
         }
         Ok(
@@ -24,12 +24,28 @@ define_control! {
     }
 }
 #[derive(Default)]
-pub struct GroupBoxStyle(ChildWindowStyles);
-impl Into<(WINDOW_STYLE, ChildWindowStyles)> for GroupBoxStyle {
-    fn into(self) -> (WINDOW_STYLE, ChildWindowStyles) {
-        (WINDOW_STYLE(BS_GROUPBOX as u32), self.0)
+pub struct GroupBoxStyle{
+    pub style: ChildWindowStyles, 
+    pub text: String, 
+}
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for GroupBoxStyle {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+        let (a, b) = self.style.into();
+        ( a | WINDOW_STYLE(BS_GROUPBOX as u32), b, self.text)
     }
 }
 impl CommonControl for GroupBox {
     type Style = GroupBoxStyle;
+    fn new(
+        wnd: &mut Window,
+        pos: Option<Rect>,
+        identifier: WindowID,
+        control_style: Self::Style,
+        font: Option<ControlFont>,
+    ) -> Result<Self>{
+        let (style, ex, name) = control_style.into();
+        Ok(Self(new_button(
+            wnd, name, pos, identifier, style, ex, font, None,
+        )?))
+    }
 }

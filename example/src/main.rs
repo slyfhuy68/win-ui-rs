@@ -1,19 +1,6 @@
-use capdows::msg_box;
-use capdows::win32::control::Control;
-use capdows::win32::*;
-use capdows_controls::*;
-use class::*;
-use menu::*;
-use msg::*;
-use window::*;
-// use control::*;
-use capdows::win32::core::*;
-use capdows_controls::{button::*, check_box::*, edit::*, group_box::*, radio::*, view::*};
-use capdows_example::*;
-use font::*;
-use image::*;
-use module::*;
-use style::*;
+use capdows::{msg_box, L};
+use capdows::prelude::*;
+// use capdows_example::*;
 struct MyControls {
     a1: RadioButton,
     a2: RadioButton,

@@ -1,21 +1,13 @@
-use capdows::win32::control::Control;
-use capdows::win32::control::ControlMsgType;
-use capdows::win32::mouse::release_mouse;
-use capdows::win32::*;
+use capdows::prelude::*;
 use capdows_controls::view::*;
-use msg::ButtonState::*;
+use capdows::ui::msg::ButtonState::*;
 use std::sync::LazyLock;
+use capdows::L;
 pub struct WindowFinder(pub ImageTextView);
-use capdows::win32::core::*;
-use capdows::win32::window::WindowID;
-use capdows_controls::DataControl;
-use class::WindowClass;
-use image::*;
-use module::ExecutableFile;
-use msg::*;
-use window::Window;
+use capdows_controls::{CommonControl, TextControl};
 impl Control for WindowFinder {
     const CLASS_NAME: &'static str = "Static";
+    const CLASS_NAME_WIDE: &'static widestr = L!("Static");
     type MsgType = WindowFinderMsg;
     unsafe fn force_from_window(wnd: Window) -> Self {
         unsafe { WindowFinder(ImageTextView::force_from_window(wnd)) }
@@ -89,7 +81,7 @@ pub enum WindowFinderMsgType {
     SelChanged(Option<Window>),
     EndFind,
 }
-// use ButtonState::*;
+use ButtonState::*;
 pub use WindowFinderMsgType::*;
 pub struct WindowFinderMsg(WindowFinder, WindowFinderMsgType);
 impl Drop for WindowFinderMsg {
@@ -102,7 +94,6 @@ impl WindowFinderMsg {
         &self.1
     }
 }
-use capdows::win32::control::ControlMsg;
 impl ControlMsg for WindowFinderMsg {
     type ControlMsgDataType = Window;
     fn into_raw_control_msg(mut self) -> Result<(u32, Option<Self::ControlMsgDataType>)> {

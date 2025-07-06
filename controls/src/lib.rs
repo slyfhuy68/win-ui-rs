@@ -6,14 +6,21 @@ use std::ffi::c_void;
 use windows::Win32::Graphics::Gdi::*;
 use windows::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
 use windows::core::{PCWSTR, w};
-use capdows_resource::{dialog::{DialogTempleControl, ControlPreCompilePruduct}};
+use capdows_resource::dialog::{DialogTempleControl, ControlPreCompilePruduct};
 pub mod button;
 pub mod check_box;
 pub mod combo_box;
 pub mod edit;
-// pub mod group_box;
+pub mod group_box;
 // pub mod radio;
 // pub mod view;
+// pub mod prelude {
+//     pub use crate::{
+//         button::*, 
+//         check_box::*, 
+//         
+//     }
+// }
 pub type ButtonImage = Either<Bitmap, Icon>;
 use either::*;
 // fn style_of(wnd: &Window) -> WINDOW_STYLE {
