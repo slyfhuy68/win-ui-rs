@@ -2,7 +2,15 @@ use super::*;
 pub enum EditType {
     Normal,
     MultiLine,
-    Password(char),
+    ///None对应`●`(新版系统)或`*`(旧版系统)
+    Password(Option<char>),
+    //Rich,
+}
+pub enum EditTempleType {
+    Normal,
+    MultiLine,
+    ///如需指定自定义字符，需要在运行时手动调用set_passwrd_char指定
+    Password,
     //Rich,
 }
 pub enum CaseType {
@@ -11,7 +19,7 @@ pub enum CaseType {
     Lower,  // ES_LOWERCASE
     Upper,  // ES_UPPERCASE
 }
-pub struct EditStyle {
+pub struct EditOption<T> {
     //AI
     pub text: String,
     pub style: ChildWindowStyles,
@@ -24,13 +32,12 @@ pub struct EditStyle {
     pub right: bool,        // ES_RIGHT
     pub want_return: bool,  // ES_WANTRETURN
     pub case_type: CaseType,
-    pub etype: EditType,
+    pub etype: T,
 }
-
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String)> for EditStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String) {
+pub type EditStyle = EditOption<EditType>;
+impl<T> EditOption<T> {
+    fn p_into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, T, String) {
         let (mut edit_style, ex) = self.style.into();
-        let mut pass: Option<char> = None;
         if self.auto_hscroll {
             edit_style |= WINDOW_STYLE(ES_AUTOHSCROLL as u32);
         }
@@ -55,32 +62,57 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String)> for EditStyle {
         if self.want_return {
             edit_style |= WINDOW_STYLE(ES_WANTRETURN as u32);
         }
-        {
-            use EditType::*;
-            match self.etype {
-                //不是AI
-                Normal => (),
-                MultiLine => {
-                    edit_style |= WINDOW_STYLE(ES_MULTILINE as u32);
-                }
-                Password(c) => {
-                    edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);
-                    pass = Some(c)
-                } // Rich => {
-                  //     todo!()
-                  // },
-            }
+        use CaseType::*;
+        match self.case_type {
+            Normal => (),
+            Number => edit_style |= WINDOW_STYLE(ES_NUMBER as u32),
+            Lower => edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32),
+            Upper => edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32),
         }
-        {
-            use CaseType::*;
-            match self.case_type {
-                Normal => (),
-                Number => edit_style |= WINDOW_STYLE(ES_NUMBER as u32),
-                Lower => edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32),
-                Upper => edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32),
+        (edit_style, ex, self.etype, self.text)
+    }
+}
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String)> for EditStyle {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String) {
+        let mut pass: Option<char> = None;
+        let (mut edit_style, ex, etype, text) = self.p_into();
+        use EditType::*;
+        match etype {
+            Normal => (),
+            MultiLine => {
+                edit_style |= WINDOW_STYLE(ES_MULTILINE as u32);
             }
+            Password(c) => {
+                edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);
+                pass = c
+            } // Rich => {
+              //     todo!()
+              // },
         }
-        (edit_style, ex, pass, self.text)
+
+        (edit_style, ex, pass, text)
+    }
+}
+pub type EditTemple = EditOption<EditTempleType>;
+impl DialogTempleControl for EditTemple {
+    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+        let (mut ms_style, ex, etype, ct) = self.p_into();
+        use EditTempleType::*;
+        match etype {
+            Normal => (),
+            MultiLine => {
+                ms_style |= WINDOW_STYLE(ES_MULTILINE as u32);
+            }
+            Password => {
+                ms_style |= WINDOW_STYLE(ES_PASSWORD as u32);
+            } // Rich => {
+              //     todo!()
+              // },
+        };
+        ControlPreCompilePruduct::from(format!(
+            "CONTROL \"{}\", {}, \"Edit\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
+            ct, identifier, ms_style.0, pos.x, pos.y, size.width, size.height, ex.0
+        ))
     }
 }
 pub enum EditMsgType {
@@ -165,7 +197,16 @@ impl CommonControl for Edit {
         font: Option<ControlFont>,
     ) -> Result<Self> {
         let (a, b, pass, text) = control_style.into();
-        let mut result = Self(new_control(wnd, w!("Edit"), text, pos, identifier, a, b, font)?);
+        let mut result = Self(new_control(
+            wnd,
+            w!("Edit"),
+            text,
+            pos,
+            identifier,
+            a,
+            b,
+            font,
+        )?);
         match pass {
             None => (), //不要直接传给set_passwrd_char，表达的含义不一样
             Some(s) => result.set_passwrd_char(Some(s))?,

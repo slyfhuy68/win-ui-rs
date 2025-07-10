@@ -64,22 +64,12 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Butt
             ms_style |= WINDOW_STYLE(BS_FLAT as u32);
         };
         let (style2, ditype, text) = self.contect.into();
-        (
-            ms_style | style2 | self.pos.into() | WS_CHILD,
-            ex,
-            ditype,
-            text,
-        )
+        (ms_style | style2 | self.pos.into(), ex, ditype, text)
     }
 }
 pub type ButtonTemple = ButtonOption<ButtonTempleContent>;
 impl DialogTempleControl for ButtonTemple {
-    fn pre_compile(
-        self,
-        pos: Point,
-        size: Size,
-        identifier: WindowID,
-    ) -> ControlPreCompilePruduct{
+    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
         let (mut ms_style, style_ex) = self.style.into();
         use ButtonType::*;
         ms_style |= WINDOW_STYLE(match (self.btype, self.focused) {
@@ -97,14 +87,15 @@ impl DialogTempleControl for ButtonTemple {
             ms_style |= WINDOW_STYLE(BS_FLAT as u32);
         };
         let (style2, ct) = self.contect.into();
-        ControlPreCompilePruduct::from(format!("CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}", 
-            ct, 
-            identifier, 
-            (ms_style | style2 | self.pos.into() | WS_CHILD).0, 
-            pos.x, 
-            pos.y, 
-            size.width, 
-            size.height, 
+        ControlPreCompilePruduct::from(format!(
+            "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
+            ct,
+            identifier,
+            (ms_style | style2 | self.pos.into()).0,
+            pos.x,
+            pos.y,
+            size.width,
+            size.height,
             style_ex.0
         ))
     }
@@ -124,12 +115,14 @@ impl ButtonTempleContent {
 }
 impl Into<(WINDOW_STYLE, String)> for ButtonTempleContent {
     fn into(self) -> (WINDOW_STYLE, String) {
-        (if self.multiple_lines {
-            WINDOW_STYLE((BS_MULTILINE | BS_TEXT) as u32)
-        } else {
-            WINDOW_STYLE(BS_TEXT as u32)
-        },
-        self.text,)
+        (
+            if self.multiple_lines {
+                WINDOW_STYLE((BS_MULTILINE | BS_TEXT) as u32)
+            } else {
+                WINDOW_STYLE(BS_TEXT as u32)
+            },
+            self.text,
+        )
     }
 }
 pub enum ButtonContent {
@@ -173,16 +166,25 @@ impl Into<(WINDOW_STYLE, Option<ButtonImage>, String)> for ButtonContent {
                 None,
                 text,
             ),
-            ButtonContent::IconOnly { icon, name} => (WINDOW_STYLE(if icon.is_left(){BS_BITMAP}else{ BS_ICON} as u32), Some(icon), name),
+            ButtonContent::IconOnly { icon, name } => (
+                WINDOW_STYLE(if icon.is_left() { BS_BITMAP } else { BS_ICON } as u32),
+                Some(icon),
+                name,
+            ),
             ButtonContent::IconAndText {
                 icon,
                 text,
                 multiple_lines,
             } => (
                 if multiple_lines {
-                    WINDOW_STYLE((BS_MULTILINE|if icon.is_left(){BS_BITMAP}else{ BS_ICON} | BS_TEXT) as u32)
+                    WINDOW_STYLE(
+                        (BS_MULTILINE | if icon.is_left() { BS_BITMAP } else { BS_ICON } | BS_TEXT)
+                            as u32,
+                    )
                 } else {
-                    WINDOW_STYLE((if icon.is_left(){BS_BITMAP}else{ BS_ICON} | BS_TEXT)as u32)
+                    WINDOW_STYLE(
+                        (if icon.is_left() { BS_BITMAP } else { BS_ICON } | BS_TEXT) as u32,
+                    )
                 },
                 Some(icon),
                 text,

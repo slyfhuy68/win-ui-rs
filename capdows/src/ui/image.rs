@@ -31,7 +31,7 @@ impl Icon {
             handle: HICON(
                 unsafe {
                     LoadImageW(
-                        Some(module.into()),
+                        module.into(),
                         pcw,
                         IMAGE_ICON,
                         cx,
@@ -170,7 +170,7 @@ impl Cursor {
             handle: HCURSOR(
                 unsafe {
                     LoadImageW(
-                        Some(module.into()),
+                        module.into(),
                         pcw,
                         IMAGE_CURSOR,
                         cx,
@@ -189,11 +189,11 @@ impl Cursor {
     pub fn from_system(cursor: SystemCursor) -> Result<Self> {
         let id = cursor as u16;
         Ok(Cursor {
-            handle: unsafe { LoadCursorW(None, PCWSTR(id as *mut u16)) }?,
+            handle: unsafe { LoadCursorW(0 as *mut c_void, PCWSTR(id as *mut u16)) }?,
         })
     }
     pub fn apply(self) {
-        unsafe { SetCursor(Some(self.into())) };
+        unsafe { SetCursor(self.into()) };
     }
 }
 #[derive(Clone, PartialEq)]
@@ -209,9 +209,7 @@ impl Bitmap {
         }
     }
     pub const unsafe fn null() -> Self {
-        Self {
-            handle: HBITMAP(NULL_PTR()),
-        }
+        Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
         self.handle.0 == NULL_PTR()
@@ -250,12 +248,10 @@ impl EnhMetaFile {
         }
     }
     pub const unsafe fn null() -> Self {
-        Self {
-            handle: HENHMETAFILE(NULL_PTR()),
-        }
+        Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle.0 == NULL_PTR()
+        self.handle == NULL_PTR()
     }
     pub fn load_from_module(// module: ExecutableFile,
         // id: Either<&str, usize>,

@@ -212,8 +212,8 @@ const ASCIIU_A: u16 = b'A' as u16;
 const ASCIIU_Z: u16 = b'Z' as u16;
 impl widestr {
     #[inline]
-    pub const fn to_pcwstr(&self) -> windows::core::PCWSTR {
-        windows::core::PCWSTR(self.as_ptr())
+    pub const fn to_pcwstr(&self) -> windows_sys::core::PCWSTR {
+        self.as_ptr() as windows_sys::core::PCWSTR
     }
     #[inline]
     pub const fn len(&self) -> usize {
@@ -514,14 +514,14 @@ macro_rules! L {
                 pos = new_pos;
                 len += if code_point <= 0xffff { 1 } else { 2 };
             }
-            len
+            len + 1
         };
         const WIDE: &[u16; LEN] = {
             let mut buffer = [0; LEN];
             $crate::strings::do_input($s.as_bytes(), &mut buffer);
             &{ buffer }
         };
-        unsafe { widestr::from_utf16_unchecked(WIDE) }
+        unsafe { widestr::from_utf16_unchecked(WIDE[0..LEN - 1]) }
     }};
 }
 #[doc(hidden)]

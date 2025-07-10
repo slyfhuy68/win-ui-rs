@@ -55,6 +55,12 @@ pub fn define_control(input: TokenStream) -> TokenStream {
         unsafe impl Send for #control_name {}
         unsafe impl Sync for #control_name {}
 
+        impl #control_name {
+            pub fn neednot(self){
+                self.get_window_mut().nullify()
+            }
+        }
+
         impl Control for #control_name {
             type MsgType = #msg_name_ident;
             const CLASS_NAME: &'static str = #class_name;

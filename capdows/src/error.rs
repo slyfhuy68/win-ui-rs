@@ -1,20 +1,18 @@
 pub use std::result::Result as sResult;
 use std::string::FromUtf8Error;
-use windows::Win32::Foundation as win32f;
+use windows_sys::Win32::Foundation as win32f;
 pub type Result<T> = sResult<T, WinError>;
 use std::fmt::Debug;
 use std::string::FromUtf16Error;
-use windows::{
-    Win32::Foundation::{GetLastError, NTSTATUS, WIN32_ERROR},
-    core::{Error as wError, HRESULT},
-};
+use windows_sys::Win32::Foundation::{GetLastError, NTSTATUS, WIN32_ERROR};
+use windows_sys::core::*;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct WinError(WinErrorKind);
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum WinErrorKind {
-    Win32(i32),
+    ///这一项应该是负的
+    Win32(HRESULT),
     Local(u32),
-    NotSupport,
 }
 use WinErrorKind::*;
 use std::error::Error;
@@ -70,35 +68,33 @@ impl WinError {
         match self.0 {
             Win32(i) => i,
             Local(u) => u as i32,
-            WinErrorKind::NotSupport => -1554,
         }
     }
     #[inline]
     pub fn correct_error_result<T>(data: T) -> Result<T> {
         #[allow(unused_unsafe)]
         let error = unsafe { GetLastError() };
-        if error.is_ok() {
+        if error == 0 {
             Ok(data)
         } else {
-            Err(Self::from_win32(error))
+            Err(unsafe { Self::from_win32(error) })
         }
     }
     #[inline]
-    pub fn correct_error() -> Self {
-        wError::from_win32().into()
+    ///不检查当前错误是不是0
+    pub unsafe fn correct_error() -> Self {
+        unsafe { Self::from_win32(GetLastError()) }
     }
     #[inline]
-    pub const fn from_win32(werror: WIN32_ERROR) -> Self {
-        let WIN32_ERROR(error) = werror;
-        Self(Win32(if error as i32 <= 0 {
+    pub const unsafe fn from_win32(error: WIN32_ERROR) -> Self {
+        Self(Win32(if (error as i32) < 0 {
             error
         } else {
             (error & 0x0000_FFFF) | (7 << 16) | 0x8000_0000
         } as i32))
     }
     #[inline]
-    pub const fn from_nt(nerror: NTSTATUS) -> Self {
-        let NTSTATUS(error) = nerror;
+    pub const unsafe fn from_nt(error: NTSTATUS) -> Self {
         Self(Win32(if error >= 0 {
             error
         } else {
@@ -109,36 +105,20 @@ impl WinError {
     pub const fn from_local(code: u32) -> Self {
         Self(Local(code))
     }
+    #[inline]
+    pub fn from_hresult_with<T>(err: HRESULT, data: T) -> Result<T> {
+        if err >= 0 {
+            Ok(data)
+        } else {
+            Err(Self(Win32(err)))
+        }
+    }
 }
 impl Error for WinError {}
 use std::fmt;
 impl fmt::Display for WinError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
-    }
-}
-impl From<WIN32_ERROR> for WinError {
-    #[inline]
-    fn from(err: WIN32_ERROR) -> Self {
-        Self::from_win32(err)
-    }
-}
-impl From<wError> for WinError {
-    #[inline]
-    fn from(err: wError) -> Self {
-        err.code().into()
-    }
-}
-impl From<NTSTATUS> for WinError {
-    #[inline]
-    fn from(err: NTSTATUS) -> Self {
-        Self::from_nt(err)
-    }
-}
-impl From<HRESULT> for WinError {
-    #[inline]
-    fn from(err: HRESULT) -> Self {
-        Self(Win32(err.0))
     }
 }
 use std::num::TryFromIntError;
@@ -148,27 +128,14 @@ impl From<TryFromIntError> for WinError {
         ERROR_INT_OVERFLOW
     }
 }
-impl From<std::io::Error> for WinError {
-    fn from(from: std::io::Error) -> Self {
-        match from.raw_os_error() {
-            Some(status) => HRESULT::from_win32(status as u32).into(),
-            None => match WinError::from_error_kind(from.kind()) {
-                Some(s) => s,
-                None => Self(NotSupport),
-            },
-        }
-    }
-}
 impl From<FromUtf8Error> for WinError {
     #[inline]
-
     fn from(_: FromUtf8Error) -> Self {
         ERROR_NO_UNICODE_TRANSLATION
     }
 }
 impl From<FromUtf16Error> for WinError {
     #[inline]
-
     fn from(_: FromUtf16Error) -> Self {
         ERROR_NO_UNICODE_TRANSLATION
     }
@@ -176,7 +143,7 @@ impl From<FromUtf16Error> for WinError {
 macro_rules! def_windows_error {
     ($($name:ident),* $(,)?) => {
         $(
-            pub const $name: WinError = WinError::from_win32(win32f::$name);
+            pub const $name: WinError = unsafe {WinError::from_win32(win32f::$name)};
         )*
     };
 }
@@ -187,74 +154,48 @@ macro_rules! def_local_error {
         )*
     };
 }
-pub mod errors {
-    use super::*;
-    def_windows_error! {
-        ERROR_NO_UNICODE_TRANSLATION,
-        ERROR_INVALID_WINDOW_HANDLE,
-        ERROR_INVALID_DATA,
-        ERROR_NOT_ENOUGH_MEMORY,
-        ERROR_OBJECT_ALREADY_EXISTS,
-        ERROR_NOT_SUPPORTED,
-        ERROR_HOST_UNREACHABLE,
-        ERROR_NETWORK_UNREACHABLE,
-        ERROR_CONNECTION_ABORTED,
-        ERROR_INCORRECT_ADDRESS,
-        ERROR_INVALID_ADDRESS,
-        ERROR_TIMEOUT,
-        ERROR_DISK_FULL,
-        ERROR_DIR_NOT_EMPTY,
-        ERROR_OPERATION_ABORTED,
-        ERROR_HANDLE_EOF,
-        ERROR_OUTOFMEMORY,
-        ERROR_IO_INCOMPLETE,
-        ERROR_NOT_FOUND,
-        ERROR_ACCESS_DENIED,
-        ERROR_ADDRESS_ALREADY_ASSOCIATED,
-        ERROR_BROKEN_PIPE,
-        ERROR_ALREADY_EXISTS,
-        ERROR_DIRECTORY,
-        ERROR_WRITE_PROTECT,
-        ERROR_NET_OPEN_FAILED,
-        ERROR_INVALID_PARAMETER,
-        ERROR_DISK_QUOTA_EXCEEDED,
-        ERROR_FILE_TOO_LARGE,
-        ERROR_LOCK_VIOLATION,
-        ERROR_IO_PENDING,
-    }
-    #[rustfmt::skip]
-    def_local_error! {
-        ERROR_CLASS_NAME_TOO_LONG       => 01,
-        ERROR_TIME_TOO_LONG             => 02,
-        ERROR_INT_OVERFLOW              => 03,
-        ERROR_INVALID_RESOURCE_ID       => 04,
-        ERROR_NULL_POINTER              => 05,
-        ERROR_MSG_CODE_NOT_SUPPORT      => 06,
-        ERROR_NOT_SUPPORT_ZERO          => 07,
-        ERROR_NOT_PRESENT               => 08,
-        ERROR_CANNOT_REMOVE_DEFAULT     => 09,
-        ERROR_WINDOW_TYPE_NOT_SUPPORT   => 10,
-        ERROR_INVALID_STRING_ID         => 11,
-        ERROR_CONNECTION_REFUSED        => 12,
-        ERROR_NOT_CONNECTED             => 13,
-        ERROR_FILESYSTEM_LOOP           => 14,
-        ERROR_TIMED_OUT                 => 15,
-        ERROR_UNEXPECTED_EOF            => 16,
-        ERROR_NOT_SEEKABLE              => 17,
-        ERROR_RESOURCE_BUSY             => 18,
-        ERROR_EXECUTABLE_FILE_BUSY      => 19,
-        ERROR_CROSSES_DEVICES           => 20,
-        ERROR_TOO_MANY_LINKS            => 21,
-        ERROR_COMBO_BOX_ERR             => 22,
-        ERROR_CONNECTION_RESET          => 23,
-        ERROR_NETWORK_DOWN              => 24,
-        ERROR_ADDRESS_NOT_AVAILABLE     => 25,
-        ERROR_WOULD_BLOCK               => 26,
-        ERROR_DIRECTORY_NAME_INVALID    => 27,
-        ERROR_INVALID_COMBINE           => 28,
-        ERROR_MUSTNOT_CHILD             => 29,
-        ERROR_NOT_FOUND_MENU            => 30,
-        ERROR_INSUFFICIENT_SPACE        => 31,
-    }
+pub mod win32_errors;
+pub use win32_errors::{
+    ERROR_ACCESS_DENIED, ERROR_ADDRESS_ALREADY_ASSOCIATED, ERROR_ALREADY_EXISTS, ERROR_BROKEN_PIPE,
+    ERROR_CONNECTION_ABORTED, ERROR_DIR_NOT_EMPTY, ERROR_DIRECTORY, ERROR_DISK_FULL,
+    ERROR_DISK_QUOTA_EXCEEDED, ERROR_FILE_TOO_LARGE, ERROR_HANDLE_EOF, ERROR_HOST_UNREACHABLE,
+    ERROR_INCORRECT_ADDRESS, ERROR_INVALID_ADDRESS, ERROR_INVALID_DATA, ERROR_INVALID_PARAMETER,
+    ERROR_INVALID_WINDOW_HANDLE, ERROR_IO_INCOMPLETE, ERROR_IO_PENDING, ERROR_LOCK_VIOLATION,
+    ERROR_NET_OPEN_FAILED, ERROR_NETWORK_UNREACHABLE, ERROR_NO_UNICODE_TRANSLATION,
+    ERROR_NOT_ENOUGH_MEMORY, ERROR_NOT_FOUND, ERROR_NOT_SUPPORTED, ERROR_OBJECT_ALREADY_EXISTS,
+    ERROR_OPERATION_ABORTED, ERROR_OUTOFMEMORY, ERROR_TIMEOUT, ERROR_WRITE_PROTECT,
+};
+#[rustfmt::skip]
+def_local_error! {
+	ERROR_CLASS_NAME_TOO_LONG       => 01,
+	ERROR_TIME_TOO_LONG             => 02,
+	ERROR_INT_OVERFLOW              => 03,
+	ERROR_INVALID_RESOURCE_ID       => 04,
+	ERROR_NULL_POINTER              => 05,
+	ERROR_MSG_CODE_NOT_SUPPORT      => 06,
+	ERROR_NOT_SUPPORT_ZERO          => 07,
+	ERROR_NOT_PRESENT               => 08,
+	ERROR_CANNOT_REMOVE_DEFAULT     => 09,
+	ERROR_WINDOW_TYPE_NOT_SUPPORT   => 10,
+	ERROR_INVALID_STRING_ID         => 11,
+	ERROR_CONNECTION_REFUSED        => 12,
+	ERROR_NOT_CONNECTED             => 13,
+	ERROR_FILESYSTEM_LOOP           => 14,
+	ERROR_TIMED_OUT                 => 15,
+	ERROR_UNEXPECTED_EOF            => 16,
+	ERROR_NOT_SEEKABLE              => 17,
+	ERROR_RESOURCE_BUSY             => 18,
+	ERROR_EXECUTABLE_FILE_BUSY      => 19,
+	ERROR_CROSSES_DEVICES           => 20,
+	ERROR_TOO_MANY_LINKS            => 21,
+	ERROR_COMBO_BOX_ERR             => 22,
+	ERROR_CONNECTION_RESET          => 23,
+	ERROR_NETWORK_DOWN              => 24,
+	ERROR_ADDRESS_NOT_AVAILABLE     => 25,
+	ERROR_WOULD_BLOCK               => 26,
+	ERROR_DIRECTORY_NAME_INVALID    => 27,
+	ERROR_INVALID_COMBINE           => 28,
+	ERROR_MUSTNOT_CHILD             => 29,
+	ERROR_NOT_FOUND_MENU            => 30,
+	ERROR_INSUFFICIENT_SPACE        => 31,
 }
-use errors::*;

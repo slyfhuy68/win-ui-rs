@@ -1,5 +1,4 @@
 use super::*;
-pub type CallBackObj = dyn MessageReceiver + Sync + 'static;
 #[derive(Clone, Eq, PartialEq)]
 pub struct WindowSizeCalcType {
     pub top_align: Option<bool>, //None NULL true WVR_ALIGNTOP false WVR_ALIGNBOTTOM
@@ -45,6 +44,213 @@ impl MessageReceiverError {
 //              panic!()
 //      }
 // }
+pub unsafe trait RawMessageHandler {
+    unsafe fn handle_msg(
+        hwnd: HWND,
+        msg: u32,
+        wparam: WPARAM,
+        lparam: LPARAM,
+        callback_id: usize,
+        data: *mut c_void,
+    ) -> Option<isize>;
+    #[inline]
+    unsafe fn handle_normal_msg(
+        hwnd: HWND,
+        msg: u32,
+        wparam: WPARAM,
+        lparam: LPARAM,
+    ) -> Option<isize> {
+        Self::handle_msg(hwnd, msg, wparam, lparam, 0, 0 as *mut c_void)
+    }
+}
+#[repr(C)]
+#[allow(non_snake_case)]
+struct NMHDRSTATIC {
+    #[allow(non_snake_case)]
+    nmhdr: NMHDR,
+    #[allow(non_snake_case)]
+    DC: HANDLE,
+}
+macro_rules! do_msg {
+    ($cb:expr) => {
+        match $cb {
+            Ok(x) => x,
+            Err(NoProcessed) => None,
+            Err(x) => Some(0isize),
+        }
+    };
+}
+macro_rules! do_nofity {
+    ($cb:expr) => {
+        match $cb {
+            Ok(()) => 0isize,
+            Err(NoProcessed) => None,
+            Err(x) => Some(0isize),
+        }
+    };
+}
+unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
+    unsafe fn handle_msg(
+        hwnd: HWND,
+        msg: u32,
+        wparam: WPARAM,
+        lparam: LPARAM,
+        callback_id: usize,
+        _data: *mut c_void,
+    ) -> Option<isize> {
+        unsafe {
+            let mut w = Window::from_handle(hwnd);
+            let WPARAM(param1) = wparam;
+            let LPARAM(param2) = lparam;
+            use MessageReceiverError::*;
+            let result = match msg {
+                WM_CREATE => {
+                    let s = *(param2 as *mut CREATESTRUCTW);
+                    let (wc, _buffer) = {
+                        let mut buffer = [0u16; 256];
+                        let len = GetClassNameW(hwnd, &mut buffer) as usize;
+                        if len == 0 {
+                            (WindowClass::from_raw(s.lpszClass), None)
+                        } else {
+                            let mut vec = buffer[..len].to_vec();
+                            vec.push(0);
+                            (WindowClass::from_raw(PCWSTR(vec.as_ptr())), Some(vec))
+                        }
+                    };
+                    let mut wtype = WindowType::from_data(
+                        WINDOW_STYLE(s.style as u32),
+                        s.dwExStyle,
+                        s.hMenu,
+                        s.hwndParent,
+                    );
+                    let result = match C::create(
+                        callback_id,
+                        &mut w,
+                        &s.lpszName.to_string().unwrap_or(String::from("")),
+                        wc,
+                        HMODULE(s.hInstance.0).into(),
+                        rect(s.x, s.y, s.cx, s.cy),
+                        &mut wtype,
+                    ) {
+                        Ok(x) => Some(match x {
+                            true => 0isize,
+                            false => -1isize,
+                        }),
+                        Err(NoProcessed) => None,
+                        Err(x) => Some(-1isize),
+                    };
+                    wtype.nullify_menu();
+                    result
+                }
+                WM_DESTROY => do_nofity! {C::destroy(callback_id, &mut w)
+                },
+                WM_COMMAND => {
+                    if param2 != 0 {
+                        let param2e = param2;
+                        let param1e = param1;
+                        do_msg! {C::control_message(
+                            callback_id,
+                            &mut w,
+                            &mut RawMessage(WM_COMMAND, param1e, param2e),
+                            (param1e & 0xffff) as WindowID,
+                        ) }
+                    } else {
+                        let high = ((param1 >> 16) & 0xffff) as u8;
+                        let low = (param1 & 0xffff) as u16;
+                        match high {
+                            0 => {
+                                do_nofity! {C::menu_command(
+                                    callback_id,
+                                    &mut w,
+                                    MenuCommandMsgItemPos::CostomId(low as MenuItemID),
+                                )
+                                }
+                            }
+                            // 1 => ,//加速器
+                            _ => None,
+                        }
+                    }
+                }
+                WM_NOTIFYFORMAT => {
+                    Some(2isize) //此crate只能创建Unicode窗口NFR_UNICODE
+                }
+                WM_MENUCOMMAND => {
+                    let mut hmenu = HMENU(param2 as *mut c_void);
+                    do_nofity! { C::menu_command(
+                        callback_id,
+                        &mut w,
+                        MenuCommandMsgItemPos::Position(Menu::from_mut_ref(&mut hmenu), param1 as u16),
+                    )
+                    }
+                }
+                WM_NOTIFY => {
+                    let nmhdr_ptr = param2 as *mut NMHDR;
+                    do_msg! {C::control_message(
+                        callback_id,
+                        &mut w,
+                        &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                        (*nmhdr_ptr).idFrom as WindowID,
+                    )}
+                }
+                WM_CTLCOLORSTATIC => {
+                    let mut nmhdr = NMHDRSTATIC {
+                        nmhdr: NMHDR {
+                            hwndFrom: HWND(param2 as *mut c_void),
+                            idFrom: GetWindowLongW(HWND(param2 as *mut c_void), GWL_ID) as usize,
+                            code: WM_CTLCOLORSTATIC,
+                        },
+                        DC: param1 as *mut c_void,
+                    };
+                    let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
+                    do_msg! {C::control_message(
+                        callback_id,
+                        &mut w,
+                        &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                        nmhdr.nmhdr.idFrom as WindowID,
+                    )
+                    }
+                }
+                WM_NULL => do_nofity! {C::alive_test(callback_id, &mut w)
+                },
+                WM_LBUTTONDOWN => {
+                    do_nofity! {C::mouse_msg(
+                        callback_id,
+                        &mut w,
+                        MouseMsg::Button {
+                            button_type: MouseButton::Left,
+                            state: ButtonState::Down,
+                            is_nc: false,
+                            pos: point2(
+                                (param2 & 0xFFFF) as u16 as i32,
+                                (param2 >> 16) as u16 as i32,
+                            ),
+                        },
+                    )
+                    }
+                }
+                WM_LBUTTONUP => {
+                    do_nofity! {C::mouse_msg(
+                        callback_id,
+                        &mut w,
+                        MouseMsg::Button {
+                            button_type: MouseButton::Left,
+                            state: ButtonState::Up,
+                            is_nc: false,
+                            pos: point2(
+                                (param2 & 0xFFFF) as u16 as i32,
+                                (param2 >> 16) as u16 as i32,
+                            ),
+                        },
+                    )
+                    }
+                }
+                _ => None,
+            };
+            w.nullify();
+            result
+        }
+    }
+}
 pub use MessageReceiverError::*;
 pub type MessageReceiverResult<T> = std::result::Result<T, MessageReceiverError>;
 pub enum SizingMsgType {
@@ -61,7 +267,6 @@ pub enum SizingMsgType {
 pub enum MouseMsgMoveType {
     Move(Point),
     Hover(Point),
-
     Leave,
 }
 pub enum MouseMsg {
@@ -69,14 +274,12 @@ pub enum MouseMsg {
         mtype: MouseMsgMoveType,
         is_nc: bool,
     },
-
     Button {
         button_type: MouseButton,
         state: ButtonState,
         pos: Point,
         is_nc: bool,
     },
-
     Wheel {
         delta: i16,
         is_horizontal: bool,
@@ -122,33 +325,23 @@ pub enum MenuCommandMsgItemPos<'a> {
 }
 ///每个回调的id表示一个窗口的接收器id，如果这是一个子类化接收器，NoProcessed表示调用子类链上一个接收器，id为子类化id，如果不是，那么id为0，NoProcessed表示进行默认处理
 #[allow(unused_variables)]
-pub trait MessageReceiver {
+pub trait MessageReceiver: Default {
     // fn activating()包含WM_MOUSEACTIVATE
-    fn mouse_msg(
-        &mut self,
-        id: usize,
-        window: &mut Window,
-        msg: MouseMsg,
-    ) -> MessageReceiverResult<()> {
+    fn mouse_msg(id: usize, window: &mut Window, msg: MouseMsg) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     fn menu_command(
-        &mut self,
         id: usize,
         window: &mut Window,
         item: MenuCommandMsgItemPos,
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
-    fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
-        Ok(err.code() as isize)
-    }
-    ///WM_NULL, 用于系统处理程序是否响应，一般不处理
-    fn null_msg(&mut self, id: usize, window: &mut Window) -> MessageReceiverResult<()> {
+    ///WM_NULL, 用于系统测试程序是否响应，一般不处理
+    fn alive_test(id: usize, window: &mut Window) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     fn control_message(
-        &mut self,
         id: usize,
         window: &mut Window,
         msg: &mut RawMessage,
@@ -158,7 +351,6 @@ pub trait MessageReceiver {
     }
     ///itype参数：这只是[`crate::ui::class::WindowClass`]的crate_window方法的参数的一个副本，但是你可以调用所有者/父窗口和菜单上面的方法，因为它们本质是指针
     fn create(
-        &mut self,
         id: usize,
         window: &mut Window,
         name: &str,
@@ -170,12 +362,11 @@ pub trait MessageReceiver {
     ) -> MessageReceiverResult<bool> {
         Err(NoProcessed)
     } //true 0 false -1
-    fn destroy(&mut self, id: usize, window: &mut Window) -> MessageReceiverResult<()> {
+    fn destroy(id: usize, window: &mut Window) -> MessageReceiverResult<()> {
         stop_msg_loop();
         Ok(())
     }
     fn class_messages(
-        &mut self,
         id: usize,
         window: &mut Window,
         code: u16,
@@ -184,7 +375,6 @@ pub trait MessageReceiver {
         Err(NoProcessed) //code = raw_code(WM_USER 到 0x7FFF) - WM_USER + 1,WM_USER = 0x0400
     }
     fn applications_messages(
-        &mut self,
         id: usize,
         window: &mut Window,
         code: u16,
@@ -193,7 +383,6 @@ pub trait MessageReceiver {
         Err(NoProcessed) //code = raw_code(WM_APP 到 0xBFFF) - WM_APP + 1,WM_APP = 0x8000
     }
     fn share_messages(
-        &mut self,
         id: usize,
         window: &mut Window,
         code: &str,
@@ -202,7 +391,6 @@ pub trait MessageReceiver {
         Err(NoProcessed) //code = raw_code(0xC000到0xFFFF) - 0xC000 + 1,字符串消息
     }
     fn system_reserved_messages(
-        &mut self,
         id: usize,
         window: &mut Window,
         code: u32,

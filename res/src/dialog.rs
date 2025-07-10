@@ -7,12 +7,7 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 pub type ControlPreCompilePruduct = PreCompilePruduct;
 //CONTROL <content>, <id>, "<class>", <style>, <x>, <y>, <w>, <h>, <ex_style>
 pub trait DialogTempleControl {
-    fn pre_compile(
-        self,
-        pos: Point,
-        size: Size,
-        identifier: WindowID,
-    ) -> ControlPreCompilePruduct;
+    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct;
 }
 pub struct DialogTempleFont {
     /// 字体名称（最多 30 个字符）。

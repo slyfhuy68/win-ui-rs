@@ -1,5 +1,5 @@
-use capdows::{msg_box, L};
 use capdows::prelude::*;
+use capdows::{L, msg_box};
 // use capdows_example::*;
 struct MyControls {
     a1: RadioButton,

@@ -21,7 +21,6 @@ pub enum EllipsisType {
     Path,
     Word,
 }
-
 pub enum ViewType {
     Text {
         text: String,
@@ -394,7 +393,6 @@ impl ImageTextView {
                         String::new()
                     } else {
                         let mut buffer: Vec<u16> = vec![0; length + 1];
-
                         SendMessageW(
                             hwnd,
                             WM_GETTEXT,
@@ -423,7 +421,7 @@ impl ImageTextView {
                     let (note_ptr, _note_u16) = str_to_pcwstr(&text);
                     if SendMessageW(
                         hwnd,
-                        BCM_SETNOTE,
+                        WM_SETTEXT,
                         Some(WPARAM(0)),
                         Some(LPARAM(note_ptr.0 as isize)),
                     )

@@ -1,8 +1,8 @@
-use capdows::prelude::*;
-use capdows_controls::view::*;
-use capdows::ui::msg::ButtonState::*;
-use std::sync::LazyLock;
 use capdows::L;
+use capdows::prelude::*;
+use capdows::ui::msg::ButtonState::*;
+use capdows_controls::view::*;
+use std::sync::LazyLock;
 pub struct WindowFinder(pub ImageTextView);
 use capdows_controls::{CommonControl, TextControl};
 impl Control for WindowFinder {

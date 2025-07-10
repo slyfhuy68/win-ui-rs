@@ -45,7 +45,7 @@ pub mod utility {
     pub use capdows_utility::*;
 }
 
-use crate::error::{Result, WinError as Error, WinError, errors::*};
+use crate::error::*;
 use crate::positioning::ext_methods::*;
 use crate::positioning::*;
 use crate::strings::*;
@@ -74,31 +74,22 @@ use self::core::*;
 //----------------------------------------------------------------------------------
 use super::i18n::*;
 use either::*;
-#[allow(unused_imports)]
-use windows::core::{Error as wError, Result as wResult, w};
+// #[allow(unused_imports)]
+// use windows_sys::core::{Error as wError, Result as wResult, w};
 //----------------------------------------------------------------------------------
 use std::ffi::c_void;
 use std::num::NonZeroI32;
 use std::num::NonZeroU32;
-use std::{os::windows::raw::HANDLE, ptr::null_mut as NULL_PTR, string::*};
-#[allow(unused_imports)]
-use windows::Win32::Foundation::{
-    APP_LOCAL_DEVICE_ID, COLORREF, CloseHandle, CompareObjectHandles, DECIMAL, DECIMAL_0_0,
-    DECIMAL_1_0, DEVPROPKEY, DUPLICATE_HANDLE_OPTIONS, DuplicateHandle, FILETIME, FLOAT128,
-    FreeLibrary, GENERIC_ACCESS_RIGHTS, GetHandleInformation, GetLastError, GlobalFree,
-    HANDLE as wHANDLE, HANDLE_FLAGS, HANDLE_PTR, HGLOBAL, HINSTANCE, HLOCAL, HLSURF, HMODULE,
-    HRSRC, HSPRITE, HSTR, HUMPD, HWND, LPARAM, LRESULT, LUID, LocalFree, NTSTATUS,
-    NTSTATUS_FACILITY_CODE, NTSTATUS_SEVERITY_CODE, OBJECT_ATTRIBUTE_FLAGS, POINT, POINTL, POINTS,
-    PROPERTYKEY, RECT, RECTL, RtlNtStatusToDosError, SHANDLE_PTR, SIZE, SYSTEMTIME,
-    SetHandleInformation, SetLastError, SetLastErrorEx, SysAddRefString, SysAllocString,
-    SysAllocStringByteLen, SysAllocStringLen, SysFreeString, SysReAllocString, SysReAllocStringLen,
-    SysReleaseString, SysStringByteLen, SysStringLen, UNICODE_STRING, VARIANT_BOOL, WAIT_EVENT,
-    WIN32_ERROR, WPARAM,
+use std::{ptr::null_mut as NULL_PTR, string::*};
+use windows_sys::Win32::Foundation::{
+    HINSTANCE, HMODULE, HWND, LPARAM, LRESULT, POINT, POINTS, RECT, SIZE, WIN32_ERROR, WPARAM,
 };
-use windows::Win32::System::LibraryLoader::GetModuleHandleW;
-use windows::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
-use windows::Win32::{Graphics::Gdi::*, UI::Controls::*, UI::Shell::*, UI::WindowsAndMessaging::*};
-use windows::core::*;
+use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows_sys::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
+use windows_sys::Win32::{
+    Graphics::Gdi::*, UI::Controls::*, UI::Shell::*, UI::WindowsAndMessaging::*,
+};
+use windows_sys::core::*;
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
 //                              工具函数
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -119,34 +110,22 @@ pub fn hash<T: Hash>(t: &T) -> u64 {
     t.hash(&mut s);
     s.finish()
 }
-// #[macro_export]
-// macro_rules! win_error {
-//     ($const:expr) => {
-//         Error::from_win32($const)
-//     };
-// }
-#[macro_export]
-macro_rules! import_foundation {
-    () => {
-        #[allow(unused_imports)]
-        use windows::Win32::Foundation::{
-            APP_LOCAL_DEVICE_ID, COLORREF, CloseHandle, CompareObjectHandles, DECIMAL, DECIMAL_0_0,
-            DECIMAL_1_0, DEVPROPKEY, DUPLICATE_HANDLE_OPTIONS, DuplicateHandle, FILETIME, FLOAT128,
-            FreeLibrary, GENERIC_ACCESS_RIGHTS, GetHandleInformation, GetLastError, GlobalFree,
-            HANDLE as wHANDLE, HANDLE_FLAGS, HANDLE_PTR, HGLOBAL, HINSTANCE, HLOCAL, HLSURF,
-            HMODULE, HRSRC, HSPRITE, HSTR, HUMPD, HWND, LPARAM, LRESULT, LUID, LocalFree, NTSTATUS,
-            NTSTATUS_FACILITY_CODE, NTSTATUS_SEVERITY_CODE, OBJECT_ATTRIBUTE_FLAGS, POINT, POINTL,
-            POINTS, PROPERTYKEY, RECT, RECTL, RtlNtStatusToDosError, SHANDLE_PTR, SIZE, SYSTEMTIME,
-            SetHandleInformation, SetLastError, SetLastErrorEx, SysAddRefString, SysAllocString,
-            SysAllocStringByteLen, SysAllocStringLen, SysFreeString, SysReAllocString,
-            SysReAllocStringLen, SysReleaseString, SysStringByteLen, SysStringLen, UNICODE_STRING,
-            VARIANT_BOOL, WAIT_EVENT, WIN32_ERROR, WPARAM,
-        };
-    };
-}
-pub fn option_copy_handle(wnd: &Option<Window>) -> Option<Window> {
+#[inline]
+pub const fn option_copy_handle(wnd: &Option<Window>) -> Option<Window> {
     match wnd {
         None => None,
         Some(wnd) => Some(wnd.copy_handle()),
     }
+}
+#[inline]
+pub const fn ucontain(some: u32, other: u32) -> bool {
+    some & other == other
+}
+#[inline]
+pub const fn icontain(some: i32, other: i32) -> bool {
+    some & other == other
+}
+#[inline]
+fn set_style(style: &mut u32, flag: u32, condition: bool) {
+    style |= flag * condition as u32;
 }

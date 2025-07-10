@@ -1,20 +1,4 @@
 use super::*;
-pub fn get_winmain_args() -> Result<(HINSTANCE, HINSTANCE, Vec<String>, SHOW_WINDOW_CMD)> {
-    let mut argsss = STARTUPINFOW::default();
-    let aaaa: HINSTANCE = unsafe { GetModuleHandleW(PCWSTR::null()) }?.into();
-    unsafe {
-        GetStartupInfoW(&mut argsss);
-    }
-    let args: Vec<String> = std::env::args().collect();
-    let result = (
-        aaaa,
-        HINSTANCE(NULL_PTR()),
-        args,
-        SHOW_WINDOW_CMD(argsss.wShowWindow as i32),
-    );
-    Ok(result)
-}
-
 pub struct ExecutableFile {
     handle: HMODULE,
 }
@@ -44,10 +28,5 @@ impl Into<HMODULE> for ExecutableFile {
 impl From<HINSTANCE> for ExecutableFile {
     fn from(hi: HINSTANCE) -> Self {
         Self { handle: hi.into() }
-    }
-}
-impl Into<HINSTANCE> for ExecutableFile {
-    fn into(self) -> HINSTANCE {
-        self.handle.into()
     }
 }

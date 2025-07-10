@@ -1,7 +1,8 @@
 use super::*;
+#[doc(no_inline)]
 pub use button::{
     BottonContentPos as CheckBoxContentPos, ButtonContent as CheckBoxContent,
-    ButtonMsgType as CheckBoxMsgType, ButtonTempleContent as CheckBoxTempleContent
+    ButtonMsgType as CheckBoxMsgType, ButtonTempleContent as CheckBoxTempleContent,
 };
 pub struct CheckBoxOption<T> {
     pub style: ChildWindowStyles,
@@ -17,15 +18,10 @@ pub struct CheckBoxOption<T> {
 pub type CheckBoxStyle = CheckBoxOption<CheckBoxContent>;
 pub type CheckBoxTemple = CheckBoxOption<CheckBoxTempleContent>;
 impl DialogTempleControl for CheckBoxTemple {
-    fn pre_compile(
-        self,
-        pos: Point,
-        size: Size,
-        identifier: WindowID,
-    ) -> ControlPreCompilePruduct{
+    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
         let (mut ms_style, ex) = self.style.into();
         let (style2, ct) = self.contect.into();
-        ms_style |= style2 | self.pos.into() | WS_CHILD;
+        ms_style |= style2 | self.pos.into();
         if self.extra_msg {
             ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
         };
@@ -51,14 +47,15 @@ impl DialogTempleControl for CheckBoxTemple {
         if self.left_text {
             ms_style |= WINDOW_STYLE(BS_LEFTTEXT as u32);
         };
-        ControlPreCompilePruduct::from(format!("CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}", 
-            ct, 
-            identifier, 
-            (ms_style | style2 | self.pos.into() | WS_CHILD).0, 
-            pos.x, 
-            pos.y, 
-            size.width, 
-            size.height, 
+        ControlPreCompilePruduct::from(format!(
+            "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
+            ct,
+            identifier,
+            (ms_style | style2 | self.pos.into()).0,
+            pos.x,
+            pos.y,
+            size.width,
+            size.height,
             ex.0
         ))
     }
@@ -70,7 +67,7 @@ impl<T> CheckBoxOption<T> {
         self
     }
 }
-impl CheckBoxStyle{
+impl CheckBoxStyle {
     #[inline]
     pub fn new_text(text: &str) -> Self {
         Self {
@@ -86,7 +83,7 @@ impl CheckBoxStyle{
         }
     }
 }
-impl CheckBoxTemple{
+impl CheckBoxTemple {
     #[inline]
     pub fn new(text: &str) -> Self {
         Self {
@@ -106,7 +103,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Chec
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
         let (mut ms_style, ex) = self.style.into();
         let (style2, ditype, text) = self.contect.into();
-        ms_style |= style2 | self.pos.into() | WS_CHILD;
+        ms_style |= style2 | self.pos.into();
         if self.extra_msg {
             ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
         };

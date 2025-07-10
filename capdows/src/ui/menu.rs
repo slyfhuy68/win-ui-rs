@@ -40,7 +40,12 @@ impl MenuBar {
     }
     #[inline]
     pub fn new() -> Result<Self> {
-        Ok(unsafe { Self::from_menu(Menu::from_handle(CreateMenu()?)) })
+        Ok(unsafe {
+            Self::from_menu(Menu::from_handle(match CreateMenu() as usize {
+                0 => return Error::correct_error(),
+                x => x as *mut c_void,
+            }))
+        })
     }
     #[inline]
     pub const unsafe fn null() -> Self {

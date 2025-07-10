@@ -2,25 +2,44 @@ use capdows::L;
 use capdows::prelude::*;
 use capdows::ui::{control::*, image::*, style::*, window::*, *};
 capdows::import_foundation!();
+use capdows_resource::dialog::{ControlPreCompilePruduct, DialogTempleControl};
 use std::ffi::c_void;
 use windows::Win32::Graphics::Gdi::*;
 use windows::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
 use windows::core::{PCWSTR, w};
-use capdows_resource::dialog::{DialogTempleControl, ControlPreCompilePruduct};
 pub mod button;
 pub mod check_box;
 pub mod combo_box;
 pub mod edit;
 pub mod group_box;
-// pub mod radio;
-// pub mod view;
-// pub mod prelude {
-//     pub use crate::{
-//         button::*, 
-//         check_box::*, 
-//         
-//     }
-// }
+pub mod radio_box;
+pub mod view;
+pub mod prelude {
+    #[doc(no_inline)]
+    pub use crate::{
+        button::{
+            BottonContentPos, Button, ButtonContent, ButtonMsg, ButtonMsgType, ButtonStyle,
+            ButtonType,
+        },
+        check_box::{
+            CheckBox, CheckBoxContent, CheckBoxContentPos, CheckBoxMsg, CheckBoxMsgType,
+            CheckBoxState, CheckBoxState::*, CheckBoxStyle,
+        },
+        combo_box::{
+            CaseType as ComboBoxCaseType, ComboBox, ComboBoxMsg, ComboBoxMsgType, ComboBoxShow,
+            ComboBoxStyle, ListBoxItemPos, ListBoxMaxSize, OwnerDrawType as ComboBoxOwnerDrawType,
+        },
+        edit::{CaseType as EditCaseType, Edit, EditMsg, EditMsgType, EditStyle, EditType},
+        group_box::{GroupBox, GroupBoxMsg, GroupBoxMsgType, GroupBoxStyle},
+        radio_box::{
+            RadioBox, RadioBoxContent, RadioBoxContentPos, RadioBoxMsg, RadioBoxMsgType,
+            RadioBoxStyle, RadioBoxTempleContent,
+        },
+        // view::{
+        //
+        // }
+    };
+}
 pub type ButtonImage = Either<Bitmap, Icon>;
 use either::*;
 // fn style_of(wnd: &Window) -> WINDOW_STYLE {

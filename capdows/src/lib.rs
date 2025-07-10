@@ -6,7 +6,7 @@ pub mod ui;
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
-        error::{Result, WinError as Error, WinError, errors::*},
+        error::*,
         i18n::LangID,
         positioning::{DPIAwareDeviceUnit, DeviceUnit, DialogTemplateUnit, Point, Rect, Size},
         strings::{WideString, widestr},

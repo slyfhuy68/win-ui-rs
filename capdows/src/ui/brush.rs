@@ -1,6 +1,6 @@
 use super::*;
 #[derive(Clone, PartialEq, Copy, Debug)]
-pub struct Brush(HANDLE);
+pub struct Brush(HBRUSH);
 
 impl Brush {
     pub fn is_invalid(&self) -> bool {
@@ -14,12 +14,12 @@ impl Default for Brush {
 }
 impl Into<HBRUSH> for Brush {
     fn into(self) -> HBRUSH {
-        HBRUSH(self.0)
+        self.0
     }
 }
 impl From<HBRUSH> for Brush {
     fn from(hb: HBRUSH) -> Self {
-        Self(hb.0)
+        Self(hb)
     }
 }
 // impl std::fmt::Display for Brush {

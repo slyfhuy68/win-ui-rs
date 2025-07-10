@@ -1,6 +1,6 @@
 use super::*;
 use std::time::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::*;
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::*;
 impl Window {
     ///获取***当前线程***中的捕获鼠标的窗口。
     ///如果当前线程中没有窗口捕获鼠标，则返回 None。

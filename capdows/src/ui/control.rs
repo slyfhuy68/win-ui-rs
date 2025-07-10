@@ -1,6 +1,7 @@
 use super::*;
 ///表示 NMHDR 或将 NMHDR 作为其第一个成员的、#[repr(C)]的较大结构
-/// #SAFTY
+///
+/// # SAFTY
 /// 确保实现此trait的类型都是将 NMHDR 作为其第一个成员的、#[repr(C)]的结构体
 pub unsafe trait NotifyMessage {
     fn code(&self) -> u32;
@@ -66,7 +67,9 @@ pub trait ControlMsgType: Send + Sync {
     fn get_control_mut(&mut self) -> &mut Self::ControlType;
 }
 ///控件消息
+///
 ///表示lParam不为零的WM_COMMAND消息和表示lParam不为零的WM_NOTIFY消息
+///
 ///对于此trait来说，它的OwnerType必须是NMHDR或将 NMHDR 结构体作为其第一个成员的、#[repr(C)]的较大结构体，否则会导致未定义行为
 pub unsafe trait UnsafeControlMsg: /*UnsafeMessage + */ControlMsgType {
     type NotifyType: NotifyMessage;

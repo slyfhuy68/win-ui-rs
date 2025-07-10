@@ -109,51 +109,49 @@ pub struct MinMaxInfo {
 /// 定义窗口显示的状态类型。
 pub enum ShowWindowType {
     /// 隐藏窗口并激活另一个窗口。
-    Hide, // SW_HIDE
+    Hide = SW_HIDE,
     /// 激活并显示窗口。如果窗口最小化、最大化或排列，系统会将其还原到其原始大小和位置。应用程序应在首次显示窗口时指定此标志。
-    Normal, // SW_SHOWNORMAL
+    Normal = SW_SHOWNORMAL,
     /// 激活窗口并将其显示为最小化窗口。
-    ShowMinimized, // SW_SHOWMINIMIZED
+    ShowMinimized = SW_SHOWMINIMIZED,
     /// 激活窗口并显示最大化的窗口。
-    ShowMaximized, // SW_SHOWMAXIMIZED
+    ShowMaximized = SW_SHOWMAXIMIZED,
     /// 以最近的大小和位置显示窗口。此值类似于Normal，只是窗口未激活。
-    ShowWithoutActivating, // SW_SHOWNOACTIVATE
+    ShowWithoutActivating = SW_SHOWNOACTIVATE,
     /// 激活窗口并以当前大小和位置显示窗口。
-    Show, // SW_SHOW
-    /// 最小化指定的窗口，并按Z顺序激活下一个顶级窗口。
-    Minimize, // SW_MINIMIZE
+    Show = SW_SHOW,
+    /// 最小化指定的窗口，并按Z序激活下一个顶级窗口。
+    Minimize = SW_MINIMIZE,
     /// 将窗口显示为最小化窗口。此值类似于ShowMinimized，但窗口未激活。
-    ShowMinNoActivate, // SW_SHOWMINNOACTIVE
-    /// 以当前大小和位置显示窗口。此值类似于Show，只是窗口未激活。
-    ShowNoActivate, // SW_SHOWNA
+    ShowMinNoActivate = SW_SHOWMINNOACTIVE,
+    /// 以当前大小和位置显示窗口。此值类似于Show，只是不激活窗口。
+    ShowNoActivate = SW_SHOWNA,
     /// 激活并显示窗口。如果窗口最小化、最大化或排列，系统会将其还原到其原始大小和位置。还原最小化窗口时，应用程序应指定此标志。
-    Restore, // SW_RESTORE
+    Restore = SW_RESTORE,
     /// 根据启动应用程序的程序传递给程序值设置显示状态。
-    ShowDefault, // SW_SHOWDEFAULT
+    ShowDefault = SW_SHOWDEFAULT,
     /// 最小化窗口，即使拥有窗口的线程没有响应。仅当最小化不同线程的窗口时，才应使用此标志。
-    ForceMinimize, // SW_FORCEMINIMIZE
+    ForceMinimize = SW_FORCEMINIMIZE,
+}
+impl ShowWindowType {
+    #[inline]
+    pub fn get_show_window_type() -> Result<Self> {
+        let mut info = STARTUPINFOW::default();
+        unsafe {
+            GetStartupInfoW(&mut info);
+        }
+        Ok((info.wShowWindow as SHOW_WINDOW_CMD).try_into()?)
+    }
 }
 impl Into<SHOW_WINDOW_CMD> for ShowWindowType {
     fn into(self) -> SHOW_WINDOW_CMD {
-        match self {
-            ShowWindowType::Hide => SW_HIDE,
-            ShowWindowType::Normal => SW_SHOWNORMAL,
-            ShowWindowType::ShowMinimized => SW_SHOWMINIMIZED,
-            ShowWindowType::ShowMaximized => SW_SHOWMAXIMIZED,
-            ShowWindowType::ShowWithoutActivating => SW_SHOWNOACTIVATE,
-            ShowWindowType::Show => SW_SHOW,
-            ShowWindowType::Minimize => SW_MINIMIZE,
-            ShowWindowType::ShowMinNoActivate => SW_SHOWMINNOACTIVE,
-            ShowWindowType::ShowNoActivate => SW_SHOWNA,
-            ShowWindowType::Restore => SW_RESTORE,
-            ShowWindowType::ShowDefault => SW_SHOWDEFAULT,
-            ShowWindowType::ForceMinimize => SW_FORCEMINIMIZE,
-        }
+        self as SHOW_WINDOW_CMD
     }
 }
-impl From<SHOW_WINDOW_CMD> for ShowWindowType {
-    fn from(value: SHOW_WINDOW_CMD) -> Self {
-        match value {
+impl TryFrom<SHOW_WINDOW_CMD> for ShowWindowType {
+    type Err = Error;
+    fn try_from(value: SHOW_WINDOW_CMD) -> Result<Self> {
+        Ok(match value {
             SW_HIDE => ShowWindowType::Hide,
             SW_SHOWNORMAL => ShowWindowType::Normal,
             SW_SHOWMINIMIZED => ShowWindowType::ShowMinimized,
@@ -166,8 +164,8 @@ impl From<SHOW_WINDOW_CMD> for ShowWindowType {
             SW_RESTORE => ShowWindowType::Restore,
             SW_SHOWDEFAULT => ShowWindowType::ShowDefault,
             SW_FORCEMINIMIZE => ShowWindowType::ForceMinimize,
-            _ => ShowWindowType::Normal,
-        }
+            _ => return Err(ERROR_INVALID_DATA),
+        })
     }
 }
 pub enum WindowZpos {

@@ -1,5 +1,5 @@
 use super::*;
-use windows::Win32::Graphics::Gdi::HBRUSH;
+use windows_sys::Win32::Graphics::Gdi::HBRUSH;
 pub struct WindowClassBuilder {
     class_name: &'static widestr,
     style: WindowClassStyle,
@@ -78,7 +78,10 @@ impl WindowClassBuilder {
         self.executable_file = Some(e);
         self
     }
-    pub fn build(self) -> Result<WindowClass> {
+    /// 需指定C为消息接收器，一般情况下，使用[`crate::ui::msg::MessageReceiver`]trait来指定消息接收器。
+    ///
+    /// 所有实现了[`crate::ui::msg::MessageReceiver`]trait的类型都自动实现了[`crate::ui::msg::RawMessageHandler`]trait
+    pub fn build<C: RawMessageHandler + Sync + 'static>(self) -> Result<WindowClass> {
         if self.class_name.len() < 4 || self.class_name.len() >= 255 {
             return Err(ERROR_CLASS_NAME_TOO_LONG);
         }
@@ -87,7 +90,7 @@ impl WindowClassBuilder {
                 cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
                 style: self.style.into(),
                 //window_proc是一个函数，定义在私有模块cpadows::ui::proc里
-                lpfnWndProc: Some(window_proc),
+                lpfnWndProc: Some(window_proc::<C>),
                 cbClsExtra: self.class_extra as i32 * 8,
                 cbWndExtra: self.window_extra as i32 * 8,
                 hInstance: match self.executable_file {
@@ -95,7 +98,7 @@ impl WindowClassBuilder {
                     None => ExecutableFile::from_current_file()?.into(),
                 },
                 hIcon: self.icon.unwrap_or(Icon::null()).into(),
-                hCursor: self.cursor.unwrap_or(Cursor::null()).handle,
+                hCursor: self.cursor.unwrap_or(Cursor::null()).into(),
                 hbrBackground: match self.background_brush {
                     None => HBRUSH(NULL_PTR()),
                     Some(x) => x.into(),
@@ -130,7 +133,7 @@ impl WindowClass {
 impl Drop for WindowClass {
     fn drop(&mut self) {
         unsafe {
-            let _ = UnregisterClassW(self.name, None);
+            let _ = UnregisterClassW(self.name, 0 as HINSTANCE);
         }
     }
 }
@@ -180,7 +183,6 @@ impl WindowClass {
         wtype: WindowType,
         pos: Option<Point>,
         size: Option<Size>,
-        msgr: Box<CallBackObj>,
     ) -> Result<Window> {
         let (style, ex_style, menu, parent) = wtype.into();
         let (wname, _wnameptr) = str_to_pcwstr(name);
@@ -191,8 +193,7 @@ impl WindowClass {
         let (width, height) = size
             .unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT))
             .to_tuple();
-        let hinstance = unsafe { GetModuleHandleW(PCWSTR::null())? }.into();
-        let ptr = Box::into_raw(Box::new(msgr)) as *mut c_void;
+        let hinstance = unsafe { GetModuleHandleW(0 as *mut c_void)? };
         let result = unsafe {
             Window::from_handle(CreateWindowExW(
                 ex_style,
@@ -203,10 +204,10 @@ impl WindowClass {
                 y,
                 width,
                 height,
-                Some(parent),
-                Some(menu),
-                Some(hinstance),
-                Some(ptr as *const c_void),
+                parent,
+                menu,
+                hinstance,
+                0 as *const c_void,
             )?)
         };
         Ok(result)

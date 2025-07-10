@@ -27,22 +27,11 @@ pub struct OwnerDrawType {
 }
 type ComboBoxTemple = ComboBoxStyle;
 impl DialogTempleControl for ComboBoxTemple {
-    fn pre_compile(
-        self,
-        pos: Point,
-        size: Size,
-        identifier: WindowID,
-    ) -> ControlPreCompilePruduct{
-        let ( ms_style, ex, ct) = self.into();
-        ControlPreCompilePruduct::from(format!("CONTROL \"{}\", {}, \"ComboBox\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}", 
-            ct , 
-            identifier, 
-            ms_style.0, 
-            pos.x, 
-            pos.y, 
-            size.width, 
-            size.height, 
-            ex.0
+    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+        let (ms_style, ex, ct) = self.into();
+        ControlPreCompilePruduct::from(format!(
+            "CONTROL \"{}\", {}, \"ComboBox\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
+            ct, identifier, ms_style.0, pos.x, pos.y, size.width, size.height, ex.0
         ))
     }
 }
@@ -109,8 +98,8 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
                 style |= CBS_OWNERDRAWFIXED;
             }
         }
-        (WINDOW_STYLE(style as u32) | style1 | WS_CHILD, ex, self.contect)
-    } 
+        (WINDOW_STYLE(style as u32) | style1, ex, self.contect)
+    }
 }
 impl ComboBoxStyle {
     pub fn new_view(s: &str) -> Self {

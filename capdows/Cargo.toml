@@ -9,13 +9,13 @@ edition.workspace = true
 either = "1.14.0"
 euclid = "0.22.11"
 tokio = { version = "1.44.2", features = ["rt"] }
-windows-link = "0.1.1"
+windows-targets = "0.53.2"
 
 [dependencies.capdows_utility]
 path = "../utility"
 
-[dependencies.windows]
-version = "0.61.1"
+[dependencies.windows-sys]
+version = "0.60.2"
 features = [
     "Win32_System_LibraryLoader",
     "Win32_UI_Shell",
