@@ -81,6 +81,24 @@ impl WinError {
         }
     }
     #[inline]
+    pub fn from_win32api_result(error: i32) -> Result<()> {
+        #[allow(unused_unsafe)]
+        if error == 0 {
+            Ok(())
+        } else {
+            Err(unsafe { Self::from_win32(unsafe { GetLastError() }) })
+        }
+    }
+    #[inline]
+    pub fn from_win32api_ptr(error: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
+        #[allow(unused_unsafe)]
+        if error.addr() == 0 {
+            Ok(error)
+        } else {
+            Err(unsafe { Self::from_win32(unsafe { GetLastError() }) })
+        }
+    }
+    #[inline]
     ///不检查当前错误是不是0
     pub unsafe fn correct_error() -> Self {
         unsafe { Self::from_win32(GetLastError()) }

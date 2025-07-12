@@ -23,7 +23,7 @@ unsafe impl Send for Window {}
 unsafe impl Sync for Window {}
 impl fmt::Debug for Window {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Window").field(&self.handle.0).finish()
+        f.debug_tuple("Window").field(&self.handle).finish()
     }
 }
 impl Into<HWND> for Window {
@@ -51,48 +51,35 @@ pub struct WindowPosType {
     //pub no_sizing:bool,
     pub show_window: bool, //SWP_SHOWWINDOW
 }
-impl From<WindowPosType> for SET_WINDOW_POS_FLAGS {
-    fn from(wpt: WindowPosType) -> Self {
-        let mut flags = SET_WINDOW_POS_FLAGS(0);
-        if wpt.draw_frame {
-            flags.0 |= SWP_DRAWFRAME.0;
-        }
-        if wpt.frame_changed {
-            flags.0 |= SWP_FRAMECHANGED.0;
-        }
-        if wpt.hide {
-            flags.0 |= SWP_HIDEWINDOW.0;
-        }
-        if wpt.no_active {
-            flags.0 |= SWP_NOACTIVATE.0;
-        }
-        if wpt.no_copy_bytes {
-            flags.0 |= SWP_NOCOPYBITS.0;
-        }
-        if wpt.no_redraw {
-            flags.0 |= SWP_NOREDRAW.0;
-        }
-        if wpt.no_send_changing_message {
-            flags.0 |= SWP_NOSENDCHANGING.0;
-        }
-        if wpt.show_window {
-            flags.0 |= SWP_SHOWWINDOW.0;
-        }
+impl Into<SET_WINDOW_POS_FLAGS> for WindowPosType {
+    fn into(self) -> SET_WINDOW_POS_FLAGS {
+        let mut flags = 0u32;
+        set_style(&mut flags, SWP_DRAWFRAME, self.draw_frame);
+        set_style(&mut flags, SWP_FRAMECHANGED, self.frame_changed);
+        set_style(&mut flags, SWP_HIDEWINDOW, self.hide);
+        set_style(&mut flags, SWP_NOACTIVATE, self.no_active);
+        set_style(&mut flags, SWP_NOCOPYBITS, self.no_copy_bytes);
+        set_style(&mut flags, SWP_NOREDRAW, self.no_redraw);
+        set_style(
+            &mut flags,
+            SWP_NOSENDCHANGING,
+            self.no_send_changing_message,
+        );
+        set_style(&mut flags, SWP_SHOWWINDOW, self.show_window);
         flags
     }
 }
-
 impl From<SET_WINDOW_POS_FLAGS> for WindowPosType {
     fn from(flags: SET_WINDOW_POS_FLAGS) -> Self {
         WindowPosType {
-            draw_frame: flags.contains(SWP_DRAWFRAME),
-            frame_changed: flags.contains(SWP_FRAMECHANGED),
-            hide: flags.contains(SWP_HIDEWINDOW),
-            no_active: flags.contains(SWP_NOACTIVATE),
-            no_copy_bytes: flags.contains(SWP_NOCOPYBITS),
-            no_redraw: flags.contains(SWP_NOREDRAW),
-            no_send_changing_message: flags.contains(SWP_NOSENDCHANGING),
-            show_window: flags.contains(SWP_SHOWWINDOW),
+            draw_frame: ucontain(flags, SWP_DRAWFRAME),
+            frame_changed: ucontain(flags, SWP_FRAMECHANGED),
+            hide: ucontain(flags, SWP_HIDEWINDOW),
+            no_active: ucontain(flags, SWP_NOACTIVATE),
+            no_copy_bytes: ucontain(flags, SWP_NOCOPYBITS),
+            no_redraw: ucontain(flags, SWP_NOREDRAW),
+            no_send_changing_message: ucontain(flags, SWP_NOSENDCHANGING),
+            show_window: ucontain(flags, SWP_SHOWWINDOW),
         }
     }
 }
@@ -107,6 +94,7 @@ pub struct MinMaxInfo {
     pub max_track_y: i32,
 }
 /// 定义窗口显示的状态类型。
+#[repr(i32)]
 pub enum ShowWindowType {
     /// 隐藏窗口并激活另一个窗口。
     Hide = SW_HIDE,
@@ -149,7 +137,7 @@ impl Into<SHOW_WINDOW_CMD> for ShowWindowType {
     }
 }
 impl TryFrom<SHOW_WINDOW_CMD> for ShowWindowType {
-    type Err = Error;
+    type Error = Error;
     fn try_from(value: SHOW_WINDOW_CMD) -> Result<Self> {
         Ok(match value {
             SW_HIDE => ShowWindowType::Hide,
@@ -178,10 +166,10 @@ pub enum WindowZpos {
 impl From<WindowZpos> for HWND {
     fn from(zpos: WindowZpos) -> Self {
         match zpos {
-            WindowZpos::TopMost => HWND((-1isize) as *mut c_void), // (HWND)-1
-            WindowZpos::Top => HWND(0isize as *mut c_void),        // (HWND)0
-            WindowZpos::NoTopMost => HWND((-2isize) as *mut c_void), // (HWND)-2
-            WindowZpos::Bottom => HWND(1isize as *mut c_void),     // (HWND)1
+            WindowZpos::TopMost => HWND((-1isize) as HWND), // (HWND)-1
+            WindowZpos::Top => HWND(0isize as HWND),        // (HWND)0
+            WindowZpos::NoTopMost => HWND((-2isize) as HWND), // (HWND)-2
+            WindowZpos::Bottom => HWND(1isize as HWND),     // (HWND)1
             WindowZpos::PriorWindow(hwnd) => hwnd.into(),
         }
     }
@@ -190,7 +178,7 @@ impl From<WindowZpos> for HWND {
 impl WindowZpos {
     ///如果HWND是一个窗口，确保它是Rust拥有的
     pub unsafe fn from_handle(hwnd: HWND) -> Self {
-        let ptr_value = hwnd.0 as isize;
+        let ptr_value = hwnd as isize;
         match ptr_value {
             -1 => WindowZpos::TopMost,
             0 => WindowZpos::Top,
@@ -270,7 +258,7 @@ impl Window {
         }
     }
     pub fn is_child(&self) -> bool {
-        unsafe { GetWindowLongPtrW(self.handle, GWL_STYLE) & WS_CHILD.0 as isize != 0 }
+        unsafe { GetWindowLongPtrW(self.handle, GWL_STYLE) & WS_CHILD as isize != 0 }
     }
     pub fn with_menu<F, T>(&mut self, f: F) -> Result<T>
     where
@@ -315,7 +303,7 @@ impl Window {
     }
     #[inline]
     pub fn nullify(&mut self) {
-        self.handle = HWND(0 as *mut c_void);
+        self.handle = 0 as HWND;
     }
     #[inline]
     pub fn redraw_menu_bar(&mut self) -> Result<()> {
@@ -380,7 +368,7 @@ impl Window {
     pub fn destroy(&mut self) -> Result<()> {
         unsafe {
             DestroyWindow(self.handle)?;
-            self.handle = HWND(0 as *mut c_void);
+            self.handle = 0 as HWND;
             Ok(())
         }
     }
@@ -396,79 +384,43 @@ impl Window {
     }
     ///移除id为0的默认项会返回ERROR_NOT_SUPPORTED
     ///不支持能操作其它线程创建的窗口的接收器，会返回Err
-    pub fn remove_msg_receiver(&mut self, id: usize) -> Result<()> {
+    pub fn remove_msg_receiver<C: RawMessageHandler + Sync + 'static>(
+        &mut self,
+        id: usize,
+        _msg_receiver: PhantomData<C>,
+    ) -> Result<()> {
         if id == 0 {
             return Err(ERROR_CANNOT_REMOVE_DEFAULT);
-        }
+        };
         unsafe {
-            let ptr = self.with_msg_receiver_mut(id, |mut_ref| mut_ref as *mut CallBackObj)?;
-            if RemoveWindowSubclass(self.handle, Some(subclass_porc), id).into() {
-                let _ = Box::from_raw(ptr);
+            if RemoveWindowSubclass(self.handle, Some(subclass_porc::<C>), id) != 0 {
                 Ok(())
             } else {
-                return Err(WinError::correct_error());
+                Err(WinError::correct_error());
             }
         }
     }
-    pub fn add_msg_receiver(&mut self, id: usize, mssc: Box<CallBackObj>) -> Result<()> {
+    pub fn add_msg_receiver<C: RawMessageHandler + Sync + 'static>(
+        &mut self,
+        id: usize,
+        _msg_receiver: PhantomData<C>,
+    ) -> Result<()> {
         if id == 0 || self.has_receiver_for(id) {
             return Err(ERROR_OBJECT_ALREADY_EXISTS);
-        }
+        };
         unsafe {
-            if SetWindowSubclass(
-                self.handle,
-                Some(subclass_porc),
-                id,
-                Box::into_raw(Box::new(mssc)) as usize,
-            )
-            .into()
-            {
+            if SetWindowSubclass(self.handle, Some(subclass_porc::<C>), id, 0 as usize) != 0 {
                 Ok(())
             } else {
                 Err(WinError::correct_error())
             }
         }
     }
-    pub fn with_msg_receiver<F, T>(&self, id: usize, f: F) -> Result<T>
-    where
-        F: FnOnce(&CallBackObj) -> T,
-    {
-        unsafe {
-            if id == 0 {
-                return Ok(f((*(get_proc(self.handle)?)).as_ref()));
-            };
-            let mut data: usize = 0usize;
-            if GetWindowSubclass(
-                self.handle,
-                Some(subclass_porc),
-                id,
-                Some(&mut data as *mut _),
-            )
-            .into()
-            {
-                Ok(f((*(data as *const Box<CallBackObj>)).as_ref()))
-            } else {
-                Err(WinError::correct_error())
-            }
-        }
-    }
-    pub fn with_msg_receiver_mut<F, T>(&mut self, id: usize, f: F) -> Result<T>
-    where
-        F: FnOnce(&mut CallBackObj) -> T,
-    {
-        unsafe {
-            if id == 0 {
-                return Ok(f((*(get_proc(self.handle)?)).as_mut()));
-            };
-            let mut data: usize = 0usize;
-            if GetWindowSubclass(self.handle, Some(subclass_porc), id, Some(&mut data)).into() {
-                Ok(f((*(data as *mut Box<CallBackObj>)).as_mut()))
-            } else {
-                Err(WinError::correct_error())
-            }
-        }
-    }
-    pub fn has_receiver_for(&mut self, id: usize) -> bool {
+    pub fn has_receiver_for<C: RawMessageHandler + Sync + 'static>(
+        &mut self,
+        id: usize,
+        _msg_receiver: PhantomData<C>,
+    ) -> bool {
         unsafe {
             if id == 0 {
                 return true;
@@ -590,7 +542,7 @@ impl Window {
     }
     // pub async unsafe fn send_msg_unsafe_async<C: UnsafeMessage>(&self, msg: C) -> Result<isize> {
     //     use tokio::task;
-    //     let hwnd = self.handle().0 as usize;
+    //     let hwnd = self.handle() as usize;
     //     let ptr = msg.into_raw_msg()?;
     //
     //     /* WindowRawMsgFuture {*/
@@ -598,12 +550,11 @@ impl Window {
     //             let RawMessage(code, wparam, lparam) = ptr.ptr;
     //             last_error!(
     //                 SendMessageW(
-    //                     HWND(hwnd as *mut c_void),
+    //                     hwnd as HWND,
     //                     code,
     //                     Some(WPARAM(wparam)),
     //                     Some(LPARAM(lparam))
     //                 )
-    //                 .0
     //             )
     //         })/*,*/.await;
     //     // }
@@ -616,15 +567,12 @@ impl Window {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
-            WinError::correct_error_result(
-                SendMessageW(
-                    self.handle,
-                    code,
-                    Some(WPARAM(wparam)),
-                    Some(LPARAM(lparam)),
-                )
-                .0,
-            )
+            WinError::correct_error_result(SendMessageW(
+                self.handle,
+                code,
+                Some(WPARAM(wparam)),
+                Some(LPARAM(lparam)),
+            ))
         }
     }
 }

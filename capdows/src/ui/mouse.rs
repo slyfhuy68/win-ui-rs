@@ -10,7 +10,7 @@ impl Window {
     {
         unsafe {
             let result = GetCapture();
-            if result.is_invalid() {
+            if result == NULL_PTR() {
                 None
             } else {
                 let mut result = Window::from_handle(result);
@@ -40,9 +40,9 @@ pub fn set_double_click_time(time: Duration) -> Result<()> {
     if time > MAX_DOUBLE_CLICK_TIME {
         return Err(ERROR_TIME_TOO_LONG);
     }
-    unsafe { Ok(SetDoubleClickTime(time.as_millis().try_into()?)?) }
+    unsafe { WinError::from_win32api_result(SetDoubleClickTime(time.as_millis().try_into()?)) }
 }
 ///释放***当前线程***中的捕获的鼠标。
 pub fn release_mouse() -> Result<()> {
-    unsafe { Ok(ReleaseCapture()?) }
+    unsafe { WinError::from_win32api_result(ReleaseCapture()) }
 }

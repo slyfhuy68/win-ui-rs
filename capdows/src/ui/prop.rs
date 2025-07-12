@@ -66,9 +66,9 @@ impl Window {
     //         }
     //         match unsafe {
     //             EnumPropsExW(
-    //                 HWND(self_handle as *mut c_void),
+    //                 self_handle as HWND,
     //                 Some(callback),
-    //                 LPARAM(receiver_usize as isize),
+    //                 receiver_usize as LPARAM,
     //             )
     //         } {
     //             -1 => Err(correct_error()),
@@ -83,7 +83,7 @@ impl Window {
     // }
     pub fn get_prop(&self, key: &str) -> Result<usize> {
         let (name, _buffer) = str_to_pcwstr(key);
-        match unsafe { GetPropW(self.handle(), name).0 } as usize {
+        match unsafe { GetPropW(self.handle(), name) } as usize {
             0 => Err(ERROR_NOT_PRESENT),
             x => Ok(x),
         }
@@ -92,18 +92,12 @@ impl Window {
         let (name, _buffer) = str_to_pcwstr(key);
         match value {
             0 => Err(ERROR_NOT_SUPPORT_ZERO),
-            x => unsafe {
-                Ok(SetPropW(
-                    self.handle(),
-                    name,
-                    Some(wHANDLE(x as *mut c_void)),
-                )?)
-            },
+            x => unsafe { Ok(SetPropW(self.handle(), name, x as HANDLE)?) },
         }
     }
     pub fn remove_prop(&mut self, key: &str) -> Result<()> {
         let (name, _buffer) = str_to_pcwstr(key);
-        match unsafe { RemovePropW(self.handle(), name)?.0 } as usize {
+        match unsafe { RemovePropW(self.handle(), name)? } as usize {
             0 => Err(ERROR_NOT_PRESENT),
             _ => Ok(()),
         }

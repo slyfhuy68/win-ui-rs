@@ -51,7 +51,6 @@ pub unsafe trait RawMessageHandler {
         wparam: WPARAM,
         lparam: LPARAM,
         callback_id: usize,
-        data: *mut c_void,
     ) -> Option<isize>;
     #[inline]
     unsafe fn handle_normal_msg(
@@ -60,7 +59,7 @@ pub unsafe trait RawMessageHandler {
         wparam: WPARAM,
         lparam: LPARAM,
     ) -> Option<isize> {
-        Self::handle_msg(hwnd, msg, wparam, lparam, 0, 0 as *mut c_void)
+        unsafe {Self::handle_msg(hwnd, msg, wparam, lparam, 0)}
     }
 }
 #[repr(C)]
@@ -74,18 +73,18 @@ struct NMHDRSTATIC {
 macro_rules! do_msg {
     ($cb:expr) => {
         match $cb {
-            Ok(x) => x,
+            Ok(x) => Some(x),
             Err(NoProcessed) => None,
-            Err(x) => Some(0isize),
+            Err(_) => Some(0isize),
         }
     };
 }
 macro_rules! do_nofity {
     ($cb:expr) => {
         match $cb {
-            Ok(()) => 0isize,
+            Ok(()) => Some(0isize),
             Err(NoProcessed) => None,
-            Err(x) => Some(0isize),
+            Err(_) => Some(0isize),
         }
     };
 }
@@ -93,42 +92,43 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
     unsafe fn handle_msg(
         hwnd: HWND,
         msg: u32,
-        wparam: WPARAM,
-        lparam: LPARAM,
+        param1: WPARAM,
+        param2: LPARAM,
         callback_id: usize,
-        _data: *mut c_void,
     ) -> Option<isize> {
         unsafe {
             let mut w = Window::from_handle(hwnd);
-            let WPARAM(param1) = wparam;
-            let LPARAM(param2) = lparam;
             use MessageReceiverError::*;
             let result = match msg {
                 WM_CREATE => {
                     let s = *(param2 as *mut CREATESTRUCTW);
                     let (wc, _buffer) = {
                         let mut buffer = [0u16; 256];
-                        let len = GetClassNameW(hwnd, &mut buffer) as usize;
+                        let len = GetClassNameW(hwnd, buffer.as_mut_ptr(), 256) as usize;
                         if len == 0 {
                             (WindowClass::from_raw(s.lpszClass), None)
                         } else {
                             let mut vec = buffer[..len].to_vec();
                             vec.push(0);
-                            (WindowClass::from_raw(PCWSTR(vec.as_ptr())), Some(vec))
+                            (WindowClass::from_raw(vec.as_ptr() as PCWSTR), Some(vec))
                         }
                     };
                     let mut wtype = WindowType::from_data(
-                        WINDOW_STYLE(s.style as u32),
+                        s.style as WINDOW_STYLE,
                         s.dwExStyle,
                         s.hMenu,
                         s.hwndParent,
                     );
+                    unsafe extern "C" {
+                        unsafe fn wcslen(s: *const u16) -> usize;
+                    }
+                    let len = wcslen(s.lpszName);
                     let result = match C::create(
                         callback_id,
                         &mut w,
-                        &s.lpszName.to_string().unwrap_or(String::from("")),
+                        &(String::from_utf16(std::slice::from_raw_parts(s.lpszName, len)).unwrap_or(String::from(""))),
                         wc,
-                        HMODULE(s.hInstance.0).into(),
+                        s.hInstance.into(),
                         rect(s.x, s.y, s.cx, s.cy),
                         &mut wtype,
                     ) {
@@ -137,7 +137,7 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                             false => -1isize,
                         }),
                         Err(NoProcessed) => None,
-                        Err(x) => Some(-1isize),
+                        Err(_) => Some(-1isize),
                     };
                     wtype.nullify_menu();
                     result
@@ -175,7 +175,7 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                     Some(2isize) //此crate只能创建Unicode窗口NFR_UNICODE
                 }
                 WM_MENUCOMMAND => {
-                    let mut hmenu = HMENU(param2 as *mut c_void);
+                    let mut hmenu = param2 as HMENU;
                     do_nofity! { C::menu_command(
                         callback_id,
                         &mut w,
@@ -195,11 +195,11 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                 WM_CTLCOLORSTATIC => {
                     let mut nmhdr = NMHDRSTATIC {
                         nmhdr: NMHDR {
-                            hwndFrom: HWND(param2 as *mut c_void),
-                            idFrom: GetWindowLongW(HWND(param2 as *mut c_void), GWL_ID) as usize,
+                            hwndFrom: param2 as HWND,
+                            idFrom: GetWindowLongW(param2 as HWND, GWL_ID) as usize,
                             code: WM_CTLCOLORSTATIC,
                         },
-                        DC: param1 as *mut c_void,
+                        DC: param1 as HANDLE,
                     };
                     let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
                     do_msg! {C::control_message(
@@ -402,7 +402,7 @@ pub trait MessageReceiver: Default {
 pub fn msg_loop() {
     let mut msg = MSG::default();
     unsafe {
-        while GetMessageW(&mut msg, None, 0, 0).into() {
+        while GetMessageW(&mut msg, 0 as HWND, 0, 0) != 0 {
             let _ = TranslateMessage(&msg);
             let _ = DispatchMessageW(&msg);
         }
@@ -566,7 +566,7 @@ unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
                         RawMessage(
                             WM_COMMAND,
                             ((l as usize) << 16) | (id as usize),
-                            handle.0 as isize,
+                            handle as isize,
                         )
                     },
                     data: None,
@@ -583,7 +583,7 @@ unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
             let RawMessage(msg, _, lparam) = ptr;
             match *msg {
                 WM_COMMAND => {
-                    let param2e = HWND((*lparam) as *mut c_void);
+                    let param2e = (*lparam) as HWND;
                     T::ControlType::is_self(Window::from_ref(&param2e))
                 }
                 WM_NOTIFY => {
@@ -606,7 +606,7 @@ unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
             match msg {
                 WM_COMMAND => {
                     let mut nmhdr = NMHDR {
-                        hwndFrom: HWND(lparam as *mut c_void),
+                        hwndFrom: lparam as HWND,
                         idFrom: (wparam & 0xffff) as usize,
                         code: ((wparam >> 16) & 0xffff) as u32,
                     };

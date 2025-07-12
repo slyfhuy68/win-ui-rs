@@ -81,7 +81,10 @@ impl WindowClassBuilder {
     /// 需指定C为消息接收器，一般情况下，使用[`crate::ui::msg::MessageReceiver`]trait来指定消息接收器。
     ///
     /// 所有实现了[`crate::ui::msg::MessageReceiver`]trait的类型都自动实现了[`crate::ui::msg::RawMessageHandler`]trait
-    pub fn build<C: RawMessageHandler + Sync + 'static>(self) -> Result<WindowClass> {
+    pub fn build<C: RawMessageHandler + Sync + 'static>(
+        self,
+        _msg_receiver: PhantomData<C>,
+    ) -> Result<WindowClass> {
         if self.class_name.len() < 4 || self.class_name.len() >= 255 {
             return Err(ERROR_CLASS_NAME_TOO_LONG);
         }
@@ -100,11 +103,11 @@ impl WindowClassBuilder {
                 hIcon: self.icon.unwrap_or(Icon::null()).into(),
                 hCursor: self.cursor.unwrap_or(Cursor::null()).into(),
                 hbrBackground: match self.background_brush {
-                    None => HBRUSH(NULL_PTR()),
+                    None => NULL_PTR(),
                     Some(x) => x.into(),
                 },
                 lpszMenuName: match self.default_menu_resource {
-                    None => PCWSTR::null(),
+                    None => 0 as *const u16,
                     Some(x) => x.to_pcwstr(),
                 },
                 lpszClassName: self.class_name.to_pcwstr(),
@@ -193,9 +196,9 @@ impl WindowClass {
         let (width, height) = size
             .unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT))
             .to_tuple();
-        let hinstance = unsafe { GetModuleHandleW(0 as *mut c_void)? };
+        let hinstance = unsafe { WinError::from_win32api_ptr(GetModuleHandleW(0 as *const u16))? };
         let result = unsafe {
-            Window::from_handle(CreateWindowExW(
+            Window::from_handle(WinError::from_win32api_ptr(CreateWindowExW(
                 ex_style,
                 cname,
                 wname,
@@ -208,7 +211,7 @@ impl WindowClass {
                 menu,
                 hinstance,
                 0 as *const c_void,
-            )?)
+            ))?)
         };
         Ok(result)
     }

@@ -74,15 +74,22 @@ use self::core::*;
 //----------------------------------------------------------------------------------
 use super::i18n::*;
 use either::*;
-// #[allow(unused_imports)]
-// use windows_sys::core::{Error as wError, Result as wResult, w};
 //----------------------------------------------------------------------------------
+use crate::error::WinError as Error;
 use std::ffi::c_void;
+use std::marker::PhantomData;
 use std::num::NonZeroI32;
 use std::num::NonZeroU32;
+use std::os::windows::raw::HANDLE;
 use std::{ptr::null_mut as NULL_PTR, string::*};
 use windows_sys::Win32::Foundation::{
-    HINSTANCE, HMODULE, HWND, LPARAM, LRESULT, POINT, POINTS, RECT, SIZE, WIN32_ERROR, WPARAM,
+    HINSTANCE,
+    HMODULE,
+    HWND,
+    LPARAM,
+    LRESULT,
+    WPARAM,
+    // POINT, POINTS, RECT, SIZE, WIN32_ERROR,
 };
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
@@ -111,7 +118,7 @@ pub fn hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 #[inline]
-pub const fn option_copy_handle(wnd: &Option<Window>) -> Option<Window> {
+pub fn option_copy_handle(wnd: &Option<Window>) -> Option<Window> {
     match wnd {
         None => None,
         Some(wnd) => Some(wnd.copy_handle()),
@@ -127,5 +134,5 @@ pub const fn icontain(some: i32, other: i32) -> bool {
 }
 #[inline]
 fn set_style(style: &mut u32, flag: u32, condition: bool) {
-    style |= flag * condition as u32;
+    *style |= flag * condition as u32;
 }

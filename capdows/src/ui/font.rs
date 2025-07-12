@@ -171,7 +171,7 @@ pub enum ControlFont {
 impl Font {
     pub fn into_handle(mut self) -> HFONT {
         let handle = self.handle;
-        self.handle = 0 as *mut c_void;
+        self.handle = 0 as HFONT;
         handle
     }
 }
@@ -183,12 +183,12 @@ where
     unsafe {
         let mut nc_metrics: NONCLIENTMETRICSW = std::mem::zeroed();
         nc_metrics.cbSize = std::mem::size_of::<NONCLIENTMETRICSW>() as u32;
-        SystemParametersInfoW(
+        WinError::from_win32api_result(SystemParametersInfoW(
             SPI_GETNONCLIENTMETRICS,
             0,
             &mut nc_metrics as *mut _ as _,
-            SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
-        )?;
+            0 as SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
+        ))?;
         let log = extractor(&nc_metrics);
         Ok(CreateFontIndirectW(&log as *const LOGFONTW))
     }

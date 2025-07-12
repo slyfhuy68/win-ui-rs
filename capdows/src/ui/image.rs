@@ -12,12 +12,10 @@ impl Icon {
         }
     }
     pub const unsafe fn null() -> Self {
-        Self {
-            handle: HICON(NULL_PTR()),
-        }
+        Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle.0 == NULL_PTR()
+        self.handle == NULL_PTR()
     }
     pub fn load_from_module(
         module: ExecutableFile,
@@ -28,23 +26,20 @@ impl Icon {
         let pcw = id.to_pcwstr();
         let (cx, cy) = size.unwrap_or(Size::new(0, 0)).to_tuple();
         Ok(Self {
-            handle: HICON(
-                unsafe {
-                    LoadImageW(
-                        module.into(),
-                        pcw,
-                        IMAGE_ICON,
-                        cx,
-                        cy,
-                        if share {
-                            IMAGE_FLAGS::default() | LR_SHARED
-                        } else {
-                            IMAGE_FLAGS::default()
-                        },
-                    )?
-                }
-                .0,
-            ),
+            handle: unsafe {
+                WinError::from_win32api_ptr(LoadImageW(
+                    module.into(),
+                    pcw,
+                    IMAGE_ICON,
+                    cx,
+                    cy,
+                    if share {
+                        IMAGE_FLAGS::default() | LR_SHARED
+                    } else {
+                        IMAGE_FLAGS::default()
+                    },
+                ))?
+            },
         })
     }
 }
@@ -151,12 +146,10 @@ impl Cursor {
         }
     }
     pub const unsafe fn null() -> Self {
-        Self {
-            handle: HCURSOR(NULL_PTR()),
-        }
+        Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle.0 == NULL_PTR()
+        self.handle == NULL_PTR()
     }
     pub fn load_from_module(
         module: ExecutableFile,
@@ -167,29 +160,28 @@ impl Cursor {
         let pcw = id.to_pcwstr();
         let (cx, cy) = width.unwrap_or(Size::new(0, 0)).to_tuple();
         Ok(Self {
-            handle: HCURSOR(
-                unsafe {
-                    LoadImageW(
-                        module.into(),
-                        pcw,
-                        IMAGE_CURSOR,
-                        cx,
-                        cy,
-                        if share {
-                            IMAGE_FLAGS::default() | LR_SHARED
-                        } else {
-                            IMAGE_FLAGS::default()
-                        },
-                    )?
-                }
-                .0,
-            ),
+            handle: unsafe {
+                WinError::from_win32api_ptr(LoadImageW(
+                    module.into(),
+                    pcw,
+                    IMAGE_CURSOR,
+                    cx,
+                    cy,
+                    if share {
+                        IMAGE_FLAGS::default() | LR_SHARED
+                    } else {
+                        IMAGE_FLAGS::default()
+                    },
+                ))?
+            },
         })
     }
     pub fn from_system(cursor: SystemCursor) -> Result<Self> {
         let id = cursor as u16;
         Ok(Cursor {
-            handle: unsafe { LoadCursorW(0 as *mut c_void, PCWSTR(id as *mut u16)) }?,
+            handle: WinError::from_win32api_ptr(unsafe {
+                LoadCursorW(0 as HMODULE, id as PCWSTR)
+            })?,
         })
     }
     pub fn apply(self) {
@@ -212,7 +204,7 @@ impl Bitmap {
         Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle.0 == NULL_PTR()
+        self.handle == NULL_PTR()
     }
 }
 impl From<HCURSOR> for Cursor {

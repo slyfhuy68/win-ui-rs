@@ -9,13 +9,13 @@ pub fn msg_box(
 ) -> Result<MessageBoxResult> {
     let (text, _buffer1) = str_to_pcwstr(text);
     let (caption, _buffer2) = match caption {
-        None => (PCWSTR::null(), Vec::new()),
+        None => (0 as *const u16, Vec::new()),
         Some(s) => str_to_pcwstr(s),
     };
     let (style1, lang_id) = options.into();
     let (style2, hwnd) = owner.into();
-    match unsafe { MessageBoxExW(Some(hwnd), text, caption, style1 | style2, lang_id) } {
-        MESSAGEBOX_RESULT(0) => Err(WinError::correct_error()),
+    match unsafe { MessageBoxExW(hwnd, text, caption, style1 | style2, lang_id) } {
+        0 => Err(WinError::correct_error()),
         x => Ok(x.try_into()?),
     }
 }
@@ -41,14 +41,11 @@ pub fn msg_box_timeout(
         x => Ok(x.try_into()?),
     }
 }
-#[macro_export]
+#[macro_export] //AI宏
 macro_rules! msg_box {
-    // 最简形式: text
     ($text:expr) => {
         $crate::win32::tools::msg_box($text, None, Default::default(), Default::default())
     };
-
-    // 支持 caption
     ($text:expr, $caption:expr) => {
         $crate::win32::tools::msg_box(
             $text,
@@ -57,13 +54,9 @@ macro_rules! msg_box {
             Default::default(),
         )
     };
-
-    // 支持 owner
     ($text:expr, $caption:expr, $owner:expr) => {
         $crate::win32::tools::msg_box($text, Some($caption), $owner, Default::default())
     };
-
-    // 完整形式（所有参数）
     ($text:expr, $caption:expr, $owner:expr, $options:expr) => {
         $crate::win32::tools::msg_box($text, Some($caption), $owner, $options)
     };
@@ -84,17 +77,17 @@ pub mod msg_box_style {
     }
     impl From<MESSAGEBOX_STYLE> for MessageBoxButton {
         fn from(value: MESSAGEBOX_STYLE) -> Self {
-            if value.contains(MB_YESNO) {
+            if ucontain(value, MB_YESNO) {
                 Self::YesNo
-            } else if value.contains(MB_OKCANCEL) {
+            } else if ucontain(value, MB_OKCANCEL) {
                 Self::OkCancel
-            } else if value.contains(MB_RETRYCANCEL) {
+            } else if ucontain(value, MB_RETRYCANCEL) {
                 Self::RetryCancel
-            } else if value.contains(MB_YESNOCANCEL) {
+            } else if ucontain(value, MB_YESNOCANCEL) {
                 Self::YesNoCancel
-            } else if value.contains(MB_ABORTRETRYIGNORE) {
+            } else if ucontain(value, MB_ABORTRETRYIGNORE) {
                 Self::AbortRetryIgnore
-            } else if value.contains(MB_CANCELTRYCONTINUE) {
+            } else if ucontain(value, MB_CANCELTRYCONTINUE) {
                 Self::CancelTryContinue
             } else {
                 Self::OkOnly
@@ -127,7 +120,7 @@ pub mod msg_box_style {
     impl Into<MESSAGEBOX_STYLE> for MessageBoxIcon {
         fn into(self) -> MESSAGEBOX_STYLE {
             match self {
-                Self::None => MESSAGEBOX_STYLE(0),
+                Self::None => 0,
                 Self::Information => MB_ICONINFORMATION,
                 Self::Question => MB_ICONQUESTION,
                 Self::Warning => MB_ICONEXCLAMATION,
@@ -138,13 +131,13 @@ pub mod msg_box_style {
 
     impl From<MESSAGEBOX_STYLE> for MessageBoxIcon {
         fn from(style: MESSAGEBOX_STYLE) -> Self {
-            if style.contains(MB_ICONINFORMATION) {
+            if ucontain(style, MB_ICONINFORMATION) {
                 Self::Information
-            } else if style.contains(MB_ICONQUESTION) {
+            } else if ucontain(style, MB_ICONQUESTION) {
                 Self::Question
-            } else if style.contains(MB_ICONWARNING) {
+            } else if ucontain(style, MB_ICONWARNING) {
                 Self::Warning
-            } else if style.contains(MB_ICONERROR) {
+            } else if ucontain(style, MB_ICONERROR) {
                 Self::Error
             } else {
                 Self::None
@@ -171,11 +164,11 @@ pub mod msg_box_style {
     }
     impl From<MESSAGEBOX_STYLE> for MessageBoxDefaultButton {
         fn from(value: MESSAGEBOX_STYLE) -> Self {
-            if value.contains(MB_DEFBUTTON2) {
+            if ucontain(value, MB_DEFBUTTON2) {
                 Self::Button2
-            } else if value.contains(MB_DEFBUTTON3) {
+            } else if ucontain(value, MB_DEFBUTTON3) {
                 Self::Button3
-            } else if value.contains(MB_DEFBUTTON4) {
+            } else if ucontain(value, MB_DEFBUTTON4) {
                 Self::Button4
             } else {
                 Self::Button1
@@ -200,11 +193,11 @@ pub mod msg_box_style {
                 icon: MessageBoxIcon::from(style),
                 button: MessageBoxButton::from(style),
                 default_button: MessageBoxDefaultButton::from(style),
-                default_desktop_only: style.contains(MB_DEFAULT_DESKTOP_ONLY),
-                help_button: style.contains(MB_HELP),
-                right_justified: style.contains(MB_RIGHT),
-                right_to_left_reading: style.contains(MB_RTLREADING),
-                top_most: style.contains(MB_TOPMOST),
+                default_desktop_only: ucontain(style, MB_DEFAULT_DESKTOP_ONLY),
+                help_button: ucontain(style, MB_HELP),
+                right_justified: ucontain(style, MB_RIGHT),
+                right_to_left_reading: ucontain(style, MB_RTLREADING),
+                top_most: ucontain(style, MB_TOPMOST),
                 lang_id: LangID::from_id(lang_id), //from_id返回Option<LangID>
             }
         }
@@ -212,29 +205,17 @@ pub mod msg_box_style {
     impl Into<(MESSAGEBOX_STYLE, u16)> for MessageBoxOptions {
         fn into(self) -> (MESSAGEBOX_STYLE, u16) {
             let mut style: MESSAGEBOX_STYLE = self.button.into();
-            style |= self.icon.into();
-            style |= self.default_button.into();
-
-            if self.default_desktop_only {
-                style |= MB_DEFAULT_DESKTOP_ONLY;
-            }
-
-            if self.help_button {
-                style |= MB_HELP;
-            }
-
-            if self.right_justified {
-                style |= MB_RIGHT;
-            }
-
-            if self.right_to_left_reading {
-                style |= MB_RTLREADING;
-            }
-
-            if self.top_most {
-                style |= MB_TOPMOST;
-            }
-
+            style |= <MessageBoxIcon as Into<MESSAGEBOX_STYLE>>::into(self.icon);
+            style |= <MessageBoxDefaultButton as Into<MESSAGEBOX_STYLE>>::into(self.default_button);
+            set_style(
+                &mut style,
+                MB_DEFAULT_DESKTOP_ONLY,
+                self.default_desktop_only,
+            );
+            set_style(&mut style, MB_HELP, self.help_button);
+            set_style(&mut style, MB_RIGHT, self.right_justified);
+            set_style(&mut style, MB_RTLREADING, self.right_to_left_reading);
+            set_style(&mut style, MB_TOPMOST, self.top_most);
             (style, self.lang_id.map(LangID::id).unwrap_or(0))
         }
     }
@@ -250,7 +231,7 @@ pub mod msg_box_style {
     impl<'a> Into<(MESSAGEBOX_STYLE, HWND)> for MessageBoxOwnerWindow<'a> {
         fn into(self) -> (MESSAGEBOX_STYLE, HWND) {
             match self {
-                MessageBoxOwnerWindow::None => (MB_APPLMODAL, HWND(0 as *mut c_void)),
+                MessageBoxOwnerWindow::None => (MB_APPLMODAL, 0 as HWND),
 
                 MessageBoxOwnerWindow::AppModal(window) => {
                     (MB_APPLMODAL, unsafe { window.handle() })
@@ -264,10 +245,9 @@ pub mod msg_box_style {
                     (MB_TASKMODAL, unsafe { window.handle() })
                 }
 
-                MessageBoxOwnerWindow::ServiceNotification => (
-                    MB_APPLMODAL | MB_SERVICE_NOTIFICATION,
-                    HWND(0 as *mut c_void),
-                ),
+                MessageBoxOwnerWindow::ServiceNotification => {
+                    (MB_APPLMODAL | MB_SERVICE_NOTIFICATION, 0 as HWND)
+                }
             }
         }
     }

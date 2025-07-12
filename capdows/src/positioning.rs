@@ -12,7 +12,9 @@ pub trait Win32Point: Copy {
     fn window_to_screen(&mut self, wnd: &crate::ui::window::Window) -> crate::error::Result<()> {
         let (x, y) = self.to_tuple();
         let mut point = POINT { x, y };
-        unsafe { ClientToScreen(wnd.handle(), &mut point) }.ok()?;
+        crate::error::WinError::from_win32api_result(unsafe {
+            ClientToScreen(wnd.handle(), &mut point)
+        })?;
         *self = Self::new(point.x, point.y);
         Ok(())
     }

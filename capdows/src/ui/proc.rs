@@ -6,7 +6,7 @@ pub unsafe extern "system" fn window_proc<C: RawMessageHandler + Sync + 'static>
     param2: LPARAM,
 ) -> LRESULT {
     unsafe {
-        match C::msg_handler(window_handle, msg, param1, param2) {
+        match C::handle_normal_msg(window_handle, msg, param1, param2) {
             Some(x) => x,
             None => DefWindowProcW(window_handle, msg, param1, param2),
         }
@@ -18,17 +18,10 @@ pub unsafe extern "system" fn subclass_porc<C: RawMessageHandler + Sync + 'stati
     wparam: WPARAM,
     lparam: LPARAM,
     uidsubclass: usize,
-    dwrefdata: usize,
+    _dwrefdata: usize,
 ) -> LRESULT {
     unsafe {
-        match C::msg_handler(
-            hwnd,
-            msg,
-            wparam,
-            lparam,
-            uidsubclass,
-            dwrefdata as *mut c_void,
-        ) {
+        match C::handle_msg(hwnd, msg, wparam, lparam, uidsubclass) {
             Some(x) => x,
             None => DefSubclassProc(hwnd, msg, wparam, lparam),
         }
