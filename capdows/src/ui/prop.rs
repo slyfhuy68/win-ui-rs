@@ -92,7 +92,13 @@ impl Window {
         let (name, _buffer) = str_to_pcwstr(key);
         match value {
             0 => Err(ERROR_NOT_SUPPORT_ZERO),
-            x => unsafe { Ok(SetPropW(self.handle(), name, x as HANDLE)?) },
+            x => unsafe {
+                Ok(WinError::from_win32api_result(SetPropW(
+                    self.handle(),
+                    name,
+                    x as HANDLE,
+                ))?)
+            },
         }
     }
     pub fn remove_prop(&mut self, key: &str) -> Result<()> {

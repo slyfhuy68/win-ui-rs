@@ -115,7 +115,7 @@ impl WindowClassBuilder {
             })
         };
         if result == 0 {
-            return Err(WinError::correct_error());
+            return unsafe { Err(WinError::correct_error()) };
         };
         Ok(WindowClass {
             name: self.class_name.to_pcwstr(),

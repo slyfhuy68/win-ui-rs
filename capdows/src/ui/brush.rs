@@ -7,7 +7,7 @@ impl Brush {
     pub const fn handle(&self) -> HBRUSH {
         self.handle
     }
-    pub const fn is_invalid(&self) -> bool {
+    pub fn is_invalid(&self) -> bool {
         self.handle == NULL_PTR()
     }
 }

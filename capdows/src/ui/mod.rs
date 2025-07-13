@@ -64,7 +64,7 @@ pub mod core {
         #[inline]
         pub fn to_pcwstr(self) -> PCWSTR {
             match self {
-                NumberId(x) => PCWSTR(x as *mut u16),
+                NumberId(x) => x as PCWSTR,
                 StringId(y) => y.to_pcwstr(),
             }
         }
@@ -103,12 +103,12 @@ use windows_sys::core::*;
 pub fn str_to_pcwstr(s: &str) -> (PCWSTR, Vec<u16>) {
     let wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
     let wide_str_ptr = wide_str.as_ptr();
-    return (PCWSTR(wide_str_ptr), wide_str);
+    return (wide_str_ptr as PCWSTR, wide_str);
 }
 pub fn str_to_pwstr(s: &str) -> (PWSTR, Vec<u16>) {
     let mut wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
     let wide_str_ptr = wide_str.as_mut_ptr();
-    return (PWSTR(wide_str_ptr), wide_str);
+    return (wide_str_ptr as PWSTR, wide_str);
 }
 use std::hash::DefaultHasher;
 use std::hash::Hash;

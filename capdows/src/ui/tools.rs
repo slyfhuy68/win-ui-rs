@@ -14,9 +14,11 @@ pub fn msg_box(
     };
     let (style1, lang_id) = options.into();
     let (style2, hwnd) = owner.into();
-    match unsafe { MessageBoxExW(hwnd, text, caption, style1 | style2, lang_id) } {
-        0 => Err(WinError::correct_error()),
-        x => Ok(x.try_into()?),
+    unsafe {
+        match MessageBoxExW(hwnd, text, caption, style1 | style2, lang_id) {
+            0 => Err(WinError::correct_error()),
+            x => Ok(x.try_into()?),
+        }
     }
 }
 

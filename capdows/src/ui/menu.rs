@@ -521,9 +521,11 @@ impl Menu {
         self.handle as usize == 0
     }
     pub fn item_count(&self) -> Result<MenuItemID> {
-        match unsafe { GetMenuItemCount(self.handle) } {
-            -1 => Err(WinError::correct_error()),
-            x => Ok(x as MenuItemID),
+        unsafe {
+            match GetMenuItemCount(self.handle) {
+                -1 => Err(WinError::correct_error()),
+                x => Ok(x as MenuItemID),
+            }
         }
     }
     /// 如果菜单栏在创建窗口后发生更改，则需要调用window.redraw_menu_bar()来绘制更改后的菜单栏。
