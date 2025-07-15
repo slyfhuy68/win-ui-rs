@@ -1,12 +1,3 @@
-//                     _     _                                _            __   _                        __      ___      ____            _   _     _               _
-//      __ _   _   _  | |_  | |__     ___    _ __   _   ___  | |  _   _   / _| | |__    _   _   _   _   / /_    ( _ )    / __ \    __ _  (_) | |_  | |__    _   _  | |__
-//     / _` | | | | | | __| | '_ \   / _ \  | '__| (_) / __| | | | | | | | |_  | '_ \  | | | | | | | | | '_ \   / _ \   / / _` |  / _` | | | | __| | '_ \  | | | | | '_ \
-//    | (_| | | |_| | | |_  | | | | | (_) | | |     _  \__ \ | | | |_| | |  _| | | | | | |_| | | |_| | | (_) | | (_) | | | (_| | | (_| | | | | |_  | | | | | |_| | | |_) |
-//     \____|  \____|  \__| |_| |_|  \___/  |_|    (_) |___/ |_|  \____| |_|   |_| |_|  \____|  \____|  \___/   \___/   \ \____|  \____| |_|  \__| |_| |_|  \____| |____/
-//                                                                |___/                         |___/                    \____/   |___/
-// author:slyfhuy68@github
-pub const PROC_KEY_NAME: &'static str = "MalibUserCallback";
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------
 pub mod brush;
 // use brush::*;
 use std::hash::Hasher;
@@ -55,7 +46,7 @@ pub mod core {
     pub type ResourceStringId = String;
     pub type ResourceNumberId = u16;
     pub enum ResourceID {
-        StringId(&'static widestr),
+        StringId(&'static CWideStr),
         NumberId(ResourceNumberId),
     }
     #[doc(no_inline)]
@@ -83,13 +74,12 @@ use std::num::NonZeroU32;
 use std::os::windows::raw::HANDLE;
 use std::{ptr::null_mut as NULL_PTR, string::*};
 use windows_sys::Win32::Foundation::{
-    HINSTANCE,
     HMODULE,
     HWND,
     LPARAM,
     LRESULT,
     WPARAM,
-    // POINT, POINTS, RECT, SIZE, WIN32_ERROR,
+    // POINT, POINTS, RECT, SIZE, WIN32_ERROR, HINSTANCE,
 };
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};

@@ -499,18 +499,19 @@ impl Menu {
             handle: unsafe { WinError::from_win32api_ptr(CreatePopupMenu())? },
         })
     }
-    pub fn nullify(&mut self) {
-        self.handle = 0 as HMENU;
-    }
+    // pub fn nullify(&mut self) {
+    //     panic!("Don\'t call Menu::nullify, use ManuallyDrop");
+    //     self.handle = 0 as HMENU;
+    // }
     #[inline]
     pub fn from_mut_ref<'a>(handle: &'a mut HMENU) -> &'a mut Menu {
         unsafe { std::mem::transmute(handle) }
     }
     #[inline]
-    pub unsafe fn handle(mut self) -> HMENU {
-        let handle = self.handle;
-        self.handle = 0 as HMENU;
-        handle
+    pub unsafe fn handle(self) -> HMENU {
+        use std::mem::ManuallyDrop;
+        let this = ManuallyDrop::new(self);
+        this.handle
     }
     #[inline]
     pub const unsafe fn get_handle(&self) -> HMENU {

@@ -140,7 +140,8 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                         Err(NoProcessed) => None,
                         Err(_) => Some(-1isize),
                     };
-                    wtype.nullify_menu();
+                    use std::mem::ManuallyDrop;
+                    let _ = ManuallyDrop::new(wtype);
                     result
                 }
                 WM_DESTROY => do_nofity! {C::destroy(callback_id, &mut w)

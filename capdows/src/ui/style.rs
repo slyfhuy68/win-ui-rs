@@ -46,7 +46,7 @@ impl From<HBRUSH> for ClassBackgroundBrush {
             COLOR_WINDOW => Window,
             COLOR_WINDOWFRAME => WindowFrame,
             COLOR_WINDOWTEXT => WindowText,
-            x => Brush(ush),
+            _ => Brush(super::brush::Brush { handle: ush }),
         }
     }
 }
@@ -124,7 +124,7 @@ impl Into<WNDCLASS_STYLES> for WindowClassStyle {
         set_style(&mut ms_style, CS_BYTEALIGNCLIENT, self.byte_ailgn_client);
         set_style(&mut ms_style, CS_BYTEALIGNWINDOW, self.byte_ailgn_window);
         set_style(&mut ms_style, CS_DROPSHADOW, self.drop_shadrow);
-        ms_style | self.dc_type.into()
+        ms_style | <DCtype as Into<WNDCLASS_STYLES>>::into(self.dc_type)
     }
 }
 #[derive(Clone, PartialEq, Copy, Default, Debug)]
@@ -398,7 +398,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
         set_style(&mut style, WS_VSCROLL, self.vertical_roll);
         set_style(&mut style, WS_CLIPCHILDREN, self.clip_children);
         set_style(&mut style, WS_DISABLED, self.disabled);
-        set_style(&mut style, WS_VISIBLE, self.invisible);
+        set_style(&mut style, WS_VISIBLE, self.visible);
         set_style(&mut style_ex, WS_EX_DLGMODALFRAME, self.dlg_modal_frame);
         set_style(&mut style_ex, WS_EX_TOPMOST, self.top_most);
         set_style(&mut style_ex, WS_EX_ACCEPTFILES, self.accept_files);
@@ -418,8 +418,8 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
             WS_EX_NOREDIRECTIONBITMAP,
             self.no_redirection_bitmap,
         );
-        style |= self.size_state.into();
-        style_ex |= self.edge_type.into();
+        style |= <WindowSizeState as Into<WINDOW_STYLE>>::into(self.size_state);
+        style_ex |= <WindowEdgeType as Into<WINDOW_EX_STYLE>>::into(self.edge_type);
         (style, style_ex)
     }
 }
@@ -469,15 +469,15 @@ pub enum WindowType {
     },
     MessageOnly,
 }
-impl WindowType {
-    pub fn nullify_menu(&mut self) {
-        let _ = match self {
-            WindowType::Overlapped { menu, .. } => menu.take().map(|mut x| x.nullify()),
-            WindowType::Popup { menu, .. } => menu.take().map(|mut x| x.nullify()),
-            _ => Some(()),
-        };
-    }
-}
+// impl WindowType {
+//     pub fn nullify_menu(&mut self) {
+//         let _ = match self {
+//             WindowType::Overlapped { menu, .. } => menu.take().map(|mut x| x.nullify()),
+//             WindowType::Popup { menu, .. } => menu.take().map(|mut x| x.nullify()),
+//             _ => Some(()),
+//         };
+//     }
+// }
 impl Default for WindowType {
     fn default() -> Self {
         Self::Overlapped {
@@ -550,12 +550,12 @@ impl WindowType {
         if wnd == HWND_MESSAGE {
             return MessageOnly;
         }
-        let w: Option<Window> = if wnd.is_invalid() {
+        let w: Option<Window> = if wnd.is_null() {
             None
         } else {
             unsafe { Some(Window::from_handle(wnd)) }
         };
-        let m: Option<MenuBar> = if wnd.is_invalid() {
+        let m: Option<MenuBar> = if wnd.is_null() {
             None
         } else {
             unsafe { Some(MenuBar::from_handle(menu)) }
@@ -563,7 +563,7 @@ impl WindowType {
         if ucontain(style, WS_CHILD) {
             return Child {
                 style: (style, style_ex).into(),
-                identifier: menu.0 as u16,
+                identifier: menu as u16,
                 parent: w.unwrap_or_default().into(),
                 is_layered: ucontain(style_ex, WS_EX_LAYERED),
             };

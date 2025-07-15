@@ -20,6 +20,25 @@ use super::*;
 //     }
 // }
 impl Window {
+    pub unsafe fn get_prop(&self, key: &'static CWideStr) -> Result<HANDLE> {
+        unsafe {WinError::from_win32api_maybe_zero(GetPropW(
+            self.handle(),
+            key.to_pcwstr(),
+        ))}
+    }
+    pub unsafe fn set_prop(&mut self, key: &'static CWideStr, value: HANDLE) -> Result<()> {
+            unsafe {Ok(WinError::from_win32api_result(SetPropW(
+                self.handle(),
+                key.to_pcwstr(),
+                value,
+            ))?)}
+        }
+    pub unsafe fn remove_prop(&mut self, key: &'static CWideStr) -> Result<HANDLE> {
+        unsafe {WinError::from_win32api_maybe_zero(RemovePropW(
+            self.handle(),
+            key.to_pcwstr(),
+        ))}
+    }
     // pub fn prop_iter(&self) -> PropCounter {
     //     let (send_s, recv) = channel();
     //     let self_handle = unsafe { self.handle().0 as usize };
@@ -81,33 +100,6 @@ impl Window {
     //         result_receiver: result_receiver,
     //     }
     // }
-    pub fn get_prop(&self, key: &str) -> Result<usize> {
-        let (name, _buffer) = str_to_pcwstr(key);
-        match unsafe { GetPropW(self.handle(), name) } as usize {
-            0 => Err(ERROR_NOT_PRESENT),
-            x => Ok(x),
-        }
-    }
-    pub fn set_prop(&mut self, key: &str, value: usize) -> Result<()> {
-        let (name, _buffer) = str_to_pcwstr(key);
-        match value {
-            0 => Err(ERROR_NOT_SUPPORT_ZERO),
-            x => unsafe {
-                Ok(WinError::from_win32api_result(SetPropW(
-                    self.handle(),
-                    name,
-                    x as HANDLE,
-                ))?)
-            },
-        }
-    }
-    pub fn remove_prop(&mut self, key: &str) -> Result<()> {
-        let (name, _buffer) = str_to_pcwstr(key);
-        match unsafe { RemovePropW(self.handle(), name)? } as usize {
-            0 => Err(ERROR_NOT_PRESENT),
-            _ => Ok(()),
-        }
-    }
 }
 // impl Drop for PropCounter {
 //     fn drop(&mut self) {

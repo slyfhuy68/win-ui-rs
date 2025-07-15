@@ -5,9 +5,41 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::slice;
 #[repr(transparent)]
+#[derive(Debug)]
+pub struct CWideStr{
+    inner: [u16]
+}
+impl CWideStr{
+    #[inline]
+    pub const fn to_pcwstr(&self) -> windows_sys::core::PCWSTR {
+        self.inner.as_ptr() as windows_sys::core::PCWSTR
+    }
+    #[inline]
+    pub const unsafe fn to_pwstr(&mut self) -> windows_sys::core::PCWSTR {
+        self.inner.as_mut_ptr() as windows_sys::core::PCWSTR
+    }
+    #[inline]
+    pub const unsafe fn from_utf16_unchecked(v: &[u16]) -> &CWideStr {
+        unsafe { std::mem::transmute(v) }
+    }
+}
+#[repr(transparent)]
 #[allow(non_camel_case_types)]
 #[derive(Debug)]
 pub struct widestr([u16]);
+impl Deref for CWideStr {
+    type Target = widestr;
+    fn deref(&self) -> &Self::Target {
+        let len = self.inner.len()-1;
+        unsafe { widestr::from_utf16_unchecked(&self.inner[0..len]) }
+    }
+}
+impl DerefMut for CWideStr {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        let len = self.inner.len()-1;
+        unsafe { widestr::from_utf16_unchecked_mut(&mut self.inner[0..len]) }
+    }
+}
 #[repr(transparent)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WideString(pub(crate) Vec<u16>);
@@ -20,11 +52,13 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 impl Deref for WideString {
     type Target = widestr;
+    #[inline]
     fn deref(&self) -> &Self::Target {
         unsafe { widestr::from_utf16_unchecked(self.0.as_slice()) }
     }
 }
 impl DerefMut for WideString {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { widestr::from_utf16_unchecked_mut(self.0.as_mut_slice()) }
     }
@@ -66,13 +100,13 @@ impl Hash for widestr {
 impl Eq for widestr {}
 impl ToOwned for widestr {
     type Owned = WideString;
-
     #[inline]
     fn to_owned(&self) -> WideString {
         WideString(self.as_wide().to_owned())
     }
 }
 impl BorrowMut<widestr> for WideString {
+    #[inline]
     fn borrow_mut(&mut self) -> &mut widestr {
         unsafe { widestr::from_utf16_unchecked_mut(&mut self.0) }
     }
@@ -211,10 +245,6 @@ const ASCII_Z: u16 = b'z' as u16;
 const ASCIIU_A: u16 = b'A' as u16;
 const ASCIIU_Z: u16 = b'Z' as u16;
 impl widestr {
-    #[inline]
-    pub const fn to_pcwstr(&self) -> windows_sys::core::PCWSTR {
-        self.as_ptr() as windows_sys::core::PCWSTR
-    }
     #[inline]
     pub const fn len(&self) -> usize {
         self.as_wide().len()
@@ -503,7 +533,7 @@ pub const fn decode_utf8_char(bytes: &[u8], mut pos: usize) -> Option<(u32, usiz
     None
 }
 #[macro_export]
-macro_rules! L {
+macro_rules! Lc {
     ($s:literal) => {{
         const LEN: usize = {
             let mut pos = 0;
@@ -521,7 +551,29 @@ macro_rules! L {
             $crate::strings::do_input($s.as_bytes(), &mut buffer);
             &{ buffer }
         };
-        unsafe { widestr::from_utf16_unchecked(WIDE[0..LEN - 1]) }
+        unsafe { CWideStr::from_utf16_unchecked(WIDE[0..LEN]) }
+    }};
+}
+#[macro_export]
+macro_rules! L {
+    ($s:literal) => {{
+        const LEN: usize = {
+            let mut pos = 0;
+            let mut len = 0;
+            while let Some((code_point, new_pos)) =
+                $crate::strings::decode_utf8_char($s.as_bytes(), pos)
+            {
+                pos = new_pos;
+                len += if code_point <= 0xffff { 1 } else { 2 };
+            }
+            len
+        };
+        const WIDE: &[u16; LEN] = {
+            let mut buffer = [0; LEN];
+            $crate::strings::do_input($s.as_bytes(), &mut buffer);
+            &{ buffer }
+        };
+        unsafe { widestr::from_utf16_unchecked(WIDE[0..LEN]) }
     }};
 }
 #[doc(hidden)]

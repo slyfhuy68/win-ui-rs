@@ -90,7 +90,7 @@ dependencies = [
  "capdows",
  "either",
  "embed-resource",
- "windows",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

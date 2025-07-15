@@ -1,7 +1,6 @@
 use super::*;
-use windows_sys::Win32::Graphics::Gdi::HBRUSH;
 pub struct WindowClassBuilder {
-    class_name: &'static widestr,
+    class_name: &'static CWideStr,
     style: WindowClassStyle,
     executable_file: Option<ExecutableFile>,
     default_menu_resource: Option<ResourceID>,
@@ -14,7 +13,7 @@ pub struct WindowClassBuilder {
 }
 impl WindowClassBuilder {
     #[inline]
-    pub fn new(class_name: &'static widestr) -> Self {
+    pub fn new(class_name: &'static CWideStr) -> Self {
         WindowClassBuilder {
             class_name,
             style: WindowClassStyle::default(),
@@ -123,6 +122,7 @@ impl WindowClassBuilder {
     }
 }
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct WindowClass {
     pub(crate) name: PCWSTR,
 }
@@ -133,10 +133,21 @@ impl WindowClass {
         self.name.is_null()
     }
 }
+// impl Drop for WindowClass {
+//     fn drop(&mut self) {
+//         unsafe {
+//             let _ = UnregisterClassW(self.name, 0 as HINSTANCE);
+//         }
+//     }
+// }
 impl Drop for WindowClass {
     fn drop(&mut self) {
-        unsafe {
-            let _ = UnregisterClassW(self.name, 0 as HINSTANCE);
+        if !(std::thread::panicking() || self.name.is_null()) {
+            println!("debug-class, {:?}", self);
+            println!("Backtrace:\n{}", std::backtrace::Backtrace::capture());
+            println!(
+                "note: run with `RUST_BACKTRACE=1` or `RUST_BACKTRACE=full` for a verbose backtrace."
+            );
         }
     }
 }
@@ -169,7 +180,7 @@ impl std::convert::TryFrom<u8> for ExtraMemory {
 ///如果窗口类名长度大于255或小于4（以字节为单位，而不是字符或字素）将失败并返回ERROR_SECRET_TOO_LONG
 ///如果class_extra和window_extra的值大于4，将失败并返回ERROR_NOT_ENOUGH_MEMORY
 impl WindowClass {
-    pub fn from_str(class_name: &'static widestr) -> Self {
+    pub fn from_str(class_name: &'static CWideStr) -> Self {
         Self {
             name: class_name.to_pcwstr(),
         }

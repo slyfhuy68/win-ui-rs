@@ -1,7 +1,7 @@
 use super::*;
 #[derive(Clone, PartialEq, Copy, Debug)]
 pub struct Brush {
-    handle: HBRUSH,
+    pub(crate) handle: HBRUSH,
 }
 impl Brush {
     pub const fn handle(&self) -> HBRUSH {

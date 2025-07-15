@@ -90,12 +90,21 @@ impl WinError {
         }
     }
     #[inline]
-    pub fn from_win32api_ptr(error: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
+    pub fn from_win32api_ptr(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
         #[allow(unused_unsafe)]
-        if error.addr() == 0 {
-            Ok(error)
+        if ptr.addr() != 0 {
+            Ok(ptr)
         } else {
             Err(unsafe { Self::from_win32(unsafe { GetLastError() }) })
+        }
+    }
+    #[inline]
+    pub fn from_win32api_maybe_zero(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
+        #[allow(unused_unsafe)]
+        if ptr.addr() != 0 {
+            Ok(ptr)
+        } else {
+            Self::correct_error_result(ptr)
         }
     }
     #[inline]

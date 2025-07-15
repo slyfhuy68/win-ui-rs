@@ -1,6 +1,6 @@
 use super::*;
 use std::fmt;
-#[derive(Eq, PartialEq)] //不实现Clone
+//不实现Debug已手动实现
 #[repr(transparent)]
 ///已明确由Rust拥有的窗口
 ///如果一个窗口不一定是rust拥有的而又要调用这上面的方法，请使用Window::from_ref直接创建引用
@@ -12,18 +12,18 @@ impl Default for Window {
         Window { handle: 0 as HWND }
     }
 }
-#[cfg(debug_assertions)]
-impl Drop for Window {
-    fn drop(&mut self) {
-        if !(std::thread::panicking() || self.handle.is_null()) {
-            println!("debug, {:?}", self);
-            println!("Backtrace:\n{}", std::backtrace::Backtrace::capture());
-            println!(
-                "note: run with `RUST_BACKTRACE=1` or `RUST_BACKTRACE=full` for a verbose backtrace."
-            );
-        }
-    }
-}
+// #[cfg(debug_assertions)]
+// impl Drop for Window {
+//     fn drop(&mut self) {
+//         if !(std::thread::panicking() || self.handle.is_null()) {
+//             println!("debug, {:?}", self);
+//             println!("Backtrace:\n{}", std::backtrace::Backtrace::capture());
+//             println!(
+//                 "note: run with `RUST_BACKTRACE=1` or `RUST_BACKTRACE=full` for a verbose backtrace."
+//             );
+//         }
+//     }
+// }
 unsafe impl Send for Window {}
 unsafe impl Sync for Window {}
 impl fmt::Debug for Window {

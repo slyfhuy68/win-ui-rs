@@ -65,7 +65,6 @@ macro_rules! msg_box {
 }
 pub mod msg_box_style {
     use super::*;
-    use std::ffi::c_void;
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
     pub enum MessageBoxButton {
         #[default]
