@@ -1,12 +1,19 @@
 use capdows::L;
 use capdows::prelude::*;
 use capdows::ui::{control::*, image::*, style::*, window::*, *};
-capdows::import_foundation!();
 use capdows_resource::dialog::{ControlPreCompilePruduct, DialogTempleControl};
 use std::ffi::c_void;
-use windows::Win32::Graphics::Gdi::*;
-use windows::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
-use windows::core::{PCWSTR, w};
+use windows_sys::Win32::Foundation::{
+    HMODULE,
+    HWND,
+    LPARAM,
+    LRESULT,
+    WPARAM,
+    // POINT, POINTS, RECT, SIZE, WIN32_ERROR, HINSTANCE,
+};
+use windows_sys::Win32::Graphics::Gdi::*;
+use windows_sys::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
+use windows_sys::core::{PCWSTR, w};
 pub mod button;
 pub mod check_box;
 pub mod combo_box;

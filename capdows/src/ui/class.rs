@@ -87,8 +87,8 @@ impl WindowClassBuilder {
         if self.class_name.len() < 4 || self.class_name.len() >= 255 {
             return Err(ERROR_CLASS_NAME_TOO_LONG);
         }
-        let result = unsafe {
-            RegisterClassExW(&WNDCLASSEXW {
+        unsafe {
+            WinError::from_win32api_result(RegisterClassExW(&WNDCLASSEXW {
                 cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
                 style: self.style.into(),
                 //window_proc是一个函数，定义在私有模块cpadows::ui::proc里
@@ -111,11 +111,8 @@ impl WindowClassBuilder {
                 },
                 lpszClassName: self.class_name.to_pcwstr(),
                 hIconSm: self.icon_small.unwrap_or(Icon::null()).into(),
-            })
-        };
-        if result == 0 {
-            return unsafe { Err(WinError::correct_error()) };
-        };
+            }) as i32)?
+        }
         Ok(WindowClass {
             name: self.class_name.to_pcwstr(),
         })

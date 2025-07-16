@@ -6,10 +6,10 @@ use std::hash::Hasher;
 use std::slice;
 #[repr(transparent)]
 #[derive(Debug)]
-pub struct CWideStr{
-    inner: [u16]
+pub struct CWideStr {
+    inner: [u16],
 }
-impl CWideStr{
+impl CWideStr {
     #[inline]
     pub const fn to_pcwstr(&self) -> windows_sys::core::PCWSTR {
         self.inner.as_ptr() as windows_sys::core::PCWSTR
@@ -30,13 +30,13 @@ pub struct widestr([u16]);
 impl Deref for CWideStr {
     type Target = widestr;
     fn deref(&self) -> &Self::Target {
-        let len = self.inner.len()-1;
+        let len = self.inner.len() - 1;
         unsafe { widestr::from_utf16_unchecked(&self.inner[0..len]) }
     }
 }
 impl DerefMut for CWideStr {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        let len = self.inner.len()-1;
+        let len = self.inner.len() - 1;
         unsafe { widestr::from_utf16_unchecked_mut(&mut self.inner[0..len]) }
     }
 }

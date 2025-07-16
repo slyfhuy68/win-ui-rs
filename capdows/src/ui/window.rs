@@ -346,10 +346,9 @@ impl Window {
         // https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/ns-winuser-wndclassexw
         // 文档：lpszClassName 的最大长度为 256。 如果 lpszClassName 大于最大长度，则 RegisterClassEx 函数将失败。
         let mut buffer = [0u16; 256];
-        let len = unsafe { GetClassNameW(self.handle, buffer.as_mut_ptr(), 256) } as usize;
-        if len == 0 {
-            return Err(unsafe { WinError::correct_error() });
-        };
+        let len = WinError::from_win32api_ptr(unsafe {
+            GetClassNameW(self.handle, buffer.as_mut_ptr(), 256)
+        } as *mut c_void)? as usize;
         let mut vec = buffer[..len].to_vec();
         let _ = buffer;
         vec.push(0);
@@ -397,27 +396,31 @@ impl Window {
             return Err(ERROR_CANNOT_REMOVE_DEFAULT);
         };
         unsafe {
-            if RemoveWindowSubclass(self.handle, Some(subclass_porc::<C>), id) != 0 {
-                Ok(())
-            } else {
-                Err(WinError::correct_error())
-            }
-        }
+            WinError::from_win32api_result(RemoveWindowSubclass(
+                self.handle,
+                Some(subclass_porc::<C>),
+                id,
+            ))?
+        };
+        Ok(())
     }
     pub fn add_msg_receiver<C: RawMessageHandler + Sync + 'static>(
         &mut self,
         id: usize,
         _msg_receiver: PhantomData<C>,
     ) -> Result<()> {
-        if id == 0 || self.has_receiver_for(id, PhantomData::<C>) {
+        if id == 0
+        /* || self.has_receiver_for(id, PhantomData::<C>) */
+        {
             return Err(ERROR_OBJECT_ALREADY_EXISTS);
         };
         unsafe {
-            if SetWindowSubclass(self.handle, Some(subclass_porc::<C>), id, 0 as usize) != 0 {
-                Ok(())
-            } else {
-                Err(WinError::correct_error())
-            }
+            WinError::from_win32api_result(SetWindowSubclass(
+                self.handle,
+                Some(subclass_porc::<C>),
+                id,
+                0 as usize,
+            ))
         }
     }
     pub fn has_receiver_for<C: RawMessageHandler + Sync + 'static>(
@@ -584,7 +587,7 @@ impl Window {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
-            WinError::correct_error_result(SendMessageW(self.handle, code, wparam, lparam))
+            WinError::current_error_result(SendMessageW(self.handle, code, wparam, lparam))
         }
     }
 }

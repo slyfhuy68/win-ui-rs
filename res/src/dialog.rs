@@ -2,7 +2,7 @@ use super::*;
 use capdows::ui::font::FontCharSet;
 use capdows::ui::help::HelpId;
 use capdows::ui::window::WindowID;
-use windows::Win32::UI::WindowsAndMessaging::*;
+use windows_sys::Win32::UI::WindowsAndMessaging::*;
 ///由DialogTempleControl的pre_compile方法得到
 pub type ControlPreCompilePruduct = PreCompilePruduct;
 //CONTROL <content>, <id>, "<class>", <style>, <x>, <y>, <w>, <h>, <ex_style>
@@ -35,9 +35,9 @@ pub struct DialogTemple {
     controls: Vec<ControlPreCompilePruduct>,
 }
 impl DialogTemple {
-    pub fn pre_compile(self, id: ResourceID) -> Result<PreCompilePruduct> {
+    pub fn pre_compile(self, id: ResourceID) -> PreCompilePruduct {
         let (style, style_ex) = self.dtype.into();
-        Ok(PreCompilePruduct::from(format!(
+        PreCompilePruduct::from(format!(
             "
 {} DIALOGEX {}, {}, {}, {}, {}
 STYLE 0x{:04X}
@@ -46,7 +46,7 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
 {{
 {}
 }}",
-            pre_compile_resource_id(id)?.get(),
+            pre_compile_resource_id(id).get(),
             self.pos.x,
             self.pos.y,
             self.size.width,
@@ -55,14 +55,14 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
                 None => 0,
                 Some(help_id) => help_id.get(),
             },
-            style.0,
-            style_ex.0,
+            style,
+            style_ex,
             self.caption,
             match self.menu {
                 Some(StringId(y)) => {
                     let result = y.to_string();
                     if result.parse::<f32>().is_ok() {
-                        return Err(ERROR_INVALID_STRING_ID);
+                        panic!("无效的资源ID，StringId不能由纯数字组成（包括小数）")
                     };
                     format!("\nMENU \"{}\"", result)
                 }
@@ -84,7 +84,7 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
                 .map(|x| x.get())
                 .collect::<Vec<_>>()
                 .join("\n"),
-        )))
+        ))
     }
 }
 pub enum DialogTempleType {

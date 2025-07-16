@@ -4,14 +4,16 @@ use windows_sys::Win32::Foundation as win32f;
 pub type Result<T> = sResult<T, WinError>;
 use std::fmt::Debug;
 use std::string::FromUtf16Error;
-use windows_sys::Win32::Foundation::{GetLastError, NTSTATUS, WIN32_ERROR};
-use windows_sys::core::*;
+use windows_sys::Win32::Foundation::{
+    GetLastError, INVALID_HANDLE_VALUE, NTSTATUS, SetLastError, WIN32_ERROR,
+};
+// use windows_sys::core::*;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct WinError(WinErrorKind);
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 enum WinErrorKind {
-    ///这一项应该是负的
-    Win32(HRESULT),
+    Win32(WIN32_ERROR),
+    Nt(NTSTATUS),
     Local(u32),
 }
 use WinErrorKind::*;
@@ -64,15 +66,7 @@ impl WinError {
         })
     }
     #[inline]
-    pub const fn code(&self) -> i32 {
-        match self.0 {
-            Win32(i) => i,
-            Local(u) => u as i32,
-        }
-    }
-    #[inline]
-    pub fn correct_error_result<T>(data: T) -> Result<T> {
-        #[allow(unused_unsafe)]
+    pub fn current_error_result<T>(data: T) -> Result<T> {
         let error = unsafe { GetLastError() };
         if error == 0 {
             Ok(data)
@@ -82,63 +76,69 @@ impl WinError {
     }
     #[inline]
     pub fn from_win32api_result(error: i32) -> Result<()> {
-        #[allow(unused_unsafe)]
         if error == 0 {
             Ok(())
         } else {
-            Err(unsafe { Self::from_win32(unsafe { GetLastError() }) })
+            Err(unsafe { Self::from_win32(GetLastError()) })
         }
     }
     #[inline]
     pub fn from_win32api_ptr(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
-        #[allow(unused_unsafe)]
         if ptr.addr() != 0 {
             Ok(ptr)
         } else {
-            Err(unsafe { Self::from_win32(unsafe { GetLastError() }) })
+            Err(unsafe { Self::from_win32(GetLastError()) })
         }
     }
     #[inline]
-    pub fn from_win32api_maybe_zero(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
-        #[allow(unused_unsafe)]
-        if ptr.addr() != 0 {
+    pub fn from_win32api_thin(ptr: i32) -> Result<i32> {
+        if ptr != 0 {
             Ok(ptr)
         } else {
-            Self::correct_error_result(ptr)
+            Err(unsafe { Self::from_win32(GetLastError()) })
+        }
+    }
+    #[inline]
+    pub fn from_win32api_maybe_zero<F: FnOnce() -> *mut std::ffi::c_void>(
+        f: F,
+    ) -> Result<*mut std::ffi::c_void> {
+        unsafe { SetLastError(0) };
+        match f().addr() {
+            0 => {
+                let err = unsafe { GetLastError() };
+                if err == 0 {
+                    Ok(0 as *mut std::ffi::c_void)
+                } else {
+                    Err(Self(Win32(err)))
+                }
+            }
+            n => Ok(n as *mut std::ffi::c_void),
+        }
+    }
+    #[inline]
+    pub fn from_win32api_or_invalid(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
+        if ptr != INVALID_HANDLE_VALUE {
+            Ok(ptr)
+        } else {
+            Err(unsafe { Self::from_win32(GetLastError()) })
         }
     }
     #[inline]
     ///不检查当前错误是不是0
-    pub unsafe fn correct_error() -> Self {
+    pub unsafe fn current_error() -> Self {
         unsafe { Self::from_win32(GetLastError()) }
     }
     #[inline]
     pub const unsafe fn from_win32(error: WIN32_ERROR) -> Self {
-        Self(Win32(if (error as i32) < 0 {
-            error
-        } else {
-            (error & 0x0000_FFFF) | (7 << 16) | 0x8000_0000
-        } as i32))
+        Self(Win32(error))
     }
     #[inline]
     pub const unsafe fn from_nt(error: NTSTATUS) -> Self {
-        Self(Win32(if error >= 0 {
-            error
-        } else {
-            error | 0x1000_0000
-        }))
+        Self(Nt(error))
     }
     #[inline]
     pub const fn from_local(code: u32) -> Self {
         Self(Local(code))
-    }
-    #[inline]
-    pub fn from_hresult_with<T>(err: HRESULT, data: T) -> Result<T> {
-        if err >= 0 {
-            Ok(data)
-        } else {
-            Err(Self(Win32(err)))
-        }
     }
 }
 impl Error for WinError {}
@@ -186,11 +186,12 @@ pub use win32_errors::{
     ERROR_ACCESS_DENIED, ERROR_ADDRESS_ALREADY_ASSOCIATED, ERROR_ALREADY_EXISTS, ERROR_BROKEN_PIPE,
     ERROR_CONNECTION_ABORTED, ERROR_DIR_NOT_EMPTY, ERROR_DIRECTORY, ERROR_DISK_FULL,
     ERROR_DISK_QUOTA_EXCEEDED, ERROR_FILE_TOO_LARGE, ERROR_HANDLE_EOF, ERROR_HOST_UNREACHABLE,
-    ERROR_INCORRECT_ADDRESS, ERROR_INVALID_ADDRESS, ERROR_INVALID_DATA, ERROR_INVALID_PARAMETER,
-    ERROR_INVALID_WINDOW_HANDLE, ERROR_IO_INCOMPLETE, ERROR_IO_PENDING, ERROR_LOCK_VIOLATION,
-    ERROR_NET_OPEN_FAILED, ERROR_NETWORK_UNREACHABLE, ERROR_NO_UNICODE_TRANSLATION,
-    ERROR_NOT_ENOUGH_MEMORY, ERROR_NOT_FOUND, ERROR_NOT_SUPPORTED, ERROR_OBJECT_ALREADY_EXISTS,
-    ERROR_OPERATION_ABORTED, ERROR_OUTOFMEMORY, ERROR_TIMEOUT, ERROR_WRITE_PROTECT,
+    ERROR_INCORRECT_ADDRESS, ERROR_INSUFFICIENT_BUFFER, ERROR_INVALID_ADDRESS, ERROR_INVALID_DATA,
+    ERROR_INVALID_PARAMETER, ERROR_INVALID_WINDOW_HANDLE, ERROR_IO_INCOMPLETE, ERROR_IO_PENDING,
+    ERROR_LOCK_VIOLATION, ERROR_NET_OPEN_FAILED, ERROR_NETWORK_UNREACHABLE,
+    ERROR_NO_UNICODE_TRANSLATION, ERROR_NOT_ENOUGH_MEMORY, ERROR_NOT_FOUND, ERROR_NOT_SUPPORTED,
+    ERROR_OBJECT_ALREADY_EXISTS, ERROR_OPERATION_ABORTED, ERROR_OUTOFMEMORY, ERROR_TIMEOUT,
+    ERROR_WRITE_PROTECT,
 };
 #[rustfmt::skip]
 def_local_error! {

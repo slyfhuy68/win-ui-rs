@@ -41,10 +41,9 @@ impl MenuBar {
     #[inline]
     pub fn new() -> Result<Self> {
         Ok(unsafe {
-            Self::from_menu(Menu::from_handle(match CreateMenu() as usize {
-                0 => return Err(Error::correct_error()),
-                x => x as *mut c_void,
-            }))
+            Self::from_menu(Menu::from_handle(
+                WinError::from_win32api_ptr(CreateMenu())?,
+            ))
         })
     }
     #[inline]
@@ -523,10 +522,9 @@ impl Menu {
     }
     pub fn item_count(&self) -> Result<MenuItemID> {
         unsafe {
-            match GetMenuItemCount(self.handle) {
-                -1 => Err(WinError::correct_error()),
-                x => Ok(x as MenuItemID),
-            }
+            Ok(WinError::from_win32api_or_invalid(
+                GetMenuItemCount(self.handle) as *mut std::ffi::c_void
+            )? as MenuItemID)
         }
     }
     /// 如果菜单栏在创建窗口后发生更改，则需要调用window.redraw_menu_bar()来绘制更改后的菜单栏。

@@ -7,8 +7,8 @@ pub struct StringTable {
     pub strings: HashMap<ResourceNumberId, String>,
 }
 impl StringTable {
-    pub fn pre_compile(self) -> Result<PreCompilePruduct> {
-        Ok(PreCompilePruduct::from(format!(
+    pub fn pre_compile(self) -> PreCompilePruduct {
+        PreCompilePruduct::from(format!(
             "STRINGTABLE{}{{
 {}
     	}}",
@@ -18,6 +18,6 @@ impl StringTable {
                 .map(|(id, string)| { format!("  {}, \"{}\"", id, string) })
                 .collect::<Vec<_>>()
                 .join("\n")
-        )))
+        ))
     }
 }

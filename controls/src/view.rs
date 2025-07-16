@@ -1,5 +1,5 @@
 use super::*;
-use windows::Win32::System::SystemServices::*;
+use windows_sys::Win32::System::SystemServices::*;
 pub enum ViewContent {
     Text(String),
     Icon(Icon),

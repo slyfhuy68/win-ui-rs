@@ -7,7 +7,7 @@ use capdows_resource::*;
 use capdows_resource::{image::*, version::*};
 use std::collections::HashMap;
 use version::LangID as vLangID;
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     let vstr = Version {
         product_internal_version: (0u16, 0u16, 0u16, 1u16),
         file_internal_version: None,
@@ -16,17 +16,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         pached: false,
         variant: ProductVariant::default(),
         strings: HashMap::from([
-            (vLangID::new("0804")?, StringInfo::default()),
-            // (vLangID::new("0809")?, StringInfo::default()),
+            (vLangID::from_hex("0804"), StringInfo::default()),
+            // (vLangID::from_hex("0809"), StringInfo::default()),
         ]),
         os: Default::default(),
         ftype: Default::default(),
     }
-    .pre_compile()?;
-    let icon1 = Icon("./res/ICON1.ico".into(), None).pre_compile(NumberId(1))?;
-    let icon2 = Icon("./res/ICON2.ico".into(), None).pre_compile(NumberId(2))?;
-    let icon3 = Icon("./res/ICON3.ico".into(), None).pre_compile(NumberId(3))?;
-    let cursor1 = Cursor("./res/CURSOR1.cur".into(), None).pre_compile(NumberId(4))?;
+    .pre_compile();
+    let icon1 = Icon("./res/ICON1.ico".into(), None).pre_compile(NumberId(1));
+    let icon2 = Icon("./res/ICON2.ico".into(), None).pre_compile(NumberId(2));
+    let icon3 = Icon("./res/ICON3.ico".into(), None).pre_compile(NumberId(3));
+    let cursor1 = Cursor("./res/CURSOR1.cur".into(), None).pre_compile(NumberId(4));
     let menu1 = MenuTemplate {
         language: None,
         items: vec![
@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
         ],
     }
-    .pre_compile(NumberId(5))?;
+    .pre_compile(NumberId(5));
     let st = StringTable {
         language: None,
         strings: HashMap::from([
@@ -77,7 +77,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             (53, "{1}爱吃𰻞𰻞面".to_string()),
         ]),
     }
-    .pre_compile()?;
-    compile_all!(vstr, icon1, icon2, icon3, cursor1, menu1, st)?;
-    Ok(())
+    .pre_compile();
+    compile_all!(vstr, icon1, icon2, icon3, cursor1, menu1, st);
 }

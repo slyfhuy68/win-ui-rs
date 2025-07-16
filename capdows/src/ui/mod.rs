@@ -34,13 +34,29 @@ use window::*;
 pub mod utility {
     #[doc(no_inline)]
     pub use capdows_utility::*;
+    #[inline]
+    pub const fn ucontain(some: u32, other: u32) -> bool {
+        some & other == other
+    }
+    #[inline]
+    pub const fn icontain(some: i32, other: i32) -> bool {
+        some & other == other
+    }
+    #[inline]
+    pub fn set_style(style: &mut u32, flag: u32, condition: bool) {
+        *style |= flag * condition as u32;
+    }
+    // #[inline]
+    // pub fn set_istyle(style: &mut i32, flag: i32, condition: bool) {
+    //     *style |= flag * condition as i32;
+    // }
 }
-
 use crate::error::*;
 use crate::positioning::ext_methods::*;
 use crate::positioning::*;
 use crate::strings::*;
 use euclid::{point2, rect};
+use utility::*;
 pub mod core {
     use super::*;
     pub type ResourceStringId = String;
@@ -113,16 +129,4 @@ pub fn option_copy_handle(wnd: &Option<Window>) -> Option<Window> {
         None => None,
         Some(wnd) => Some(wnd.copy_handle()),
     }
-}
-#[inline]
-pub const fn ucontain(some: u32, other: u32) -> bool {
-    some & other == other
-}
-#[inline]
-pub const fn icontain(some: i32, other: i32) -> bool {
-    some & other == other
-}
-#[inline]
-fn set_style(style: &mut u32, flag: u32, condition: bool) {
-    *style |= flag * condition as u32;
 }

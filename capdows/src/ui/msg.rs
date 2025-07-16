@@ -31,14 +31,14 @@ impl From<Error> for MessageReceiverError {
         Self::WinErr(err)
     }
 }
-impl MessageReceiverError {
-    pub fn code(&self) -> i32 {
-        match self {
-            WinErr(x) => x.code(),
-            NoProcessed => -255i32,
-        }
-    }
-}
+// impl MessageReceiverError {
+//     pub fn code(&self) -> i32 {
+//         match self {
+//             WinErr(x) => x.code(),
+//             NoProcessed => -255i32,
+//         }
+//     }
+// }
 // impl Into<Error> for MessageReceiverError {
 //      fn from(self) -> Self {
 //              panic!()

@@ -33,11 +33,11 @@ pub enum MenuTemplateItem {
     Separator,
 }
 impl MenuTemplateItem {
-    pub fn pre_compile(self) -> Result<PreCompilePruduct> {
-        Ok(PreCompilePruduct::from(match self {
+    pub fn pre_compile(self) -> PreCompilePruduct {
+        PreCompilePruduct::from(match self {
             MenuTemplateItem::Item { content, id, style } => {
                 let (mtype, state) = style.into();
-                format!("MENUITEM \"{}\", {}, {}, {}", content, id, mtype.0, state.0)
+                format!("MENUITEM \"{}\", {}, {}, {}", content, id, mtype, state)
             }
             MenuTemplateItem::Separator => String::from("MENUITEM \"\", 0, 0x800, 0"),
             MenuTemplateItem::Child {
@@ -50,47 +50,33 @@ impl MenuTemplateItem {
                 format!(
                     "POPUP \"{}\", 0, {}, {}, {} \n{{\n{}\n}}",
                     content,
-                    mtype.0,
-                    state.0,
+                    mtype,
+                    state,
                     match help_id {
                         None => 0,
                         Some(help_id) => help_id.get(),
                     },
                     items
                         .into_iter()
-                        .map(|i| {
-                            Ok(i.pre_compile()?
-                                .get()
-                                .lines()
-                                .map(|line| format!("  {}", line))
-                                .collect::<Vec<_>>()
-                                .join("\n"))
-                        })
-                        .collect::<Result<Vec<_>>>()?
+                        .map(|i| { i.pre_compile().get() })
+                        .collect::<Vec<_>>()
                         .join("\n")
                 )
             }
-        }))
+        })
     }
 }
 impl MenuTemplate {
-    pub fn pre_compile(self, id: ResourceID) -> Result<PreCompilePruduct> {
-        Ok(PreCompilePruduct::from(format!(
+    pub fn pre_compile(self, id: ResourceID) -> PreCompilePruduct {
+        PreCompilePruduct::from(format!(
             "{} MENUEX{}{{\n{}\n}}",
-            pre_compile_resource_id(id)?.get(),
+            pre_compile_resource_id(id).get(),
             pre_compile_lang_id(self.language).get(),
             self.items
                 .into_iter()
-                .map(|i| {
-                    Ok(i.pre_compile()?
-                        .get()
-                        .lines()
-                        .map(|line| format!("  {}", line))
-                        .collect::<Vec<_>>()
-                        .join("\n"))
-                })
-                .collect::<Result<Vec<_>>>()?
+                .map(|i| { i.pre_compile().get() })
+                .collect::<Vec<_>>()
                 .join("\n")
-        )))
+        ))
     }
 }

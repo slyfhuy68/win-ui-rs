@@ -1,3 +1,4 @@
+//! 警告：由于此crate为build.rs在编译器嵌入资源使用, 遇到任何错误都会直接panic（也就是编译期错误）
 use capdows::prelude::*;
 use std::collections::HashMap;
 use std::env;
@@ -7,9 +8,13 @@ use embed_resource::*;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-capdows::import_foundation!();
-use windows::Win32::Storage::FileSystem::*;
+// use windows_sys::Win32::Foundation::SetLastError; //{
+// HMODULE, HWND, LPARAM, LRESULT, WPARAM,
+// POINT, POINTS, RECT, SIZE, WIN32_ERROR, HINSTANCE,
+// };
+use windows_sys::Win32::Storage::FileSystem::*;
 pub struct PreCompilePruduct(String);
+use capdows::ui::utility::*;
 use std::ops::Add;
 pub mod dialog;
 impl PreCompilePruduct {
@@ -19,16 +24,15 @@ impl PreCompilePruduct {
     pub fn get(self) -> String {
         self.0
     }
-    pub fn compile(self) -> Result<()> {
+    pub fn compile(self) {
         let out_dir = env::var("OUT_DIR").unwrap();
         let dest_path = Path::new(&out_dir).join("resource.rc");
         let mut f = File::create(&dest_path).expect("无法创建文件");
-        f.write_all(b"\xEF\xBB\xBF")?;
+        f.write_all(b"\xEF\xBB\xBF").expect("无法写入文件头");
         f.write_all((self.0).as_bytes()).expect("无法写入文件");
         compile(dest_path.to_str().unwrap(), NONE)
             .manifest_required()
             .unwrap();
-        Ok(())
     }
 }
 impl Add for PreCompilePruduct {
@@ -48,18 +52,17 @@ macro_rules! compile_all {//ai宏
         ($first $(+ $rest)+).compile()
     };
 }
-
-fn pre_compile_resource_id(id: ResourceID) -> Result<PreCompilePruduct> {
-    Ok(PreCompilePruduct::from(match id {
+fn pre_compile_resource_id(id: ResourceID) -> PreCompilePruduct {
+    PreCompilePruduct::from(match id {
         StringId(y) => {
             let result = y.to_string();
             if result.parse::<f32>().is_ok() {
-                return Err(ERROR_INVALID_STRING_ID);
+                panic!("无效的资源ID，StringId不能由纯数字组成（包括小数）")
             };
             result
         }
         NumberId(x) => x.to_string(),
-    }))
+    })
 }
 fn pre_compile_lang_id(id: Option<LangID>) -> PreCompilePruduct {
     PreCompilePruduct::from(match id {

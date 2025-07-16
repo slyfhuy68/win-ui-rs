@@ -10,7 +10,7 @@ pub mod prelude {
         error::*,
         i18n::LangID,
         positioning::{DPIAwareDeviceUnit, DeviceUnit, DialogTemplateUnit, Point, Rect, Size},
-        strings::{WideString, widestr},
+        strings::{CWideStr, WideString, widestr},
         ui::{
             class::WindowClass,
             control::{Control, ControlMsg, ControlMsgType, DefaultNMHDR, NotifyMessage},
@@ -33,4 +33,6 @@ pub mod prelude {
             window::{ShowWindowType, Window},
         },
     };
+    #[doc(no_inline)]
+    pub use std::os::windows::{prelude::*, raw::HANDLE};
 }
