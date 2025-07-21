@@ -15,7 +15,7 @@ pub enum BottonContentPos {
 impl Into<WINDOW_STYLE> for BottonContentPos {
     fn into(self) -> WINDOW_STYLE {
         use BottonContentPos::*;
-        WINDOW_STYLE(match self {
+        (match self {
             Center => BS_CENTER | BS_VCENTER,
             Left => BS_LEFT | BS_VCENTER,
             Right => BS_RIGHT | BS_VCENTER,
@@ -25,7 +25,7 @@ impl Into<WINDOW_STYLE> for BottonContentPos {
             TopRight => BS_TOP | BS_RIGHT,
             BottomLeft => BS_BOTTOM | BS_LEFT,
             BottomRight => BS_BOTTOM | BS_RIGHT,
-        } as u32)
+        }) as WINDOW_STYLE
     }
 }
 #[derive(Default, Clone, Copy, Hash)]
@@ -49,22 +49,23 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Butt
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
         let (mut ms_style, ex) = self.style.into();
         use ButtonType::*;
-        ms_style |= WINDOW_STYLE(match (self.btype, self.focused) {
+        ms_style |= match (self.btype, self.focused) {
             (Normal, false) => BS_PUSHBUTTON,
             (Normal, true) => BS_DEFPUSHBUTTON,
             (Split, false) => BS_SPLITBUTTON,
             (Split, true) => BS_DEFSPLITBUTTON,
             (Link, false) => BS_COMMANDLINK,
             (Link, true) => BS_DEFCOMMANDLINK,
-        } as u32);
-        if self.extra_msg {
-            ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
-        };
-        if self.flat {
-            ms_style |= WINDOW_STYLE(BS_FLAT as u32);
-        };
+        } as WINDOW_STYLE;
+        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
+        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         let (style2, ditype, text) = self.contect.into();
-        (ms_style | style2 | self.pos.into(), ex, ditype, text)
+        (
+            ms_style | style2 | <BottonContentPos as Into<WINDOW_STYLE>>::into(self.pos),
+            ex,
+            ditype,
+            text,
+        )
     }
 }
 pub type ButtonTemple = ButtonOption<ButtonTempleContent>;
@@ -72,31 +73,27 @@ impl DialogTempleControl for ButtonTemple {
     fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
         let (mut ms_style, style_ex) = self.style.into();
         use ButtonType::*;
-        ms_style |= WINDOW_STYLE(match (self.btype, self.focused) {
+        ms_style |= match (self.btype, self.focused) {
             (Normal, false) => BS_PUSHBUTTON,
             (Normal, true) => BS_DEFPUSHBUTTON,
             (Split, false) => BS_SPLITBUTTON,
             (Split, true) => BS_DEFSPLITBUTTON,
             (Link, false) => BS_COMMANDLINK,
             (Link, true) => BS_DEFCOMMANDLINK,
-        } as u32);
-        if self.extra_msg {
-            ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
-        };
-        if self.flat {
-            ms_style |= WINDOW_STYLE(BS_FLAT as u32);
-        };
+        } as WINDOW_STYLE;
+        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
+        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         let (style2, ct) = self.contect.into();
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct,
             identifier,
-            (ms_style | style2 | self.pos.into()).0,
+            (ms_style | style2 | <BottonContentPos as Into<WINDOW_STYLE>>::into(self.pos)),
             pos.x,
             pos.y,
             size.width,
             size.height,
-            style_ex.0
+            style_ex
         ))
     }
 }
@@ -117,14 +114,15 @@ impl Into<(WINDOW_STYLE, String)> for ButtonTempleContent {
     fn into(self) -> (WINDOW_STYLE, String) {
         (
             if self.multiple_lines {
-                WINDOW_STYLE((BS_MULTILINE | BS_TEXT) as u32)
+                (BS_MULTILINE | BS_TEXT) as WINDOW_STYLE
             } else {
-                WINDOW_STYLE(BS_TEXT as u32)
+                BS_TEXT as WINDOW_STYLE
             },
             self.text,
         )
     }
 }
+
 pub enum ButtonContent {
     TextOnly {
         //BS_TEXT
@@ -159,15 +157,15 @@ impl Into<(WINDOW_STYLE, Option<ButtonImage>, String)> for ButtonContent {
                 multiple_lines,
             } => (
                 if multiple_lines {
-                    WINDOW_STYLE((BS_MULTILINE | BS_TEXT) as u32)
+                    (BS_MULTILINE | BS_TEXT) as WINDOW_STYLE
                 } else {
-                    WINDOW_STYLE(BS_TEXT as u32)
+                    BS_TEXT as WINDOW_STYLE
                 },
                 None,
                 text,
             ),
             ButtonContent::IconOnly { icon, name } => (
-                WINDOW_STYLE(if icon.is_left() { BS_BITMAP } else { BS_ICON } as u32),
+                if icon.is_left() { BS_BITMAP } else { BS_ICON } as WINDOW_STYLE,
                 Some(icon),
                 name,
             ),
@@ -177,14 +175,10 @@ impl Into<(WINDOW_STYLE, Option<ButtonImage>, String)> for ButtonContent {
                 multiple_lines,
             } => (
                 if multiple_lines {
-                    WINDOW_STYLE(
-                        (BS_MULTILINE | if icon.is_left() { BS_BITMAP } else { BS_ICON } | BS_TEXT)
-                            as u32,
-                    )
+                    (BS_MULTILINE | if icon.is_left() { BS_BITMAP } else { BS_ICON } | BS_TEXT)
+                        as WINDOW_STYLE
                 } else {
-                    WINDOW_STYLE(
-                        (if icon.is_left() { BS_BITMAP } else { BS_ICON } | BS_TEXT) as u32,
-                    )
+                    (if icon.is_left() { BS_BITMAP } else { BS_ICON } | BS_TEXT) as WINDOW_STYLE
                 },
                 Some(icon),
                 text,
@@ -275,7 +269,6 @@ impl Button {
                 Some(WPARAM(0)),
                 Some(LPARAM(0)),
             )
-            .0
         } as usize;
         if length == 0 {
             return Ok(String::new());
@@ -287,8 +280,7 @@ impl Button {
                 BCM_GETNOTE,
                 Some(WPARAM(length)),
                 Some(LPARAM(buffer.as_mut_ptr() as isize)),
-            )
-            .0;
+            );
         }
         Ok(String::from_utf16_lossy(&buffer[..length]))
     }
@@ -300,10 +292,9 @@ impl Button {
                 self.0.handle(),
                 BCM_SETNOTE,
                 Some(WPARAM(0)),
-                Some(LPARAM(note_ptr.0 as isize)),
+                Some(LPARAM(note_ptr as isize)),
             )
-        }
-        .0 == 0
+        } == 0
         {
             return Err(Error::correct_error());
         }

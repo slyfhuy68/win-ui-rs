@@ -32,12 +32,12 @@ pub type GroupBoxTemple = GroupBoxStyle;
 impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for GroupBoxStyle {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
         let (a, b) = self.style.into();
-        (a | WINDOW_STYLE(BS_GROUPBOX as u32), b, self.text)
+        (a | (BS_GROUPBOX as u32), b, self.text)
     }
 }
 impl DialogTempleControl for GroupBoxTemple {
     fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
-        let (ms_style, ex, name) = control_style.into();
+        let (ms_style, ex, ct) = self.into();
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style.0, pos.x, pos.y, size.width, size.height, ex.0

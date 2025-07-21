@@ -551,7 +551,7 @@ macro_rules! Lc {
             $crate::strings::do_input($s.as_bytes(), &mut buffer);
             &{ buffer }
         };
-        unsafe { CWideStr::from_utf16_unchecked(WIDE[0..LEN]) }
+        unsafe { CWideStr::from_utf16_unchecked(WIDE.as_slice()) }
     }};
 }
 #[macro_export]
@@ -573,7 +573,7 @@ macro_rules! L {
             $crate::strings::do_input($s.as_bytes(), &mut buffer);
             &{ buffer }
         };
-        unsafe { widestr::from_utf16_unchecked(WIDE[0..LEN]) }
+        unsafe { widestr::from_utf16_unchecked(WIDE.as_slice()) }
     }};
 }
 #[doc(hidden)]
@@ -750,10 +750,10 @@ mod tests {
     }
     #[test]
     fn test_macro_l() {
-        let ws = L!("Hello 😄");
-        assert_eq!(ws.len(), 8); // H e l l o  (空格) 😄 -> 8 u16s
-        assert!(ws.as_wide()[5] == 0x0020); // 空格
-        assert!(ws.as_wide()[6] == 0xD83D); // 😄 的 high surrogate
+        const WS: &widestr = L!("Hello 😄");
+        assert_eq!(WS.len(), 8); // H e l l o  (空格) 😄 -> 8 u16s
+        assert!(WS.as_wide()[5] == 0x0020); // 空格
+        assert!(WS.as_wide()[6] == 0xD83D); // 😄 的 high surrogate
     }
     #[test]
     fn test_default() {

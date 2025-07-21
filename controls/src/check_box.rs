@@ -22,31 +22,23 @@ impl DialogTempleControl for CheckBoxTemple {
         let (mut ms_style, ex) = self.style.into();
         let (style2, ct) = self.contect.into();
         ms_style |= style2 | self.pos.into();
-        if self.extra_msg {
-            ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
-        };
-        if self.flat {
-            ms_style |= WINDOW_STYLE(BS_FLAT as u32);
-        };
+        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
+        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         if self.three_state {
             if self.auto {
-                ms_style |= WINDOW_STYLE(BS_AUTO3STATE as u32);
+                ms_style |= BS_AUTO3STATE as WINDOW_STYLE;
             } else {
-                ms_style |= WINDOW_STYLE(BS_3STATE as u32);
+                ms_style |= BS_3STATE as WINDOW_STYLE;
             };
         } else {
             if self.auto {
-                ms_style |= WINDOW_STYLE(BS_AUTOCHECKBOX as u32);
+                ms_style |= BS_AUTOCHECKBOX as WINDOW_STYLE;
             } else {
-                ms_style |= WINDOW_STYLE(BS_CHECKBOX as u32);
+                ms_style |= BS_CHECKBOX as WINDOW_STYLE;
             };
         };
-        if self.like_button {
-            ms_style |= WINDOW_STYLE(BS_PUSHLIKE as u32);
-        };
-        if self.left_text {
-            ms_style |= WINDOW_STYLE(BS_LEFTTEXT as u32);
-        };
+        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
+        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct,
@@ -104,31 +96,23 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Chec
         let (mut ms_style, ex) = self.style.into();
         let (style2, ditype, text) = self.contect.into();
         ms_style |= style2 | self.pos.into();
-        if self.extra_msg {
-            ms_style |= WINDOW_STYLE(BS_NOTIFY as u32);
-        };
-        if self.flat {
-            ms_style |= WINDOW_STYLE(BS_FLAT as u32);
-        };
+        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
+        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         if self.three_state {
             if self.auto {
-                ms_style |= WINDOW_STYLE(BS_AUTO3STATE as u32);
+                ms_style |= BS_AUTO3STATE as WINDOW_STYLE;
             } else {
-                ms_style |= WINDOW_STYLE(BS_3STATE as u32);
+                ms_style |= BS_3STATE as WINDOW_STYLE;
             };
         } else {
             if self.auto {
-                ms_style |= WINDOW_STYLE(BS_AUTOCHECKBOX as u32);
+                ms_style |= BS_AUTOCHECKBOX as WINDOW_STYLE;
             } else {
-                ms_style |= WINDOW_STYLE(BS_CHECKBOX as u32);
+                ms_style |= BS_CHECKBOX as WINDOW_STYLE;
             };
         };
-        if self.like_button {
-            ms_style |= WINDOW_STYLE(BS_PUSHLIKE as u32);
-        };
-        if self.left_text {
-            ms_style |= WINDOW_STYLE(BS_LEFTTEXT as u32);
-        };
+        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
+        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
 
         (ms_style, ex, ditype, text)
     }

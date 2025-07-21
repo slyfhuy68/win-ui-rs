@@ -56,7 +56,7 @@ pub fn define_control(input: TokenStream) -> TokenStream {
         unsafe impl Sync for #control_name {}
 
         impl #control_name {
-            pub fn neednot(self){
+            pub fn neednot(mut self){
                 self.get_window_mut().nullify()
             }
         }
@@ -149,11 +149,11 @@ pub fn define_control(input: TokenStream) -> TokenStream {
             fn drop(&mut self) {
                 unsafe {
                     let hwnd = self.0.handle();
-                    if hwnd.0 as usize !=  0 {
-                        let hfont = SendMessageW(hwnd, WM_GETFONT, None, None).0;
+                    if hwnd as usize !=  0 {
+                        let hfont = SendMessageW(hwnd, WM_GETFONT, 0 as WPARAM, 0 as LPARAM);
                         let _ = DestroyWindow(hwnd);
                         if hfont != 0 {
-                            let _ = DeleteObject(HGDIOBJ(hfont as *mut c_void));
+                            let _ = DeleteObject(hfont as HGDIOBJ);
                         }
                     }
                 }

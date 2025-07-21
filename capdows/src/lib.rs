@@ -12,7 +12,7 @@ pub mod prelude {
         positioning::{DPIAwareDeviceUnit, DeviceUnit, DialogTemplateUnit, Point, Rect, Size},
         strings::{CWideStr, WideString, widestr},
         ui::{
-            class::WindowClass,
+            class::{WindowClass, WindowClassBuilder},
             control::{Control, ControlMsg, ControlMsgType, DefaultNMHDR, NotifyMessage},
             core::ResourceID,
             font::{ControlFont, Font},

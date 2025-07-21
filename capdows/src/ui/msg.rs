@@ -102,7 +102,7 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
             let result = match msg {
                 WM_CREATE => {
                     let s = *(param2 as *mut CREATESTRUCTW);
-                    let (wc, _buffer) = {
+                    let (mut wc, _buffer) = {
                         let mut buffer = [0u16; 256];
                         let len = GetClassNameW(hwnd, buffer.as_mut_ptr(), 256) as usize;
                         if len == 0 {
@@ -128,8 +128,8 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                         &mut w,
                         &(String::from_utf16(std::slice::from_raw_parts(s.lpszName, len))
                             .unwrap_or(String::from(""))),
-                        wc,
-                        s.hInstance.into(),
+                        &mut wc,
+                        &s.hInstance.into(),
                         rect(s.x, s.y, s.cx, s.cy),
                         &mut wtype,
                     ) {
@@ -141,7 +141,7 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                         Err(_) => Some(-1isize),
                     };
                     use std::mem::ManuallyDrop;
-                    let _ = ManuallyDrop::new(wtype);
+                    let _ = ManuallyDrop::new((wtype, wc));
                     result
                 }
                 WM_DESTROY => do_nofity! {C::destroy(callback_id, &mut w)
@@ -356,8 +356,8 @@ pub trait MessageReceiver: Default {
         id: usize,
         window: &mut Window,
         name: &str,
-        class: WindowClass,
-        file: ExecutableFile,
+        class: &mut WindowClass,
+        file: &ExecutableFile,
         pos: Rect,
         itype: &mut WindowType,
         //ex_data: usize,

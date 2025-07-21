@@ -3,11 +3,12 @@ use capdows::prelude::*;
 use capdows::ui::{control::*, image::*, style::*, window::*, *};
 use capdows_resource::dialog::{ControlPreCompilePruduct, DialogTempleControl};
 use std::ffi::c_void;
+use utility::set_style;
 use windows_sys::Win32::Foundation::{
-    HMODULE,
-    HWND,
+    // HMODULE,
+    // HWND,
     LPARAM,
-    LRESULT,
+    // LRESULT,
     WPARAM,
     // POINT, POINTS, RECT, SIZE, WIN32_ERROR, HINSTANCE,
 };
@@ -50,7 +51,7 @@ pub mod prelude {
 pub type ButtonImage = Either<Bitmap, Icon>;
 use either::*;
 // fn style_of(wnd: &Window) -> WINDOW_STYLE {
-//     WINDOW_STYLE(style_of_raw(wnd) as u32)
+//     style_of_raw(wnd) as WINDOW_STYLE
 // }
 fn style_of_raw(wnd: &Window) -> i32 {
     unsafe { GetWindowLongW(wnd.handle(), GWL_STYLE) as i32 }

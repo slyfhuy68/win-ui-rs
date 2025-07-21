@@ -38,36 +38,40 @@ pub type EditStyle = EditOption<EditType>;
 impl<T> EditOption<T> {
     fn p_into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, T, String) {
         let (mut edit_style, ex) = self.style.into();
-        if self.auto_hscroll {
-            edit_style |= WINDOW_STYLE(ES_AUTOHSCROLL as u32);
-        }
-        if self.auto_vscroll {
-            edit_style |= WINDOW_STYLE(ES_AUTOVSCROLL as u32);
-        }
-        if self.center {
-            edit_style |= WINDOW_STYLE(ES_CENTER as u32);
-        }
-        if self.nohide_sel {
-            edit_style |= WINDOW_STYLE(ES_NOHIDESEL as u32);
-        }
-        if self.oem_convert {
-            edit_style |= WINDOW_STYLE(ES_OEMCONVERT as u32);
-        }
-        if self.readonly {
-            edit_style |= WINDOW_STYLE(ES_READONLY as u32);
-        }
-        if self.right {
-            edit_style |= WINDOW_STYLE(ES_RIGHT as u32);
-        }
-        if self.want_return {
-            edit_style |= WINDOW_STYLE(ES_WANTRETURN as u32);
-        }
+        set_style(
+            &mut edit_style,
+            ES_AUTOHSCROLL as WINDOW_STYLE,
+            self.auto_hscroll,
+        );
+        set_style(
+            &mut edit_style,
+            ES_AUTOVSCROLL as WINDOW_STYLE,
+            self.auto_vscroll,
+        );
+        set_style(&mut edit_style, ES_CENTER as WINDOW_STYLE, self.center);
+        set_style(
+            &mut edit_style,
+            ES_NOHIDESEL as WINDOW_STYLE,
+            self.nohide_sel,
+        );
+        set_style(
+            &mut edit_style,
+            ES_OEMCONVERT as WINDOW_STYLE,
+            self.oem_convert,
+        );
+        set_style(&mut edit_style, ES_READONLY as WINDOW_STYLE, self.readonly);
+        set_style(&mut edit_style, ES_RIGHT as WINDOW_STYLE, self.right);
+        set_style(
+            &mut edit_style,
+            ES_WANTRETURN as WINDOW_STYLE,
+            self.want_return,
+        );
         use CaseType::*;
         match self.case_type {
             Normal => (),
-            Number => edit_style |= WINDOW_STYLE(ES_NUMBER as u32),
-            Lower => edit_style |= WINDOW_STYLE(ES_LOWERCASE as u32),
-            Upper => edit_style |= WINDOW_STYLE(ES_UPPERCASE as u32),
+            Number => edit_style |= ES_NUMBER as WINDOW_STYLE,
+            Lower => edit_style |= ES_LOWERCASE as WINDOW_STYLE,
+            Upper => edit_style |= ES_UPPERCASE as WINDOW_STYLE,
         }
         (edit_style, ex, self.etype, self.text)
     }
@@ -80,10 +84,10 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String)> for EditStyle {
         match etype {
             Normal => (),
             MultiLine => {
-                edit_style |= WINDOW_STYLE(ES_MULTILINE as u32);
+                edit_style |= ES_MULTILINE as WINDOW_STYLE;
             }
             Password(c) => {
-                edit_style |= WINDOW_STYLE(ES_PASSWORD as u32);
+                edit_style |= ES_PASSWORD as WINDOW_STYLE;
                 pass = c
             } // Rich => {
               //     todo!()
@@ -101,10 +105,10 @@ impl DialogTempleControl for EditTemple {
         match etype {
             Normal => (),
             MultiLine => {
-                ms_style |= WINDOW_STYLE(ES_MULTILINE as u32);
+                ms_style |= ES_MULTILINE as WINDOW_STYLE;
             }
             Password => {
-                ms_style |= WINDOW_STYLE(ES_PASSWORD as u32);
+                ms_style |= ES_PASSWORD as WINDOW_STYLE;
             } // Rich => {
               //     todo!()
               // },

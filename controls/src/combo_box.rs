@@ -64,9 +64,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
                 auto_scroll,
                 always_show,
             } => {
-                if auto_scroll {
-                    style |= CBS_AUTOHSCROLL;
-                };
+                set_style(&mut style, CBS_AUTOHSCROLL, auto_scroll);
                 if always_show {
                     style |= CBS_SIMPLE;
                 } else {
@@ -74,31 +72,23 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
                 };
             }
         }
-        if !self.auto_hide_scroll {
-            style |= CBS_DISABLENOSCROLL;
-        }
-        if !self.auto_size {
-            style |= CBS_NOINTEGRALHEIGHT;
-        }
-        if self.auto_sort {
-            style |= CBS_SORT;
-        }
+        set_style(&mut style, CBS_DISABLENOSCROLL, !self.auto_hide_scroll);
+        set_style(&mut style, CBS_NOINTEGRALHEIGHT, !self.auto_size);
+        set_style(&mut style, CBS_SORT, self.auto_sort);
         match self.case_type {
             Normal => {}
             Lower => style |= CBS_LOWERCASE,
             Upper => style |= CBS_UPPERCASE,
         }
         if let Some(owner_draw) = self.owner_draw {
-            if owner_draw.owner_save_list {
-                style |= CBS_HASSTRINGS;
-            }
+            set_style(&mut style, CBS_HASSTRINGS, owner_draw.owner_save_list);
             if owner_draw.variable_height {
                 style |= CBS_OWNERDRAWVARIABLE;
             } else {
                 style |= CBS_OWNERDRAWFIXED;
             }
         }
-        (WINDOW_STYLE(style as u32) | style1, ex, self.contect)
+        ((style as WINDOW_STYLE) | style1, ex, self.contect)
     }
 }
 impl ComboBoxStyle {
