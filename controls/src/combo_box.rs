@@ -31,7 +31,7 @@ impl DialogTempleControl for ComboBoxTemple {
         let (ms_style, ex, ct) = self.into();
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"ComboBox\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
-            ct, identifier, ms_style.0, pos.x, pos.y, size.width, size.height, ex.0
+            ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
         ))
     }
 }
@@ -64,7 +64,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
                 auto_scroll,
                 always_show,
             } => {
-                set_style(&mut style, CBS_AUTOHSCROLL, auto_scroll);
+                set_istyle(&mut style, CBS_AUTOHSCROLL, auto_scroll);
                 if always_show {
                     style |= CBS_SIMPLE;
                 } else {
@@ -72,16 +72,16 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
                 };
             }
         }
-        set_style(&mut style, CBS_DISABLENOSCROLL, !self.auto_hide_scroll);
-        set_style(&mut style, CBS_NOINTEGRALHEIGHT, !self.auto_size);
-        set_style(&mut style, CBS_SORT, self.auto_sort);
+        set_istyle(&mut style, CBS_DISABLENOSCROLL, !self.auto_hide_scroll);
+        set_istyle(&mut style, CBS_NOINTEGRALHEIGHT, !self.auto_size);
+        set_istyle(&mut style, CBS_SORT, self.auto_sort);
         match self.case_type {
             Normal => {}
             Lower => style |= CBS_LOWERCASE,
             Upper => style |= CBS_UPPERCASE,
         }
         if let Some(owner_draw) = self.owner_draw {
-            set_style(&mut style, CBS_HASSTRINGS, owner_draw.owner_save_list);
+            set_istyle(&mut style, CBS_HASSTRINGS, owner_draw.owner_save_list);
             if owner_draw.variable_height {
                 style |= CBS_OWNERDRAWVARIABLE;
             } else {
@@ -202,34 +202,28 @@ pub type ListBoxMaxSize = u16;
 impl ComboBox {
     pub fn add_item(&mut self, text: &str) -> Result<Option<ListBoxItemPos>> {
         let (text_ptr, _text_u16) = str_to_pcwstr(text);
-        match unsafe {
-            SendMessageW(
-                self.0.handle(),
-                CB_ADDSTRING,
-                Some(WPARAM(0)),
-                Some(LPARAM(text_ptr.0 as isize)),
-            )
-        }
-        .0 as i32
+        match error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            CB_ADDSTRING,
+            0 as WPARAM,
+            text_ptr as LPARAM,
+        ))? as i32
         {
-            0 => Error::correct_error_result(Some(0)),
+            0 => Ok(Some(0)),
             CB_ERR => Ok(None),
             CB_ERRSPACE => Err(ERROR_NOT_ENOUGH_MEMORY),
             x => Ok(Some(x as ListBoxItemPos)),
         }
     }
     pub fn remove_item(&mut self, pos: ListBoxItemPos) -> Result<Option<ListBoxMaxSize>> {
-        match unsafe {
-            SendMessageW(
-                self.0.handle(),
-                CB_DELETESTRING,
-                Some(WPARAM(pos as usize)),
-                Some(LPARAM(0)),
-            )
-        }
-        .0 as i32
+        match error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            CB_DELETESTRING,
+            pos as WPARAM,
+            0 as LPARAM
+        ))? as i32
         {
-            0 => Error::correct_error_result(Some(0)),
+            0 => Ok(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxMaxSize)),
         }
@@ -242,17 +236,14 @@ impl ComboBox {
         text: &str,
     ) -> Result<Option<ListBoxItemPos>> {
         let (text_ptr, _text_u16) = str_to_pcwstr(text);
-        match unsafe {
-            SendMessageW(
-                self.0.handle(),
-                CB_FINDSTRING,
-                Some(WPARAM(((start as isize) - 1) as usize)),
-                Some(LPARAM(text_ptr.0 as isize)),
-            )
-        }
-        .0 as i32
+        match error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            CB_FINDSTRING,
+            (start - 1) as WPARAM,
+            (text_ptr) as LPARAM,
+        ))? as i32
         {
-            0 => Error::correct_error_result(Some(0)),
+            0 => Ok(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxItemPos)),
         }
@@ -265,17 +256,14 @@ impl ComboBox {
         text: &str,
     ) -> Result<Option<ListBoxItemPos>> {
         let (text_ptr, _text_u16) = str_to_pcwstr(text);
-        match unsafe {
-            SendMessageW(
-                self.0.handle(),
-                CB_FINDSTRINGEXACT,
-                Some(WPARAM(((start as isize) - 1) as usize)),
-                Some(LPARAM(text_ptr.0 as isize)),
-            )
-        }
-        .0 as i32
+        match error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            CB_FINDSTRINGEXACT,
+            (start - 1) as WPARAM,
+            text_ptr as LPARAM,
+        ))? as i32
         {
-            0 => Error::correct_error_result(Some(0)),
+            0 => Ok(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxItemPos)),
         }
@@ -284,49 +272,40 @@ impl ComboBox {
         todo!() // GetComboBoxInfo
     }
     pub fn count(&self) -> Result<Option<ListBoxMaxSize>> {
-        match unsafe {
-            SendMessageW(
-                self.0.handle(),
-                CB_GETCOUNT,
-                Some(WPARAM(0)),
-                Some(LPARAM(0)),
-            )
-        }
-        .0 as i32
+        match error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            CB_GETCOUNT,
+            0 as WPARAM,
+            0 as LPARAM
+        ))? as i32
         {
-            0 => Error::correct_error_result(Some(0)),
+            0 => Ok(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxMaxSize)),
         }
     }
     pub fn get_cur_sel(&self) -> Result<Option<ListBoxItemPos>> {
-        match unsafe {
-            SendMessageW(
-                self.0.handle(),
-                CB_GETCURSEL,
-                Some(WPARAM(0)),
-                Some(LPARAM(0)),
-            )
-        }
-        .0 as i32
+        match error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            CB_GETCURSEL,
+            0 as WPARAM,
+            0 as LPARAM
+        ))? as i32
         {
-            0 => Error::correct_error_result(Some(0)),
+            0 => Ok(Some(0)),
             CB_ERR => Ok(None),
             x => Ok(Some(x as ListBoxItemPos)),
         }
     }
     pub fn get_item_raw(&mut self, pos: ListBoxItemPos) -> Result<Option<isize>> {
-        let data = unsafe {
-            SendMessageW(
-                self.0.handle(),
-                CB_GETITEMDATA,
-                Some(WPARAM(pos as usize)),
-                Some(LPARAM(0)),
-            )
-        }
-        .0;
+        let data = error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            CB_GETITEMDATA,
+            pos as WPARAM,
+            0 as LPARAM
+        ))?;
         match data as i32 {
-            0 => Error::correct_error_result(Some(0)),
+            0 => Ok(Some(0)),
             CB_ERR => Ok(None),
             _ => Ok(Some(data)),
         }

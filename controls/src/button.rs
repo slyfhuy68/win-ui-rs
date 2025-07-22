@@ -60,12 +60,8 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Butt
         set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         let (style2, ditype, text) = self.contect.into();
-        (
-            ms_style | style2 | <BottonContentPos as Into<WINDOW_STYLE>>::into(self.pos),
-            ex,
-            ditype,
-            text,
-        )
+        let pos: WINDOW_STYLE = self.pos.into();
+        (ms_style | style2 | pos, ex, ditype, text)
     }
 }
 pub type ButtonTemple = ButtonOption<ButtonTempleContent>;
@@ -84,11 +80,12 @@ impl DialogTempleControl for ButtonTemple {
         set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         let (style2, ct) = self.contect.into();
+        let poss: WINDOW_STYLE = self.pos.into();
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct,
             identifier,
-            (ms_style | style2 | <BottonContentPos as Into<WINDOW_STYLE>>::into(self.pos)),
+            (ms_style | style2 | poss),
             pos.x,
             pos.y,
             size.width,
@@ -262,14 +259,9 @@ impl CommonControl for Button {
 }
 impl Button {
     pub fn get_note(&self) -> Result<String> {
-        let length = unsafe {
-            SendMessageW(
-                self.0.handle(),
-                BCM_GETNOTELENGTH,
-                Some(WPARAM(0)),
-                Some(LPARAM(0)),
-            )
-        } as usize;
+        let length =
+            unsafe { SendMessageW(self.0.handle(), BCM_GETNOTELENGTH, 0 as WPARAM, 0 as LPARAM) }
+                as usize;
         if length == 0 {
             return Ok(String::new());
         };
@@ -278,8 +270,8 @@ impl Button {
             SendMessageW(
                 self.0.handle(),
                 BCM_GETNOTE,
-                Some(WPARAM(length)),
-                Some(LPARAM(buffer.as_mut_ptr() as isize)),
+                length as WPARAM,
+                buffer.as_mut_ptr() as LPARAM,
             );
         }
         Ok(String::from_utf16_lossy(&buffer[..length]))
@@ -287,17 +279,12 @@ impl Button {
     pub fn set_note(&mut self, note: &str) -> Result<()> {
         let (note_ptr, _note_u16) = str_to_pcwstr(note);
 
-        if unsafe {
-            SendMessageW(
-                self.0.handle(),
-                BCM_SETNOTE,
-                Some(WPARAM(0)),
-                Some(LPARAM(note_ptr as isize)),
-            )
-        } == 0
-        {
-            return Err(Error::correct_error());
-        }
+        let _ = error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            BCM_SETNOTE,
+            0 as WPARAM,
+            note_ptr as LPARAM,
+        ))?;
         Ok(())
     }
 }

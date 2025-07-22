@@ -1,3 +1,4 @@
+use crate::prelude::WinError;
 use windows_sys::Win32::{
     Foundation::{POINT, RECT, SIZE},
     Graphics::Gdi::ClientToScreen,
@@ -12,9 +13,7 @@ pub trait Win32Point: Copy {
     fn window_to_screen(&mut self, wnd: &crate::ui::window::Window) -> crate::error::Result<()> {
         let (x, y) = self.to_tuple();
         let mut point = POINT { x, y };
-        crate::error::WinError::from_win32api_result(unsafe {
-            ClientToScreen(wnd.handle(), &mut point)
-        })?;
+        capdows_utility::error_from_win32_bool!(ClientToScreen(wnd.handle(), &mut point))?;
         *self = Self::new(point.x, point.y);
         Ok(())
     }

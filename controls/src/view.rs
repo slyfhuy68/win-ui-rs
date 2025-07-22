@@ -162,35 +162,51 @@ impl Into<ViewContent> for ViewType {
     }
 }
 
-impl Into<(WINDOW_STYLE, ViewContent, ChildWindowStyles)> for ImageTextViewStyle {
-    fn into(self) -> (WINDOW_STYLE, ViewContent, ChildWindowStyles) {
+impl
+    Into<(
+        WINDOW_STYLE,
+        String,
+        HANDLE,
+        GDI_IMAGE_TYPE,
+        ChildWindowStyles,
+    )> for ImageTextViewStyle
+{
+    fn into(
+        self,
+    ) -> (
+        WINDOW_STYLE,
+        String,
+        HANDLE,
+        GDI_IMAGE_TYPE,
+        ChildWindowStyles,
+    ) {
         let mut window_style = WINDOW_STYLE(0);
-        let content_data = match self.stype {
+        let (name, handle, flag) = match self.stype {
             ViewType::Text {
                 text,
                 align,
                 ellipsis,
                 no_prefix,
             } => {
-                window_style.0 |= SS_LEFT.0;
+                window_style |= SS_LEFT;
                 match align {
-                    Alignment::Center => window_style.0 |= SS_CENTER.0,
-                    Alignment::Left => window_style.0 |= SS_LEFT.0,
-                    Alignment::Right => window_style.0 |= SS_RIGHT.0,
-                    Alignment::LeftNoWrap => window_style.0 |= SS_LEFTNOWORDWRAP.0,
-                    Alignment::Simple => window_style.0 |= SS_SIMPLE.0,
+                    Alignment::Center => window_style |= SS_CENTER,
+                    Alignment::Left => window_style |= SS_LEFT,
+                    Alignment::Right => window_style |= SS_RIGHT,
+                    Alignment::LeftNoWrap => window_style |= SS_LEFTNOWORDWRAP,
+                    Alignment::Simple => window_style |= SS_SIMPLE,
                 }
 
                 match ellipsis {
-                    EllipsisType::End => window_style.0 |= SS_ENDELLIPSIS.0,
-                    EllipsisType::Path => window_style.0 |= SS_PATHELLIPSIS.0,
-                    EllipsisType::Word => window_style.0 |= SS_WORDELLIPSIS.0,
+                    EllipsisType::End => window_style |= SS_ENDELLIPSIS,
+                    EllipsisType::Path => window_style |= SS_PATHELLIPSIS,
+                    EllipsisType::Word => window_style |= SS_WORDELLIPSIS,
                     _ => (),
                 }
 
-                set_style(&mut window_style.0, SS_NOPREFIX.0, no_prefix);
+                set_style(&mut window_style, SS_NOPREFIX, no_prefix);
 
-                ViewContent::Text(text)
+                (text, 0 as HANDLE, GDI_IMAGE_TYPE::MAX)
             }
 
             ViewType::Bitmap {
@@ -200,12 +216,12 @@ impl Into<(WINDOW_STYLE, ViewContent, ChildWindowStyles)> for ImageTextViewStyle
                 right_just,
                 center_image,
             } => {
-                window_style.0 |= SS_BITMAP.0;
-                set_style(&mut window_style.0, SS_REALSIZEIMAGE.0, reasize_image);
-                set_style(&mut window_style.0, SS_RIGHTJUST.0, right_just);
-                set_style(&mut window_style.0, SS_CENTERIMAGE.0, center_image);
+                window_style |= SS_BITMAP;
+                set_style(&mut window_style, SS_REALSIZEIMAGE, reasize_image);
+                set_style(&mut window_style, SS_RIGHTJUST, right_just);
+                set_style(&mut window_style, SS_CENTERIMAGE, center_image);
 
-                ViewContent::Bitmap(image)
+                (name, image.handle(), IMAGE_BITMAP)
             }
 
             ViewType::Icon {
@@ -214,11 +230,11 @@ impl Into<(WINDOW_STYLE, ViewContent, ChildWindowStyles)> for ImageTextViewStyle
                 reasize_control,
                 right_just,
             } => {
-                window_style.0 |= SS_ICON.0;
-                set_style(&mut window_style.0, SS_REALSIZECONTROL.0, reasize_control);
-                set_style(&mut window_style.0, SS_RIGHTJUST.0, right_just);
+                window_style |= SS_ICON;
+                set_style(&mut window_style, SS_REALSIZECONTROL, reasize_control);
+                set_style(&mut window_style, SS_RIGHTJUST, right_just);
 
-                ViewContent::Icon(icon)
+                (name, icon.handle(), IMAGE_ICON)
             }
 
             ViewType::Cursor {
@@ -227,35 +243,35 @@ impl Into<(WINDOW_STYLE, ViewContent, ChildWindowStyles)> for ImageTextViewStyle
                 reasize_control,
                 right_just,
             } => {
-                window_style.0 |= SS_ICON.0;
-                set_style(&mut window_style.0, SS_REALSIZECONTROL.0, reasize_control);
-                set_style(&mut window_style.0, SS_RIGHTJUST.0, right_just);
+                window_style |= SS_ICON;
+                set_style(&mut window_style, SS_REALSIZECONTROL, reasize_control);
+                set_style(&mut window_style, SS_RIGHTJUST, right_just);
 
-                ViewContent::Cursor(cursor)
+                (name, cursor.handle(), IMAGE_CURSOR)
             }
 
             EnhMetaFile {
                 enh_meta_file: enh,
                 name,
             } => {
-                window_style.0 |= SS_ENHMETAFILE.0;
-                ViewContent::EnhMetaFile(enh)
+                window_style |= SS_ENHMETAFILE;
+                (name, enh.handle(), IMAGE_ENHMETAFILE)
             }
         };
 
-        window_style.0 |= (self.black_frame as u32) * SS_BLACKFRAME.0
-            + (self.black_rect as u32) * SS_BLACKRECT.0
-            + (self.etched_frame as u32) * SS_ETCHEDFRAME.0
-            + (self.etched_horz as u32) * SS_ETCHEDHORZ.0
-            + (self.etched_vert as u32) * SS_ETCHEDVERT.0
-            + (self.gray_frame as u32) * SS_GRAYFRAME.0
-            + (self.gray_rect as u32) * SS_GRAYRECT.0
-            + (self.white_frame as u32) * SS_WHITEFRAME.0
-            + (self.white_rect as u32) * SS_WHITERECT.0
-            + (self.sunken as u32) * SS_SUNKEN.0
-            + (self.extra_notify as u32) * SS_NOTIFY.0;
+        window_style |= (self.black_frame as u32) * SS_BLACKFRAME
+            + (self.black_rect as u32) * SS_BLACKRECT
+            + (self.etched_frame as u32) * SS_ETCHEDFRAME
+            + (self.etched_horz as u32) * SS_ETCHEDHORZ
+            + (self.etched_vert as u32) * SS_ETCHEDVERT
+            + (self.gray_frame as u32) * SS_GRAYFRAME
+            + (self.gray_rect as u32) * SS_GRAYRECT
+            + (self.white_frame as u32) * SS_WHITEFRAME
+            + (self.white_rect as u32) * SS_WHITERECT
+            + (self.sunken as u32) * SS_SUNKEN
+            + (self.extra_notify as u32) * SS_NOTIFY;
 
-        (window_style, content_data, self.style)
+        (window_style, name, handle, flag, self.style)
     }
 }
 #[repr(C)]
@@ -305,33 +321,12 @@ impl CommonControl for ImageTextView {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<Self> {
-        let (cs, data, cws) = control_style.into();
-        let hwnd = match data {
-            ViewContent::Text(text) => ImageTextView(new_control(
-                wnd,
-                "STATIC",
-                &text,
-                pos,
-                identifier,
-                (cs, cws),
-                font,
-            )?),
-            other => {
-                let mut ra = ImageTextView(new_control(
-                    wnd,
-                    "STATIC",
-                    name,
-                    pos,
-                    identifier,
-                    (cs, cws),
-                    font,
-                )?);
-                ra.change_content(other)?;
-                ra
-            }
-        };
-
-        Ok(hwnd)
+        let (cs, name, data, flag, cws) = control_style.into();
+        let hwnd = new_control(wnd, "STATIC", &name, pos, identifier, (cs, cws), font)?;
+        if data != 0 as *mut c_void {
+            SendMessageW(hwnd, STM_SETIMAGE, flag as WPARAM, data as LPARAM)
+        }
+        Ok(ImageTextView(hwnd))
     }
 }
 impl ImageTextView {

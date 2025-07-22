@@ -1,16 +1,18 @@
 use capdows::L;
 use capdows::prelude::*;
-use capdows::ui::{control::*, image::*, style::*, window::*, *};
+use capdows::ui::image::*;
+use capdows::ui::{control::*, style::*, window::*, *};
 use capdows_resource::dialog::{ControlPreCompilePruduct, DialogTempleControl};
 use std::ffi::c_void;
-use utility::set_style;
+use utility::*;
 use windows_sys::Win32::Foundation::{
+    HINSTANCE,
     // HMODULE,
     // HWND,
     LPARAM,
     // LRESULT,
     WPARAM,
-    // POINT, POINTS, RECT, SIZE, WIN32_ERROR, HINSTANCE,
+    // POINT, POINTS, RECT, SIZE, WIN32_ERROR,
 };
 use windows_sys::Win32::Graphics::Gdi::*;
 use windows_sys::Win32::{UI::Controls::*, UI::WindowsAndMessaging::*};
@@ -67,8 +69,8 @@ fn new_control(
     font: Option<ControlFont>,
 ) -> Result<Window> {
     unsafe {
-        let id = Some(HMENU(id as *mut c_void));
-        let parent = Some(wnd.handle());
+        let id = id as HMENU;
+        let parent = wnd.handle();
         let (ptr, _ptr_raw) = str_to_pcwstr(&name);
         let ((x, y), (width, height)) = match pos {
             None => (
@@ -77,8 +79,8 @@ fn new_control(
             ),
             Some(euclid::Rect { origin, size }) => (origin.to_tuple(), size.to_tuple()),
         };
-        let hinstance = HINSTANCE(GetWindowLongW(wnd.handle(), GWL_HINSTANCE) as *mut c_void);
-        let hwnd = CreateWindowExW(
+        let hinstance = GetWindowLongW(wnd.handle(), GWL_HINSTANCE) as HINSTANCE;
+        let hwnd = error_from_win32!(CreateWindowExW(
             style_ex,
             control_class,
             ptr,
@@ -89,20 +91,21 @@ fn new_control(
             height,
             parent,
             id,
-            Some(hinstance),
-            None,
-        )?;
+            hinstance,
+            0 as *const c_void,
+        ))?;
         if let Some(font) = font {
-            PostMessageW(
-                Some(hwnd),
+            error_from_win32_num!(PostMessageW(
+                hwnd,
                 WM_SETFONT,
-                WPARAM(font.into_handle()?.0 as usize),
-                LPARAM(1),
-            )?;
+                font.into_handle()? as WPARAM,
+                1 as LPARAM
+            ))?;
         };
         Ok(Window::from_handle(hwnd))
     }
 }
+#[inline]
 fn new_button(
     wnd: &mut Window,
     name: String,
@@ -118,16 +121,16 @@ fn new_button(
         Some(x) => unsafe {
             let _ = match x {
                 Left(b) => PostMessageW(
-                    Some(wnd.handle()),
+                    wnd.handle(),
                     BM_SETIMAGE,
-                    WPARAM(IMAGE_BITMAP.0 as usize),
-                    LPARAM(b.handle.0 as isize),
+                    IMAGE_BITMAP as WPARAM,
+                    b.handle as LPARAM,
                 ),
                 Right(c) => PostMessageW(
-                    Some(wnd.handle()),
+                    wnd.handle(),
                     BM_SETIMAGE,
-                    WPARAM(IMAGE_ICON.0 as usize),
-                    LPARAM(c.handle.0 as isize),
+                    IMAGE_ICON as WPARAM,
+                    c.handle as LPARAM,
                 ),
             };
         },
@@ -137,10 +140,7 @@ fn new_button(
 }
 fn is_some_window(wnd: &Window, class: &'static widestr) -> Result<bool> {
     let mut buffer = [0u16; 16]; //控件类名通常不超过16个字符
-    let len = unsafe { GetClassNameW(wnd.handle(), &mut buffer) } as usize;
-    if len == 0 {
-        return Err(WinError::correct_error());
-    };
+    let len = error_from_win32_num!(GetClassNameW(wnd.handle(), buffer.as_mut_ptr(), 16) as usize)?;
     let new_buffer = &buffer[..len];
     Ok(unsafe { class.eq_ignore_ascii_case(widestr::from_utf16_unchecked(new_buffer)) })
 }
@@ -164,37 +164,30 @@ pub trait TextControl: Control + Sized {
             return Ok(String::new());
         };
         let mut buffer: Vec<u16> = vec![0; length + 1];
-        unsafe {
-            Error::correct_error_result(
-                SendMessageW(
-                    self.get_window().handle(),
-                    WM_GETTEXT,
-                    Some(WPARAM(length)),
-                    Some(LPARAM(buffer.as_mut_ptr() as isize)),
-                )
-                .0,
-            )?;
-        }
+        error_from_win32_bool!(SendMessageW(
+            self.get_window().handle(),
+            WM_GETTEXT,
+            length as WPARAM,
+            buffer.as_mut_ptr() as LPARAM,
+        ))?;
         Ok(String::from_utf16_lossy(&buffer[..length]))
     }
     fn get_text_length(&self) -> Result<usize> {
-        Ok(unsafe {
-            Error::correct_error_result(
-                SendMessageW(self.get_window().handle(), WM_GETTEXTLENGTH, None, None).0,
-            )? as usize
-        })
+        Ok(error_from_win32_zero_num!(SendMessageW(
+            self.get_window().handle(),
+            WM_GETTEXTLENGTH,
+            0 as WPARAM,
+            0 as LPARAM,
+        ))? as usize)
     }
     fn set_text(&mut self, text: &str) -> Result<()> {
         let (text_ptr, _buffer) = str_to_pcwstr(text);
-        let result = unsafe {
-            Error::correct_error_result(SendMessageW(
-                self.get_window().handle(),
-                WM_SETTEXT,
-                None,
-                Some(LPARAM(text_ptr.0 as isize)),
-            ))?
-        }
-        .0 as u32;
+        let result = error_from_win32_zero_num!(SendMessageW(
+            self.get_window().handle(),
+            WM_SETTEXT,
+            0 as WPARAM,
+            text_ptr as LPARAM,
+        ))? as u32;
         if result == Self::INSUFFICIENT_SPACE_RESULT {
             Err(ERROR_INSUFFICIENT_SPACE)
         } else if result == Self::NOT_SUPPORT_RESULT {

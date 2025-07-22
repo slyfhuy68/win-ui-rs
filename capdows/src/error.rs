@@ -5,7 +5,10 @@ pub type Result<T> = sResult<T, WinError>;
 use std::fmt::Debug;
 use std::string::FromUtf16Error;
 use windows_sys::Win32::Foundation::{
-    GetLastError, INVALID_HANDLE_VALUE, NTSTATUS, SetLastError, WIN32_ERROR,
+    GetLastError,
+    NTSTATUS,
+    WIN32_ERROR,
+    //SetLastError, INVALID_HANDLE_VALUE
 };
 // use windows_sys::core::*;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -65,64 +68,30 @@ impl WinError {
             _ => return None,
         })
     }
-    #[inline]
-    pub fn current_error_result<T>(data: T) -> Result<T> {
-        let error = unsafe { GetLastError() };
-        if error == 0 {
-            Ok(data)
-        } else {
-            Err(unsafe { Self::from_win32(error) })
-        }
-    }
-    #[inline]
-    pub fn from_win32api_result(error: i32) -> Result<()> {
-        if error == 0 {
-            Ok(())
-        } else {
-            Err(unsafe { Self::from_win32(GetLastError()) })
-        }
-    }
-    #[inline]
-    pub fn from_win32api_ptr(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
-        if ptr.addr() != 0 {
-            Ok(ptr)
-        } else {
-            Err(unsafe { Self::from_win32(GetLastError()) })
-        }
-    }
-    #[inline]
-    pub fn from_win32api_thin(ptr: i32) -> Result<i32> {
-        if ptr != 0 {
-            Ok(ptr)
-        } else {
-            Err(unsafe { Self::from_win32(GetLastError()) })
-        }
-    }
-    #[inline]
-    pub fn from_win32api_maybe_zero<F: FnOnce() -> *mut std::ffi::c_void>(
-        f: F,
-    ) -> Result<*mut std::ffi::c_void> {
-        unsafe { SetLastError(0) };
-        match f().addr() {
-            0 => {
-                let err = unsafe { GetLastError() };
-                if err == 0 {
-                    Ok(0 as *mut std::ffi::c_void)
-                } else {
-                    Err(Self(Win32(err)))
-                }
-            }
-            n => Ok(n as *mut std::ffi::c_void),
-        }
-    }
-    #[inline]
-    pub fn from_win32api_or_invalid(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
-        if ptr != INVALID_HANDLE_VALUE {
-            Ok(ptr)
-        } else {
-            Err(unsafe { Self::from_win32(GetLastError()) })
-        }
-    }
+    // #[inline]
+    // pub fn from_win32api_ptr(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
+    //     if ptr.addr() != 0 {
+    //         Ok(ptr)
+    //     } else {
+    //         Err(unsafe { Self::from_win32(GetLastError()) })
+    //     }
+    // }
+    // #[inline]
+    // pub fn from_win32api_thin(ptr: i32) -> Result<i32> {
+    //     if ptr != 0 {
+    //         Ok(ptr)
+    //     } else {
+    //         Err(unsafe { Self::from_win32(GetLastError()) })
+    //     }
+    // }
+    // #[inline]
+    // pub fn from_win32api_or_invalid(ptr: *mut std::ffi::c_void) -> Result<*mut std::ffi::c_void> {
+    //     if ptr != INVALID_HANDLE_VALUE {
+    //         Ok(ptr)
+    //     } else {
+    //         Err(unsafe { Self::from_win32(GetLastError()) })
+    //     }
+    // }
     #[inline]
     ///不检查当前错误是不是0
     pub unsafe fn current_error() -> Self {

@@ -183,7 +183,7 @@ where
     unsafe {
         let mut nc_metrics: NONCLIENTMETRICSW = std::mem::zeroed();
         nc_metrics.cbSize = std::mem::size_of::<NONCLIENTMETRICSW>() as u32;
-        WinError::from_win32api_result(SystemParametersInfoW(
+        error_from_win32_bool!(SystemParametersInfoW(
             SPI_GETNONCLIENTMETRICS,
             0,
             &mut nc_metrics as *mut _ as _,

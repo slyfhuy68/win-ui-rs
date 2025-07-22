@@ -87,32 +87,30 @@ impl WindowClassBuilder {
         if self.class_name.len() < 4 || self.class_name.len() >= 255 {
             return Err(ERROR_CLASS_NAME_TOO_LONG);
         }
-        let _ = unsafe {
-            WinError::from_win32api_thin(RegisterClassExW(&WNDCLASSEXW {
-                cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
-                style: self.style.into(),
-                //window_proc是一个函数，定义在私有模块cpadows::ui::proc里
-                lpfnWndProc: Some(window_proc::<C>),
-                cbClsExtra: self.class_extra as i32 * 8,
-                cbWndExtra: self.window_extra as i32 * 8,
-                hInstance: match self.executable_file {
-                    Some(x) => x.into(),
-                    None => ExecutableFile::from_current_file()?.into(),
-                },
-                hIcon: self.icon.unwrap_or(Icon::null()).into(),
-                hCursor: self.cursor.unwrap_or(Cursor::null()).into(),
-                hbrBackground: match self.background_brush {
-                    None => NULL_PTR(),
-                    Some(x) => x.into(),
-                },
-                lpszMenuName: match self.default_menu_resource {
-                    None => 0 as *const u16,
-                    Some(x) => x.to_pcwstr(),
-                },
-                lpszClassName: self.class_name.to_pcwstr(),
-                hIconSm: self.icon_small.unwrap_or(Icon::null()).into(),
-            }) as i32)?
-        };
+        let _ = error_from_win32_num!(RegisterClassExW(&WNDCLASSEXW {
+            cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
+            style: self.style.into(),
+            //window_proc是一个函数，定义在私有模块cpadows::ui::proc里
+            lpfnWndProc: Some(window_proc::<C>),
+            cbClsExtra: self.class_extra as i32 * 8,
+            cbWndExtra: self.window_extra as i32 * 8,
+            hInstance: match self.executable_file {
+                Some(x) => x.into(),
+                None => ExecutableFile::from_current_file()?.into(),
+            },
+            hIcon: self.icon.unwrap_or(Icon::null()).into(),
+            hCursor: self.cursor.unwrap_or(Cursor::null()).into(),
+            hbrBackground: match self.background_brush {
+                None => NULL_PTR(),
+                Some(x) => x.into(),
+            },
+            lpszMenuName: match self.default_menu_resource {
+                None => 0 as *const u16,
+                Some(x) => x.to_pcwstr(),
+            },
+            lpszClassName: self.class_name.to_pcwstr(),
+            hIconSm: self.icon_small.unwrap_or(Icon::null()).into(),
+        }) as i32)?;
         Ok(WindowClass {
             name: self.class_name.to_pcwstr(),
         })
@@ -195,18 +193,18 @@ impl WindowClass {
         pos: Option<Point>,
         size: Option<Size>,
     ) -> Result<Window> {
-        let (style, ex_style, menu, parent) = wtype.into();
-        let (wname, _wnameptr) = str_to_pcwstr(name);
-        let cname = self.get_raw();
-        let (x, y) = pos
-            .unwrap_or(Point::new(CW_USEDEFAULT, CW_USEDEFAULT))
-            .to_tuple();
-        let (width, height) = size
-            .unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT))
-            .to_tuple();
-        let hinstance = unsafe { WinError::from_win32api_ptr(GetModuleHandleW(0 as *const u16))? };
-        let result = unsafe {
-            Window::from_handle(WinError::from_win32api_ptr(CreateWindowExW(
+        unsafe {
+            let (style, ex_style, menu, parent) = wtype.into();
+            let (wname, _wnameptr) = str_to_pcwstr(name);
+            let cname = self.get_raw();
+            let (x, y) = pos
+                .unwrap_or(Point::new(CW_USEDEFAULT, CW_USEDEFAULT))
+                .to_tuple();
+            let (width, height) = size
+                .unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT))
+                .to_tuple();
+            let hinstance = error_from_win32!(GetModuleHandleW(0 as *const u16))?;
+            let result = Window::from_handle(error_from_win32!(CreateWindowExW(
                 ex_style,
                 cname,
                 wname,
@@ -219,8 +217,9 @@ impl WindowClass {
                 menu,
                 hinstance,
                 0 as *const c_void,
-            ))?)
-        };
-        Ok(result)
+            ))?);
+
+            Ok(result)
+        }
     }
 }

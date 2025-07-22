@@ -285,3 +285,93 @@ mod tests {
         assert_eq!(do_escapes(input), expected);
     }
 }
+#[macro_export]
+macro_rules! error_from_win32_zero {
+    ($l:expr) => {
+        unsafe {
+            windows_sys::Win32::Foundation::SetLastError(0);
+            match $l as usize {
+                0 => {
+                    let err = windows_sys::Win32::Foundation::GetLastError();
+                    if err == 0 {
+                        Ok(0 as *mut std::ffi::c_void)
+                    } else {
+                        Err(WinError::from_win32(err))
+                    }
+                }
+                n => Ok(n as *mut std::ffi::c_void),
+            }
+        }
+    };
+}
+#[macro_export]
+macro_rules! error_from_win32_zero_num {
+    ($l:expr) => {
+        unsafe {
+            windows_sys::Win32::Foundation::SetLastError(0);
+            match $l {
+                0 => {
+                    let err = windows_sys::Win32::Foundation::GetLastError();
+                    if err == 0 {
+                        Ok(0)
+                    } else {
+                        Err(WinError::from_win32(err))
+                    }
+                }
+                n => Ok(n),
+            }
+        }
+    };
+}
+#[macro_export]
+macro_rules! error_from_win32 {
+    ($l:expr) => {
+        unsafe {
+            match $l as usize {
+                0 => Err(WinError::from_win32(
+                    windows_sys::Win32::Foundation::GetLastError(),
+                )),
+                n => Ok(n as *mut std::ffi::c_void),
+            }
+        }
+    };
+}
+#[macro_export]
+macro_rules! error_from_win32_or_invalid {
+    ($l:expr) => {
+        unsafe {
+            match $l {
+                windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE => Err(WinError::from_win32(
+                    windows_sys::Win32::Foundation::GetLastError(),
+                )),
+                n => Ok(n),
+            }
+        }
+    };
+}
+#[macro_export]
+macro_rules! error_from_win32_num {
+    ($l:expr) => {
+        unsafe {
+            match $l {
+                0 => Err(WinError::from_win32(
+                    windows_sys::Win32::Foundation::GetLastError(),
+                )),
+                n => Ok(n),
+            }
+        }
+    };
+}
+#[macro_export]
+macro_rules! error_from_win32_bool {
+    ($l:expr) => {
+        unsafe {
+            match $l {
+                0 => Err(WinError::from_win32(
+                    windows_sys::Win32::Foundation::GetLastError(),
+                )),
+                _ => Ok(()),
+            }
+        }
+    };
+}

@@ -21,21 +21,17 @@ use super::*;
 // }
 impl Window {
     pub unsafe fn get_prop(&self, key: &'static CWideStr) -> Result<HANDLE> {
-        unsafe { WinError::from_win32api_maybe_zero(|| GetPropW(self.handle(), key.to_pcwstr())) }
+        error_from_win32_zero!(GetPropW(self.handle(), key.to_pcwstr()))
     }
     pub unsafe fn set_prop(&mut self, key: &'static CWideStr, value: HANDLE) -> Result<()> {
-        unsafe {
-            Ok(WinError::from_win32api_result(SetPropW(
-                self.handle(),
-                key.to_pcwstr(),
-                value,
-            ))?)
-        }
+        Ok(error_from_win32_bool!(SetPropW(
+            self.handle(),
+            key.to_pcwstr(),
+            value,
+        ))?)
     }
     pub unsafe fn remove_prop(&mut self, key: &'static CWideStr) -> Result<HANDLE> {
-        unsafe {
-            WinError::from_win32api_maybe_zero(|| RemovePropW(self.handle(), key.to_pcwstr()))
-        }
+        error_from_win32_zero!(RemovePropW(self.handle(), key.to_pcwstr()))
     }
     // pub fn prop_iter(&self) -> PropCounter {
     //     let (send_s, recv) = channel();

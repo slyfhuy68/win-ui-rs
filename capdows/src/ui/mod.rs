@@ -46,10 +46,10 @@ pub mod utility {
     pub fn set_style(style: &mut u32, flag: u32, condition: bool) {
         *style |= flag * condition as u32;
     }
-    // #[inline]
-    // pub fn set_istyle(style: &mut i32, flag: i32, condition: bool) {
-    //     *style |= flag * condition as i32;
-    // }
+    #[inline]
+    pub fn set_istyle(style: &mut i32, flag: i32, condition: bool) {
+        *style |= flag * condition as i32;
+    }
 }
 use crate::error::*;
 use crate::positioning::ext_methods::*;

@@ -115,7 +115,7 @@ impl DialogTempleControl for EditTemple {
         };
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Edit\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
-            ct, identifier, ms_style.0, pos.x, pos.y, size.width, size.height, ex.0
+            ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
         ))
     }
 }
@@ -237,10 +237,9 @@ impl Edit {
             SendMessageW(
                 self.0.handle(),
                 EM_SETPASSWORDCHAR,
-                Some(WPARAM(num)),
-                Some(LPARAM(0)),
+                num as WPARAM,
+                0 as LPARAM,
             )
-            .0
         };
         Ok(())
     }
@@ -249,10 +248,9 @@ impl Edit {
             SendMessageW(
                 self.0.handle(),
                 EM_GETPASSWORDCHAR,
-                Some(WPARAM(0)),
-                Some(LPARAM(0)),
+                0 as WPARAM,
+                0 as LPARAM,
             )
-            .0
         } as u32)
         {
             Some(x) => Ok(x),

@@ -14,16 +14,11 @@ pub fn msg_box(
     };
     let (style1, lang_id) = options.into();
     let (style2, hwnd) = owner.into();
-    unsafe {
-        Ok(WinError::from_win32api_thin(MessageBoxExW(
-            hwnd,
-            text,
-            caption,
-            style1 | style2,
-            lang_id,
-        ))?
-        .try_into()?)
-    }
+
+    Ok(
+        error_from_win32_num!(MessageBoxExW(hwnd, text, caption, style1 | style2, lang_id,))?
+            .try_into()?,
+    )
 }
 
 #[cfg(feature = "timeout_msg_box")]

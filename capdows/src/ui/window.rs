@@ -305,7 +305,7 @@ impl Window {
     }
     #[inline]
     pub fn redraw_menu_bar(&mut self) -> Result<()> {
-        WinError::from_win32api_result(unsafe { DrawMenuBar(self.handle) })
+        error_from_win32_bool!(DrawMenuBar(self.handle))
     }
     #[inline]
     pub fn show(&mut self, stype: ShowWindowType) -> bool {
@@ -313,13 +313,11 @@ impl Window {
     }
     #[inline]
     pub fn set_menu(&mut self, menu: Option<MenuBar>) -> Result<()> {
-        unsafe {
-            WinError::from_win32api_result(SetMenu(
-                self.handle,
-                menu.map(|menu: MenuBar| menu.handle())
-                    .unwrap_or(0 as *mut c_void),
-            ))
-        }
+        error_from_win32_bool!(SetMenu(
+            self.handle,
+            menu.map(|menu: MenuBar| menu.handle())
+                .unwrap_or(0 as *mut c_void),
+        ))
     }
 
     pub fn with_caption_menu<F, T>(&mut self, f: F) -> Result<T>
@@ -346,9 +344,9 @@ impl Window {
         // https://learn.microsoft.com/zh-cn/windows/win32/api/winuser/ns-winuser-wndclassexw
         // 文档：lpszClassName 的最大长度为 256。 如果 lpszClassName 大于最大长度，则 RegisterClassEx 函数将失败。
         let mut buffer = [0u16; 256];
-        let len = WinError::from_win32api_ptr(unsafe {
-            GetClassNameW(self.handle, buffer.as_mut_ptr(), 256)
-        } as *mut c_void)? as usize;
+        let len =
+            error_from_win32!(GetClassNameW(self.handle, buffer.as_mut_ptr(), 256) as *mut c_void)?
+                as usize;
         let mut vec = buffer[..len].to_vec();
         let _ = buffer;
         vec.push(0);
@@ -364,15 +362,13 @@ impl Window {
             None => 0,
             Some(x) => x.get(),
         } as u32;
-        unsafe { WinError::from_win32api_result(SetWindowContextHelpId(self.handle, help)) }
+        error_from_win32_bool!(SetWindowContextHelpId(self.handle, help))
     }
     #[inline]
     pub fn destroy(&mut self) -> Result<()> {
-        unsafe {
-            WinError::from_win32api_result(DestroyWindow(self.handle))?;
-            self.handle = 0 as HWND;
-            Ok(())
-        }
+        error_from_win32_bool!(DestroyWindow(self.handle))?;
+        self.handle = 0 as HWND;
+        Ok(())
     }
     #[inline]
     pub fn from_screen_point(point: Point) -> Option<Window> {
@@ -395,13 +391,11 @@ impl Window {
         if id == 0 {
             return Err(ERROR_CANNOT_REMOVE_DEFAULT);
         };
-        unsafe {
-            WinError::from_win32api_result(RemoveWindowSubclass(
-                self.handle,
-                Some(subclass_porc::<C>),
-                id,
-            ))?
-        };
+        error_from_win32_bool!(RemoveWindowSubclass(
+            self.handle,
+            Some(subclass_porc::<C>),
+            id,
+        ))?;
         Ok(())
     }
     pub fn add_msg_receiver<C: RawMessageHandler + Sync + 'static>(
@@ -414,14 +408,12 @@ impl Window {
         {
             return Err(ERROR_OBJECT_ALREADY_EXISTS);
         };
-        unsafe {
-            WinError::from_win32api_result(SetWindowSubclass(
-                self.handle,
-                Some(subclass_porc::<C>),
-                id,
-                0 as usize,
-            ))
-        }
+        error_from_win32_bool!(SetWindowSubclass(
+            self.handle,
+            Some(subclass_porc::<C>),
+            id,
+            0 as usize,
+        ))
     }
     pub fn has_receiver_for<C: RawMessageHandler + Sync + 'static>(
         &mut self,
@@ -437,17 +429,15 @@ impl Window {
     }
     #[inline]
     pub fn force_redraw(&mut self) -> Result<()> {
-        unsafe {
-            WinError::from_win32api_result(SetWindowPos(
-                self.handle,
-                0 as HWND,
-                0,
-                0,
-                0,
-                0,
-                SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER,
-            ))
-        }
+        error_from_win32_bool!(SetWindowPos(
+            self.handle,
+            0 as HWND,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER,
+        ))
     }
     #[inline]
     pub fn have_any_popup_window() -> bool {
@@ -557,7 +547,7 @@ impl Window {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
-            WinError::from_win32api_result(PostMessageW(self.handle, code, wparam, lparam))
+            error_from_win32_bool!(PostMessageW(self.handle, code, wparam, lparam))
         }
     }
     // pub async unsafe fn send_msg_unsafe_async<C: UnsafeMessage>(&self, msg: C) -> Result<isize> {
@@ -587,7 +577,7 @@ impl Window {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
-            WinError::current_error_result(SendMessageW(self.handle, code, wparam, lparam))
+            error_from_win32_zero_num!(SendMessageW(self.handle, code, wparam, lparam))
         }
     }
 }

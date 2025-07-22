@@ -40,7 +40,7 @@ impl DialogTempleControl for GroupBoxTemple {
         let (ms_style, ex, ct) = self.into();
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
-            ct, identifier, ms_style.0, pos.x, pos.y, size.width, size.height, ex.0
+            ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
         ))
     }
 }

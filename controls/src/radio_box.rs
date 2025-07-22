@@ -19,17 +19,17 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Radi
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
         let (mut ms_style, ex) = self.style.into();
         let (style2, ditype, text) = self.contect.into();
-        ms_style |= style2 | self.pos.into();
+        let pos: WINDOW_STYLE = self.pos.into();
+        ms_style |= style2 | pos;
         set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
+        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
+        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
         if self.auto {
             ms_style |= BS_AUTORADIOBUTTON as WINDOW_STYLE;
         } else {
             ms_style |= BS_RADIOBUTTON as WINDOW_STYLE;
         };
-        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
-        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
-
         (ms_style, ex, ditype, text)
     }
 }
@@ -38,26 +38,20 @@ impl DialogTempleControl for RadioBoxTemple {
     fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
         let (mut ms_style, ex) = self.style.into();
         let (style2, ct) = self.contect.into();
-        ms_style |= style2 | self.pos.into();
+        let poss: WINDOW_STYLE = self.pos.into();
+        ms_style |= style2 | poss;
         set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
+        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
+        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
         if self.auto {
             ms_style |= BS_AUTORADIOBUTTON as WINDOW_STYLE;
         } else {
             ms_style |= BS_RADIOBUTTON as WINDOW_STYLE;
         };
-        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
-        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
-            ct,
-            identifier,
-            (ms_style | style2 | self.pos.into()).0,
-            pos.x,
-            pos.y,
-            size.width,
-            size.height,
-            ex.0
+            ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
         ))
     }
 }
@@ -150,23 +144,16 @@ impl CommonControl for RadioBox {
 }
 impl RadioBox {
     pub fn is_checked(&self) -> Result<bool> {
-        let result = unsafe {
-            SendMessageW(
-                self.0.handle(),
-                BM_GETCHECK,
-                Some(WPARAM(0)),
-                Some(LPARAM(0)),
-            )
-            .0
-        };
-        match DLG_BUTTON_CHECK_STATE(match result.try_into() {
-            Ok(x) => x,
-            Err(_) => return Err(ERROR_NOT_SUPPORTED),
-        }) {
+        let result = error_from_win32_zero_num!(SendMessageW(
+            self.0.handle(),
+            BM_GETCHECK,
+            0 as WPARAM,
+            0 as LPARAM
+        ) as DLG_BUTTON_CHECK_STATE)?;
+        match result {
             BST_CHECKED => Ok(true),
             BST_UNCHECKED => Ok(false),
-            BST_INDETERMINATE => Err(ERROR_NOT_SUPPORTED),
-            _ => return Err(Error::correct_error()),
+            _ => Err(ERROR_NOT_SUPPORTED),
         }
     }
 }

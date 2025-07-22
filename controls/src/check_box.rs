@@ -21,9 +21,12 @@ impl DialogTempleControl for CheckBoxTemple {
     fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
         let (mut ms_style, ex) = self.style.into();
         let (style2, ct) = self.contect.into();
-        ms_style |= style2 | self.pos.into();
+        let poss: WINDOW_STYLE = self.pos.into();
+        ms_style |= style2 | poss;
         set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
+        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
+        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
         if self.three_state {
             if self.auto {
                 ms_style |= BS_AUTO3STATE as WINDOW_STYLE;
@@ -37,18 +40,9 @@ impl DialogTempleControl for CheckBoxTemple {
                 ms_style |= BS_CHECKBOX as WINDOW_STYLE;
             };
         };
-        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
-        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
-            ct,
-            identifier,
-            (ms_style | style2 | self.pos.into()).0,
-            pos.x,
-            pos.y,
-            size.width,
-            size.height,
-            ex.0
+            ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
         ))
     }
 }
@@ -94,8 +88,9 @@ impl CheckBoxTemple {
 impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for CheckBoxStyle {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
         let (mut ms_style, ex) = self.style.into();
+        let pos: WINDOW_STYLE = self.pos.into();
         let (style2, ditype, text) = self.contect.into();
-        ms_style |= style2 | self.pos.into();
+        ms_style |= style2 | pos;
         set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         if self.three_state {
@@ -190,9 +185,10 @@ impl CommonControl for CheckBox {
 }
 impl CheckBox {
     pub fn is_checked(&self) -> Result<CheckBoxState> {
-        match DLG_BUTTON_CHECK_STATE(unsafe {
-            SendMessageW(self.0.handle(), BM_GETCHECK, None, None).0 as u32
-        }) {
+        match unsafe {
+            SendMessageW(self.0.handle(), BM_GETCHECK, 0 as WPARAM, 0 as LPARAM)
+                as DLG_BUTTON_CHECK_STATE
+        } {
             BST_CHECKED => Ok(Checked),
             BST_UNCHECKED => Ok(UnChecked),
             BST_INDETERMINATE => Ok(Indeterminate),

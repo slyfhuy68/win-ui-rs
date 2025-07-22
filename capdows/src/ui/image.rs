@@ -26,20 +26,18 @@ impl Icon {
         let pcw = id.to_pcwstr();
         let (cx, cy) = size.unwrap_or(Size::new(0, 0)).to_tuple();
         Ok(Self {
-            handle: unsafe {
-                WinError::from_win32api_ptr(LoadImageW(
-                    module.into(),
-                    pcw,
-                    IMAGE_ICON,
-                    cx,
-                    cy,
-                    if share {
-                        IMAGE_FLAGS::default() | LR_SHARED
-                    } else {
-                        IMAGE_FLAGS::default()
-                    },
-                ))?
-            },
+            handle: error_from_win32!(LoadImageW(
+                module.into(),
+                pcw,
+                IMAGE_ICON,
+                cx,
+                cy,
+                if share {
+                    IMAGE_FLAGS::default() | LR_SHARED
+                } else {
+                    IMAGE_FLAGS::default()
+                },
+            ))?,
         })
     }
 }
@@ -160,32 +158,30 @@ impl Cursor {
         let pcw = id.to_pcwstr();
         let (cx, cy) = width.unwrap_or(Size::new(0, 0)).to_tuple();
         Ok(Self {
-            handle: unsafe {
-                WinError::from_win32api_ptr(LoadImageW(
-                    module.into(),
-                    pcw,
-                    IMAGE_CURSOR,
-                    cx,
-                    cy,
-                    if share {
-                        IMAGE_FLAGS::default() | LR_SHARED
-                    } else {
-                        IMAGE_FLAGS::default()
-                    },
-                ))?
-            },
+            handle: error_from_win32!(LoadImageW(
+                module.into(),
+                pcw,
+                IMAGE_CURSOR,
+                cx,
+                cy,
+                if share {
+                    IMAGE_FLAGS::default() | LR_SHARED
+                } else {
+                    IMAGE_FLAGS::default()
+                },
+            ))?,
         })
     }
     pub fn from_system(cursor: SystemCursor) -> Result<Self> {
         let id = cursor as u16;
         Ok(Cursor {
-            handle: WinError::from_win32api_ptr(unsafe {
-                LoadCursorW(0 as HMODULE, id as PCWSTR)
-            })?,
+            handle: error_from_win32!(LoadCursorW(0 as HMODULE, id as PCWSTR))?,
         })
     }
     pub fn apply(self) {
-        unsafe { SetCursor(self.into()) };
+        unsafe {
+            SetCursor(self.into());
+        }
     }
 }
 #[derive(Clone, PartialEq)]

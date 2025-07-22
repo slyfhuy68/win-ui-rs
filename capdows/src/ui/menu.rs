@@ -40,11 +40,7 @@ impl MenuBar {
     }
     #[inline]
     pub fn new() -> Result<Self> {
-        Ok(unsafe {
-            Self::from_menu(Menu::from_handle(
-                WinError::from_win32api_ptr(CreateMenu())?,
-            ))
-        })
+        Ok(unsafe { Self::from_menu(Menu::from_handle(error_from_win32!(CreateMenu())?)) })
     }
     #[inline]
     pub const unsafe fn null() -> Self {
@@ -495,7 +491,7 @@ impl Menu {
     #[inline]
     pub fn new() -> Result<Self> {
         Ok(Menu {
-            handle: unsafe { WinError::from_win32api_ptr(CreatePopupMenu())? },
+            handle: error_from_win32!(CreatePopupMenu())?,
         })
     }
     // pub fn nullify(&mut self) {
@@ -521,11 +517,10 @@ impl Menu {
         self.handle as usize == 0
     }
     pub fn item_count(&self) -> Result<MenuItemID> {
-        unsafe {
-            Ok(WinError::from_win32api_or_invalid(
-                GetMenuItemCount(self.handle) as *mut std::ffi::c_void
-            )? as MenuItemID)
-        }
+        Ok(
+            error_from_win32_or_invalid!(GetMenuItemCount(self.handle) as *mut std::ffi::c_void)?
+                as MenuItemID,
+        )
     }
     /// 如果菜单栏在创建窗口后发生更改，则需要调用window.redraw_menu_bar()来绘制更改后的菜单栏。
     pub fn insert_item(&mut self, before_item: Option<MenuItemPos>, item: MenuItem) -> Result<()> {
@@ -538,14 +533,12 @@ impl Menu {
             Some(CostomId(id)) => (id, 0),
             Some(Position(pos)) => (pos, 1),
         };
-        unsafe {
-            WinError::from_win32api_result(InsertMenuItemW(
-                self.handle,
-                id as u32,
-                flag,
-                &menu_item_info,
-            ))
-        }
+        error_from_win32_bool!(InsertMenuItemW(
+            self.handle,
+            id as u32,
+            flag,
+            &menu_item_info,
+        ))
     }
     pub fn set_item_state(
         &mut self,
@@ -568,7 +561,7 @@ impl Menu {
             CostomId(id) => (id, MF_BYCOMMAND),
             Position(pos) => (pos, MF_BYPOSITION),
         };
-        WinError::from_win32api_result(unsafe { DeleteMenu(self.handle, id as u32, flag) })
+        error_from_win32_bool!(DeleteMenu(self.handle, id as u32, flag))
     }
     pub fn clear(&mut self) -> Result<()> {
         for _ in 0..self.item_count()? {
