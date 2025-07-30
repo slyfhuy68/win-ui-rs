@@ -45,10 +45,10 @@ pub fn msg_box_timeout(
 #[macro_export] //AI宏
 macro_rules! msg_box {
     ($text:expr) => {
-        $crate::win32::tools::msg_box($text, None, Default::default(), Default::default())
+        $crate::ui::tools::msg_box($text, None, Default::default(), Default::default())
     };
     ($text:expr, $caption:expr) => {
-        $crate::win32::tools::msg_box(
+        $crate::ui::tools::msg_box(
             $text,
             Some($caption),
             Default::default(),
@@ -56,10 +56,10 @@ macro_rules! msg_box {
         )
     };
     ($text:expr, $caption:expr, $owner:expr) => {
-        $crate::win32::tools::msg_box($text, Some($caption), $owner, Default::default())
+        $crate::ui::tools::msg_box($text, Some($caption), $owner, Default::default())
     };
     ($text:expr, $caption:expr, $owner:expr, $options:expr) => {
-        $crate::win32::tools::msg_box($text, Some($caption), $owner, $options)
+        $crate::ui::tools::msg_box($text, Some($caption), $owner, $options)
     };
 }
 pub mod msg_box_style {

@@ -1,25 +1,31 @@
 use capdows::prelude::*;
-use capdows::{L, msg_box};
+use capdows::ui::msg::NoProcessed;
+use capdows::*;
+use capdows_controls::prelude::*;
+use capdows_controls::*;
+use euclid::rect;
+use std::marker::PhantomData;
 // use capdows_example::*;
-struct MyControls {
-    a1: RadioButton,
-    a2: RadioButton,
-    b1: RadioButton,
-    b2: RadioButton,
-    boxed1: CheckBox,
-    boxed2: CheckBox,
-    button1: Button,
-    link_button_1: LinkButton,
-    split_button: SplitButton,
-    g_b: GroupBox,
-    edit: Edit,
-    finder: WindowFinder,
-    text: ImageTextView,
-}
-struct Mycb {
-    num: i8,
-    controls: Option<MyControls>,
-}
+// struct MyControls {
+//     a1: RadioButton,
+//     a2: RadioButton,
+//     b1: RadioButton,
+//     b2: RadioButton,
+//     boxed1: CheckBox,
+//     boxed2: CheckBox,
+//     button1: Button,
+//     link_button_1: LinkButton,
+//     split_button: SplitButton,
+//     g_b: GroupBox,
+//     edit: Edit,
+//     finder: WindowFinder,
+//     text: ImageTextView,
+// }
+#[derive(Default)]
+struct Mycb; // {
+//     num: i8,
+//     controls: Option<MyControls>,
+// }
 const BUTTON_01: WindowID = 1u16;
 const SPLIT_BUTTON_01: WindowID = 2u16;
 const LINK_BUTTON_01: WindowID = 3u16;
@@ -37,7 +43,6 @@ const VIEW_02: WindowID = 8u16;
 const MENU_ITEM_1: MenuItemID = 1u16;
 impl MessageReceiver for Mycb {
     fn menu_command(
-        &mut self,
         _id: usize,
         window: &mut Window,
         item: MenuCommandMsgItemPos,
@@ -88,27 +93,25 @@ impl MessageReceiver for Mycb {
         };
         Ok(())
     }
-    fn error_handler(&mut self, err: MessageReceiverError) -> MessageReceiverResult<isize> {
-        println!("发生错误: {:?}", err);
-        Ok(err.code() as isize)
-    }
-
+    // fn error_handler(err: MessageReceiverError) -> MessageReceiverResult<isize> {
+    //     println!("发生错误: {:?}", err);
+    //     Ok(err.code() as isize)
+    // }
     fn create(
-        &mut self,
         _id: usize,
         window: &mut Window,
         _name: &str,
-        _class: WindowClass,
-        _file: ExecutableFile,
-        _pos: Rectangle,
+        _class: &mut WindowClass,
+        _file: &ExecutableFile,
+        _pos: Rect,
         _itype: &mut WindowType,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
         const FONT: ControlFont = ControlFont::CaptionFont;
-        let mut link_button_1 = LinkButton::new(
+        let mut link_button_1 = Button::new(
             window,
             "链接按钮01",
-            Some(Rectangle::PointSize(Point(400, 0), Size(150, 50))),
+            Some(rect(400, 0, 150, 50)),
             LINK_BUTTON_01,
             Default::default(),
             Some(FONT),
@@ -118,7 +121,7 @@ impl MessageReceiver for Mycb {
         let mut g_b = GroupBox::new(
             window,
             "分组框01",
-            Some(Rectangle::PointSize(Point(575, 0), Size(300, 100))),
+            Some(rect(575, 0, 300, 100)),
             GROUP_BOX_01,
             Default::default(),
             Some(FONT),
@@ -128,7 +131,7 @@ impl MessageReceiver for Mycb {
             button1: Button::new(
                 window,
                 "按钮01",
-                Some(Rectangle::PointSize(Point(0, 0), Size(150, 50))),
+                Some(rect(0, 0, 150, 50)),
                 BUTTON_01,
                 Default::default(),
                 Some(FONT),
@@ -138,7 +141,7 @@ impl MessageReceiver for Mycb {
             split_button: SplitButton::new(
                 window,
                 "分割按钮01",
-                Some(Rectangle::PointSize(Point(200, 0), Size(150, 50))),
+                Some(rect(200, 0, 150, 50)),
                 SPLIT_BUTTON_01,
                 Default::default(),
                 Some(FONT),
@@ -147,7 +150,7 @@ impl MessageReceiver for Mycb {
             a1: RadioButton::new(
                 g_b.get_window_mut(),
                 "单选按钮a01",
-                Some(Rectangle::PointSize(Point(20, 20), Size(100, 20))),
+                Some(rect(20, 20, 100, 20)),
                 RADIO_BUTTON_01_01,
                 RadioButtonDrawType::group_leader(),
                 Some(FONT),
@@ -156,7 +159,7 @@ impl MessageReceiver for Mycb {
             a2: RadioButton::new(
                 g_b.get_window_mut(),
                 "单选按钮a02",
-                Some(Rectangle::PointSize(Point(150, 20), Size(100, 20))),
+                Some(rect(150, 20, 100, 20)),
                 RADIO_BUTTON_01_02,
                 Default::default(),
                 Some(FONT),
@@ -165,7 +168,7 @@ impl MessageReceiver for Mycb {
             b1: RadioButton::new(
                 g_b.get_window_mut(),
                 "单选按钮b01",
-                Some(Rectangle::PointSize(Point(20, 70), Size(100, 20))),
+                Some(rect(20, 70, 100, 20)),
                 RADIO_BUTTON_02_01,
                 RadioButtonDrawType::group_leader(),
                 Some(FONT),
@@ -174,7 +177,7 @@ impl MessageReceiver for Mycb {
             b2: RadioButton::new(
                 g_b.get_window_mut(),
                 "单选按钮b02",
-                Some(Rectangle::PointSize(Point(150, 70), Size(100, 20))),
+                Some(rect(150, 70, 100, 20)),
                 RADIO_BUTTON_02_02,
                 Default::default(),
                 Some(FONT),
@@ -183,7 +186,7 @@ impl MessageReceiver for Mycb {
             boxed1: CheckBox::new(
                 window,
                 "选择框01",
-                Some(Rectangle::PointSize(Point(900, 0), Size(150, 50))),
+                Some(rect(900, 0, 150, 50)),
                 CHECK_BOX_01,
                 Default::default(),
                 Some(FONT),
@@ -192,7 +195,7 @@ impl MessageReceiver for Mycb {
             boxed2: CheckBox::new(
                 window,
                 "选择框02",
-                Some(Rectangle::PointSize(Point(900, 50), Size(150, 50))),
+                Some(rect(900, 50, 150, 50)),
                 CHECK_BOX_02,
                 CheckBoxDrawType::three_state(),
                 Some(FONT),
@@ -202,22 +205,17 @@ impl MessageReceiver for Mycb {
             edit: Edit::new(
                 window,
                 "编辑框01",
-                Some(Rectangle::PointSize(Point(15, 75), Size(130, 50))),
+                Some(rect(15, 75, 130, 50)),
                 EDIT_01,
                 Default::default(),
                 Some(FONT),
             )
             .unwrap(),
-            finder: WindowFinder::new(
-                window,
-                Some(Rectangle::PointSize(Point(200, 100), Size(130, 50))),
-                VIEW_01,
-            )
-            .unwrap(),
+            finder: WindowFinder::new(window, Some(rect(200, 100, 130, 50)), VIEW_01).unwrap(),
             text: ImageTextView::new(
                 window,
                 "展示框01",
-                Some(Rectangle::PointSize(Point(400, 100), Size(130, 50))),
+                Some(rect(400, 100, 130, 50)),
                 VIEW_02,
                 ImageTextViewStyle::new_text("文字"),
                 Some(FONT),
@@ -228,7 +226,6 @@ impl MessageReceiver for Mycb {
         Ok(true)
     }
     fn control_message(
-        &mut self,
         _id: usize,
         _window: &mut Window,
         msg: &mut RawMessage,
@@ -254,8 +251,8 @@ impl MessageReceiver for Mycb {
                 }
             }
             SPLIT_BUTTON_01 => {
-                use SplitButtonMsgType::*;
-                let msg = msg.get_control_msg::<SplitButton>()?;
+                use ButtonMsgType::*;
+                let msg = msg.get_control_msg::<Button>()?;
                 match msg.get_type() {
                     Clicked => {
                         println!(
@@ -279,7 +276,7 @@ impl MessageReceiver for Mycb {
             }
             LINK_BUTTON_01 => {
                 use ButtonMsgType::*;
-                let msg = msg.get_control_msg::<LinkButton>()?;
+                let msg = msg.get_control_msg::<Button>()?;
                 match msg.get_type() {
                     Clicked => {
                         println!("链接按钮1点了，文本：{}", controls.edit.get_text()?);
@@ -293,11 +290,9 @@ impl MessageReceiver for Mycb {
     }
 }
 fn main() -> Result<()> {
-    let class = WindowClass::register(
-        "LibraryTest 中文👅öé English",
-        Default::default(),
-        Some(NumberId(5)),
-        Some(
+    let class = WindowClassBuilder::new(Lc!("LibraryTest 中文👅öé English"))
+        .default_menu(NumberId(5))
+        .icon(
             Icon::load_from_module(
                 ExecutableFile::from_current_file().unwrap(),
                 NumberId(1),
@@ -305,8 +300,8 @@ fn main() -> Result<()> {
                 false,
             )
             .unwrap(),
-        ),
-        Some(
+        )
+        .small_icon(
             Icon::load_from_module(
                 ExecutableFile::from_current_file().unwrap(),
                 NumberId(1),
@@ -314,13 +309,12 @@ fn main() -> Result<()> {
                 false,
             )
             .unwrap(),
-        ),
-        Some(Cursor::from_system(SystemCursor::NormalSelection)?),
-        Some(ClassBackgroundBrush::BtnFace),
-        0,
-        0,
-    )
-    .unwrap();
+        )
+        .default_cursor()
+        .unwrap()
+        .background_brush(Some(ClassBackgroundBrush::BtnFace))
+        .build(PhantomData::<Mycb>)
+        .unwrap();
     let mut menu_bar = MenuBar::new().unwrap();
     menu_bar
         .insert_item(
@@ -343,15 +337,11 @@ fn main() -> Result<()> {
             },
             None,
             None,
-            Box::new(Mycb {
-                num: 0,
-                controls: None,
-            }),
         )
         .unwrap();
-    window.show(ShowWindowType::Normal).unwrap();
+    let _ = window.show(ShowWindowType::Normal);
     // window.redraw_menu_bar().unwrap();
     println!("ok");
-    capdows::win32::msg::msg_loop();
+    capdows::ui::msg::msg_loop();
     Ok(())
 }

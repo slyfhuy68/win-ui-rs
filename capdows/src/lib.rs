@@ -14,23 +14,24 @@ pub mod prelude {
         ui::{
             class::{WindowClass, WindowClassBuilder},
             control::{Control, ControlMsg, ControlMsgType, DefaultNMHDR, NotifyMessage},
-            core::ResourceID,
+            core::*,
             font::{ControlFont, Font},
             image::{Bitmap, Cursor, Icon},
             menu::{
-                Menu, MenuBar, MenuCheckShow, MenuItem, MenuItemDisabledState, MenuItemID,
-                MenuItemPos, MenuItemShow,
+                Menu, MenuBar, MenuCheckIcon, MenuCheckShow, MenuItem, MenuItemDisabledState,
+                MenuItemID, MenuItemPos, MenuItemShow, MenuItemStyle,
             },
+            module::ExecutableFile,
             msg::{
-                MessageReceiver, MessageReceiverError, MessageReceiverResult, RawMessage, msg_loop,
-                stop_msg_loop,
+                MenuCommandMsgItemPos, MessageReceiver, MessageReceiverError,
+                MessageReceiverResult, RawMessage, msg_loop, stop_msg_loop,
             },
             style::{
                 ChildWindowStyles, ClassBackgroundBrush, NormalWindowStyles, WindowBorderType,
                 WindowClassStyle, WindowSizeState, WindowType,
             },
             tools::{MessageBoxOptions, MessageBoxResult, msg_box},
-            window::{ShowWindowType, Window},
+            window::{ShowWindowType, Window, WindowID},
         },
     };
     #[doc(no_inline)]

@@ -1,7 +1,7 @@
 use capdows::L;
 use capdows::prelude::*;
-use capdows::ui::image::*;
-use capdows::ui::{control::*, style::*, window::*, *};
+// use capdows::ui::image::*;
+use capdows::ui::{control::*, style::*, *};
 use capdows_resource::dialog::{ControlPreCompilePruduct, DialogTempleControl};
 use std::ffi::c_void;
 use utility::*;
@@ -23,7 +23,7 @@ pub mod combo_box;
 pub mod edit;
 pub mod group_box;
 pub mod radio_box;
-pub mod view;
+// pub mod view;
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
