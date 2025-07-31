@@ -51,13 +51,14 @@ pub fn define_control(input: TokenStream) -> TokenStream {
     let msg_type_name_ident = Ident::new(&msg_type_name, control_name.span());
 
     let expanded = quote! {
+        #[derive(Debug)]
         pub struct #control_name(Window);
         unsafe impl Send for #control_name {}
         unsafe impl Sync for #control_name {}
 
         impl #control_name {
-            pub fn neednot(mut self){
-                self.get_window_mut().nullify()
+            pub fn neednot(self){
+                let _ = std::mem::ManuallyDrop::new(self);
             }
         }
 
@@ -103,10 +104,6 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
             pub unsafe fn get_type_mut(&mut self) -> &mut #msg_type_name_ident {
                 &mut self.msg_type
-            }
-            pub fn not_need(self){
-                //控件会自动在父窗口关闭时释放
-                let _ = std::mem::ManuallyDrop::new(self);
             }
         }
 

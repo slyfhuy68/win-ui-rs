@@ -1,22 +1,26 @@
 //! 警告：由于此crate为build.rs在编译器嵌入资源使用, 遇到任何错误都会直接panic（也就是编译期错误）
 use capdows::prelude::*;
+use capdows::ui::utility::*;
 use std::collections::HashMap;
 use std::env;
-use std::path::PathBuf;
-extern crate embed_resource;
-use embed_resource::*;
 use std::fs::File;
 use std::io::Write;
+use std::ops::Add;
 use std::path::Path;
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
+use windows_sys::Win32::Storage::FileSystem::*;
+
+mod compile_resource;
+pub use compile_resource::LinkFor;
+use compile_resource::compile_win32_res;
+// extern crate embed_resource;
+// use embed_resource::*;
 // use windows_sys::Win32::Foundation::SetLastError; //{
 // HMODULE, HWND, LPARAM, LRESULT, WPARAM,
 // POINT, POINTS, RECT, SIZE, WIN32_ERROR, HINSTANCE,
 // };
-use windows_sys::Win32::Storage::FileSystem::*;
 pub struct PreCompilePruduct(String);
-use capdows::ui::utility::*;
-use std::ops::Add;
-pub mod dialog;
 impl PreCompilePruduct {
     pub fn from(s: String) -> Self {
         Self(s)
@@ -25,14 +29,24 @@ impl PreCompilePruduct {
         self.0
     }
     pub fn compile(self) {
-        let out_dir = env::var("OUT_DIR").unwrap();
-        let dest_path = Path::new(&out_dir).join("resource.rc");
+        self.compile_for(Default::default())
+    }
+    pub fn compile_for(self, link_for: LinkFor) {
+        let out_dir = env::var("OUT_DIR").expect("No OUT_DIR env var");
+        let dest_path = Path::new(&out_dir).join(format!(
+            "resource_{}_{}.rc",
+            (self.0).as_bytes().len(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_nanos()
+        ));
         let mut f = File::create(&dest_path).expect("无法创建文件");
+
         f.write_all(b"\xEF\xBB\xBF").expect("无法写入文件头");
         f.write_all((self.0).as_bytes()).expect("无法写入文件");
-        compile(dest_path.to_str().unwrap(), NONE)
-            .manifest_required()
-            .unwrap();
+
+        compile_win32_res(dest_path.to_str().unwrap(), link_for);
     }
 }
 impl Add for PreCompilePruduct {
@@ -42,6 +56,7 @@ impl Add for PreCompilePruduct {
     }
 }
 pub use capdows::ui::core::{NumberId, ResourceID, StringId};
+pub mod dialog;
 pub mod image;
 pub mod menu;
 pub mod string_table;
@@ -50,6 +65,12 @@ pub mod version;
 macro_rules! compile_all {//ai宏
     ($first:expr, $($rest:expr),+ $(,)?) => {
         ($first $(+ $rest)+).compile()
+    };
+}
+#[macro_export]
+macro_rules! compile_all_for {//ai宏
+    ($for:expr, $first:expr, $($rest:expr),+ $(,)?) => {
+        ($first $(+ $rest)+).compile_for($for)
     };
 }
 fn pre_compile_resource_id(id: ResourceID) -> PreCompilePruduct {

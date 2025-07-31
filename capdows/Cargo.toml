@@ -8,7 +8,6 @@ edition.workspace = true
 [dependencies]
 either = "1.14.0"
 euclid = "0.22.11"
-tokio = { version = "1.44.2", features = ["rt"] }
 windows-targets = "0.53.2"
 
 [dependencies.capdows_utility]

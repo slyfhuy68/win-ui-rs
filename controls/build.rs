@@ -1,5 +1,10 @@
+use capdows_resource::{LinkFor, PreCompilePruduct};
 fn main() {
-    embed_resource::compile("manifest.rc", embed_resource::NONE)
-        .manifest_required()
-        .unwrap();
+    PreCompilePruduct::from(
+        "
+#define RT_MANIFEST 24
+1 RT_MANIFEST \"app.manifest\""
+            .to_string(),
+    )
+    .compile_for(LinkFor::Everything)
 }

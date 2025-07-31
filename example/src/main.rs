@@ -6,41 +6,35 @@ use capdows_controls::*;
 use euclid::rect;
 use std::marker::PhantomData;
 // use capdows_example::*;
-// struct MyControls {
-//     a1: RadioButton,
-//     a2: RadioButton,
-//     b1: RadioButton,
-//     b2: RadioButton,
-//     boxed1: CheckBox,
-//     boxed2: CheckBox,
-//     button1: Button,
-//     link_button_1: LinkButton,
-//     split_button: SplitButton,
-//     g_b: GroupBox,
-//     edit: Edit,
-//     finder: WindowFinder,
-//     text: ImageTextView,
-// }
-#[derive(Default)]
-struct Mycb; // {
-//     num: i8,
-//     controls: Option<MyControls>,
-// }
+#[derive(Debug)]
+struct MyControls {
+    a1: RadioBox,
+    a2: RadioBox,
+    b1: RadioBox,
+    b2: RadioBox,
+    boxed1: CheckBox,
+    boxed2: CheckBox,
+    edit: Edit,
+}
+static MY_CONTROLS: OnceLock<MyControls> = OnceLock::new();
+use std::sync::OnceLock;
+#[derive(Default, Debug)]
+struct Mycb;
 const BUTTON_01: WindowID = 1u16;
 const SPLIT_BUTTON_01: WindowID = 2u16;
 const LINK_BUTTON_01: WindowID = 3u16;
 const GROUP_BOX_01: WindowID = 4u16;
-const RADIO_BUTTON_01_01: WindowID = 1u16;
-const RADIO_BUTTON_01_02: WindowID = 2u16;
-const RADIO_BUTTON_02_01: WindowID = 3u16;
-const RADIO_BUTTON_02_02: WindowID = 4u16;
+const RADIO_BOX_01_01: WindowID = 1u16;
+const RADIO_BOX_01_02: WindowID = 2u16;
+const RADIO_BOX_02_01: WindowID = 3u16;
+const RADIO_BOX_02_02: WindowID = 4u16;
 const CHECK_BOX_01: WindowID = 5u16;
 const CHECK_BOX_02: WindowID = 6u16;
 const EDIT_01: WindowID = 7u16;
 const VIEW_01: WindowID = 8u16;
 const VIEW_02: WindowID = 8u16;
 //------------------------
-const MENU_ITEM_1: MenuItemID = 1u16;
+const MENU_ITEM_1: MenuItemID = 1145u16;
 impl MessageReceiver for Mycb {
     fn menu_command(
         _id: usize,
@@ -118,6 +112,37 @@ impl MessageReceiver for Mycb {
         )
         .unwrap();
         link_button_1.set_note("114514abc中文").unwrap();
+        link_button_1.neednot();
+        Button::new(
+            window,
+            "按钮01",
+            Some(rect(0, 0, 150, 50)),
+            BUTTON_01,
+            Default::default(),
+            Some(FONT),
+        )
+        .unwrap()
+        .neednot();
+        SplitButton::new(
+            window,
+            "分割按钮01",
+            Some(rect(200, 0, 150, 50)),
+            SPLIT_BUTTON_01,
+            Default::default(),
+            Some(FONT),
+        )
+        .unwrap()
+        .neednot();
+        ImageTextView::new(
+            window,
+            "展示框01",
+            Some(rect(400, 100, 130, 50)),
+            VIEW_02,
+            ImageTextViewStyle::new_text("文字"),
+            Some(FONT),
+        )
+        .unwrap()
+        .neednot();
         let mut g_b = GroupBox::new(
             window,
             "分组框01",
@@ -127,58 +152,39 @@ impl MessageReceiver for Mycb {
             Some(FONT),
         )
         .unwrap();
-        self.controls = Some(MyControls {
-            button1: Button::new(
-                window,
-                "按钮01",
-                Some(rect(0, 0, 150, 50)),
-                BUTTON_01,
-                Default::default(),
-                Some(FONT),
-            )
-            .unwrap(),
-            link_button_1,
-            split_button: SplitButton::new(
-                window,
-                "分割按钮01",
-                Some(rect(200, 0, 150, 50)),
-                SPLIT_BUTTON_01,
-                Default::default(),
-                Some(FONT),
-            )
-            .unwrap(),
-            a1: RadioButton::new(
+        let useful_controls = MyControls {
+            a1: RadioBox::new(
                 g_b.get_window_mut(),
                 "单选按钮a01",
                 Some(rect(20, 20, 100, 20)),
-                RADIO_BUTTON_01_01,
-                RadioButtonDrawType::group_leader(),
+                RADIO_BOX_01_01,
+                RadioBoxDrawType::group_leader(),
                 Some(FONT),
             )
             .unwrap(),
-            a2: RadioButton::new(
+            a2: RadioBox::new(
                 g_b.get_window_mut(),
                 "单选按钮a02",
                 Some(rect(150, 20, 100, 20)),
-                RADIO_BUTTON_01_02,
+                RADIO_BOX_01_02,
                 Default::default(),
                 Some(FONT),
             )
             .unwrap(),
-            b1: RadioButton::new(
+            b1: RadioBox::new(
                 g_b.get_window_mut(),
                 "单选按钮b01",
                 Some(rect(20, 70, 100, 20)),
-                RADIO_BUTTON_02_01,
-                RadioButtonDrawType::group_leader(),
+                RADIO_BOX_02_01,
+                RadioBoxDrawType::group_leader(),
                 Some(FONT),
             )
             .unwrap(),
-            b2: RadioButton::new(
+            b2: RadioBox::new(
                 g_b.get_window_mut(),
                 "单选按钮b02",
                 Some(rect(150, 70, 100, 20)),
-                RADIO_BUTTON_02_02,
+                RADIO_BOX_02_02,
                 Default::default(),
                 Some(FONT),
             )
@@ -201,7 +207,6 @@ impl MessageReceiver for Mycb {
                 Some(FONT),
             )
             .unwrap(),
-            g_b,
             edit: Edit::new(
                 window,
                 "编辑框01",
@@ -211,17 +216,9 @@ impl MessageReceiver for Mycb {
                 Some(FONT),
             )
             .unwrap(),
-            finder: WindowFinder::new(window, Some(rect(200, 100, 130, 50)), VIEW_01).unwrap(),
-            text: ImageTextView::new(
-                window,
-                "展示框01",
-                Some(rect(400, 100, 130, 50)),
-                VIEW_02,
-                ImageTextViewStyle::new_text("文字"),
-                Some(FONT),
-            )
-            .unwrap(),
-        });
+        };
+        g_b.neednot();
+        MY_CONTROLS.set(useful_controls).unwrap();
         println!("hello from example");
         Ok(true)
     }
@@ -231,7 +228,7 @@ impl MessageReceiver for Mycb {
         msg: &mut RawMessage,
         id: WindowID,
     ) -> MessageReceiverResult<isize> {
-        let controls = &mut self.controls.as_mut().ok_or(NoProcessed)?;
+        let controls = MY_CONTROLS.get_mut().ok_or(NoProcessed)?;
         match id {
             BUTTON_01 => {
                 use ButtonMsgType::*;
@@ -263,12 +260,7 @@ impl MessageReceiver for Mycb {
                         Ok(0)
                     }
                     DropDown(rect) => {
-                        if self.num == 127 {
-                            self.num = -128
-                        } else {
-                            self.num += 1;
-                        }
-                        println!("分割按钮1边点了！数字：{}按钮位置：{:?}", self.num, rect);
+                        println!("分割按钮1边点了！按钮位置：{:?}", rect);
                         Ok(0)
                     }
                     _ => Err(NoProcessed),

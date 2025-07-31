@@ -327,7 +327,7 @@ pub enum MenuCommandMsgItemPos<'a> {
 }
 ///每个回调的id表示一个窗口的接收器id，如果这是一个子类化接收器，NoProcessed表示调用子类链上一个接收器，id为子类化id，如果不是，那么id为0，NoProcessed表示进行默认处理
 #[allow(unused_variables)]
-pub trait MessageReceiver: Default {
+pub trait MessageReceiver: std::fmt::Debug + Default + Send + Sync + Unpin {
     // fn activating()包含WM_MOUSEACTIVATE
     fn mouse_msg(id: usize, window: &mut Window, msg: MouseMsg) -> MessageReceiverResult<()> {
         Err(NoProcessed)

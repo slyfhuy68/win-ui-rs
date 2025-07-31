@@ -1,3 +1,5 @@
+#[cfg(not(target_os = "windows"))]
+compile_error!("This crate only support windows target");
 pub mod error;
 pub mod i18n;
 pub mod positioning;

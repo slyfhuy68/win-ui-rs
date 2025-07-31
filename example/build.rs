@@ -78,5 +78,14 @@ fn main() {
         ]),
     }
     .pre_compile();
-    compile_all!(vstr, icon1, icon2, icon3, cursor1, menu1, st);
+    compile_all_for!(
+        LinkFor::Everything,
+        vstr,
+        icon1,
+        icon2,
+        icon3,
+        cursor1,
+        menu1,
+        st
+    );
 }
