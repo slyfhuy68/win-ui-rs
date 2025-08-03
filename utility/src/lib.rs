@@ -48,7 +48,7 @@ pub fn runtime_fmt(temple: &str, list: &[&str]) -> Option<String> {
             x => result.push(x),
         }
     }
-    result.shrink_to_fit();
+    // result.shrink_to_fit();
     Some(result)
 }
 pub fn do_escapes(string: &str) -> String {
@@ -63,12 +63,12 @@ pub fn do_escapes(string: &str) -> String {
             '\n' => "\\n",
             '\t' => "\\t",
             other => {
-                result.push_str(&format!("\\u{:X}", other as u32));
+                result.push(other); //result.push_str(&format!("\\u{:X}", other as u32));
                 continue;
             }
         });
     }
-    result.shrink_to_fit();
+    // result.shrink_to_fit();
     result
 }
 #[cfg(test)]
@@ -253,21 +253,21 @@ mod tests {
     #[test]
     fn escape_regular_char() {
         let input = "a";
-        let expected = r#"\u61"#; // 'a' 的 Unicode 码点是 U+0061
+        let expected = r#"a"#; // 'a' 的 Unicode 码点是 U+0061
         assert_eq!(do_escapes(input), expected);
     }
 
     #[test]
     fn escape_unicode_char() {
         let input = "�"; // Unicode: U+FFFD
-        let expected = r#"\uFFFD"#;
+        let expected = r#"�"#;
         assert_eq!(do_escapes(input), expected);
     }
 
     #[test]
     fn escape_mixed_string() {
         let input = "Hello\nWorld\t!";
-        let expected = r#"\u48\u65\u6C\u6C\u6F\n\u57\u6F\u72\u6C\u64\t\u21"#;
+        let expected = r#"Hello\nWorld\t!"#;
         assert_eq!(do_escapes(input), expected);
     }
 

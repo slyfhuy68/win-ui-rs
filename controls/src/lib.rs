@@ -43,12 +43,78 @@ pub mod prelude {
         group_box::{GroupBox, GroupBoxMsg, GroupBoxMsgType, GroupBoxStyle},
         radio_box::{
             RadioBox, RadioBoxContent, RadioBoxContentPos, RadioBoxMsg, RadioBoxMsgType,
-            RadioBoxStyle, RadioBoxTempleContent,
+            RadioBoxStyle,
         },
         // view::{
         //
-        // }
+        // },
+        traits::*,
     };
+}
+pub mod prelude_build {
+    #[doc(no_inline)]
+    pub use crate::{
+        // view::{
+        //
+        // },
+        build::*,
+        button::{BottonContentPos, ButtonTemple, ButtonTempleContent, ButtonType},
+        check_box::{CheckBoxContentPos, CheckBoxState, CheckBoxTemple, CheckBoxTempleContent},
+        combo_box::{
+            CaseType as ComboBoxCaseType, ComboBoxShow, ComboBoxTemple,
+            OwnerDrawType as ComboBoxOwnerDrawType,
+        },
+        edit::{CaseType as EditCaseType, EditTemple, EditTempleType},
+        group_box::GroupBoxTemple,
+        radio_box::{RadioBoxContentPos, RadioBoxTemple, RadioBoxTempleContent},
+    };
+}
+// 警告：由于此mod用于build.rs在编译期嵌入资源, 遇到任何错误都会直接panic（也就是编译期错误）
+pub mod build {
+    use capdows_resource::{LinkFor, PreCompilePruduct};
+    use std::env;
+    use std::fs::File;
+    use std::io::Write;
+    use std::path::Path;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    pub fn init_controls() {
+        let out_dir = env::var("OUT_DIR").expect("No OUT_DIR env var");
+        let dest_path = Path::new(&out_dir).join(format!(
+            "init_controls_manifest_auto_{}.manifest",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_nanos()
+        ));
+
+        let mut f = File::create(&dest_path).expect("无法创建文件");
+        f.write_all(
+            r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+<dependency>
+    <dependentAssembly>
+        <assemblyIdentity
+            type="win32"
+            name="Microsoft.Windows.Common-Controls"
+            version="6.0.0.0"
+            processorArchitecture="*"
+            publicKeyToken="6595b64144ccf1df"
+            language="*"
+        />
+    </dependentAssembly>
+</dependency>
+</assembly>"#
+                .as_bytes(),
+        )
+        .expect("无法写入文件");
+
+        PreCompilePruduct::from(format!(
+            "#define RT_MANIFEST 24
+1 RT_MANIFEST \"{}\"",
+            capdows::ui::utility::do_escapes(&dest_path.display().to_string())
+        ))
+        .compile_for(LinkFor::AllBinaries)
+    }
 }
 pub type ButtonImage = Either<Bitmap, Icon>;
 use either::*;
@@ -145,55 +211,59 @@ fn is_some_window(wnd: &Window, class: &'static widestr) -> Result<bool> {
     Ok(unsafe { class.eq_ignore_ascii_case(widestr::from_utf16_unchecked(new_buffer)) })
 }
 use capdows_macros::define_control;
-pub trait CommonControl: Control + Sized {
-    type Style: Send + Sync;
-    fn new(
-        wnd: &mut Window,
-        pos: Option<Rect>,
-        identifier: WindowID,
-        control_style: Self::Style,
-        font: Option<ControlFont>,
-    ) -> Result<Self>;
-}
-pub trait TextControl: Control + Sized {
-    const INSUFFICIENT_SPACE_RESULT: u32 = 0;
-    const NOT_SUPPORT_RESULT: u32 = CB_ERR as u32;
-    fn get_text(&self) -> Result<String> {
-        let length = self.get_text_length()?;
-        if length == 0 {
-            return Ok(String::new());
-        };
-        let mut buffer: Vec<u16> = vec![0; length + 1];
-        error_from_win32_bool!(SendMessageW(
-            self.get_window().handle(),
-            WM_GETTEXT,
-            length as WPARAM,
-            buffer.as_mut_ptr() as LPARAM,
-        ))?;
-        Ok(String::from_utf16_lossy(&buffer[..length]))
+mod traits {
+    use super::*;
+    pub trait CommonControl: Control + Sized {
+        type Style: Send + Sync;
+        fn new(
+            wnd: &mut Window,
+            pos: Option<Rect>,
+            identifier: WindowID,
+            control_style: Self::Style,
+            font: Option<ControlFont>,
+        ) -> Result<Self>;
     }
-    fn get_text_length(&self) -> Result<usize> {
-        Ok(error_from_win32_zero_num!(SendMessageW(
-            self.get_window().handle(),
-            WM_GETTEXTLENGTH,
-            0 as WPARAM,
-            0 as LPARAM,
-        ))? as usize)
-    }
-    fn set_text(&mut self, text: &str) -> Result<()> {
-        let (text_ptr, _buffer) = str_to_pcwstr(text);
-        let result = error_from_win32_zero_num!(SendMessageW(
-            self.get_window().handle(),
-            WM_SETTEXT,
-            0 as WPARAM,
-            text_ptr as LPARAM,
-        ))? as u32;
-        if result == Self::INSUFFICIENT_SPACE_RESULT {
-            Err(ERROR_INSUFFICIENT_SPACE)
-        } else if result == Self::NOT_SUPPORT_RESULT {
-            Err(ERROR_NOT_SUPPORTED)
-        } else {
-            Ok(())
+    pub trait TextControl: Control + Sized {
+        const INSUFFICIENT_SPACE_RESULT: u32 = 0;
+        const NOT_SUPPORT_RESULT: u32 = CB_ERR as u32;
+        fn get_text(&self) -> Result<String> {
+            let length = self.get_text_length()?;
+            if length == 0 {
+                return Ok(String::new());
+            };
+            let mut buffer: Vec<u16> = vec![0; length + 1];
+            error_from_win32_bool!(SendMessageW(
+                self.get_window().handle(),
+                WM_GETTEXT,
+                length as WPARAM,
+                buffer.as_mut_ptr() as LPARAM,
+            ))?;
+            Ok(String::from_utf16_lossy(&buffer[..length]))
+        }
+        fn get_text_length(&self) -> Result<usize> {
+            Ok(error_from_win32_zero_num!(SendMessageW(
+                self.get_window().handle(),
+                WM_GETTEXTLENGTH,
+                0 as WPARAM,
+                0 as LPARAM,
+            ))? as usize)
+        }
+        fn set_text(&mut self, text: &str) -> Result<()> {
+            let (text_ptr, _buffer) = str_to_pcwstr(text);
+            let result = error_from_win32_zero_num!(SendMessageW(
+                self.get_window().handle(),
+                WM_SETTEXT,
+                0 as WPARAM,
+                text_ptr as LPARAM,
+            ))? as u32;
+            if result == Self::INSUFFICIENT_SPACE_RESULT {
+                Err(ERROR_INSUFFICIENT_SPACE)
+            } else if result == Self::NOT_SUPPORT_RESULT {
+                Err(ERROR_NOT_SUPPORTED)
+            } else {
+                Ok(())
+            }
         }
     }
 }
+use traits::*;

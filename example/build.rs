@@ -1,6 +1,7 @@
 extern crate capdows_resource;
 // use either::Either;
 // use either::Either::*;
+use capdows_controls::prelude_build::*;
 use capdows_resource::menu::*;
 use capdows_resource::string_table::*;
 use capdows_resource::*;
@@ -8,6 +9,7 @@ use capdows_resource::{image::*, version::*};
 use std::collections::HashMap;
 use version::LangID as vLangID;
 fn main() {
+    init_controls();
     let vstr = Version {
         product_internal_version: (0u16, 0u16, 0u16, 1u16),
         file_internal_version: None,
@@ -23,10 +25,10 @@ fn main() {
         ftype: Default::default(),
     }
     .pre_compile();
-    let icon1 = Icon("./res/ICON1.ico".into(), None).pre_compile(NumberId(1));
-    let icon2 = Icon("./res/ICON2.ico".into(), None).pre_compile(NumberId(2));
-    let icon3 = Icon("./res/ICON3.ico".into(), None).pre_compile(NumberId(3));
-    let cursor1 = Cursor("./res/CURSOR1.cur".into(), None).pre_compile(NumberId(4));
+    let icon1 = Icon(r#".\test_res\ICON1.ico"#.into(), None).pre_compile(NumberId(1));
+    let icon2 = Icon(r#".\test_res\ICON2.ico"#.into(), None).pre_compile(NumberId(2));
+    let icon3 = Icon(r#".\test_res\ICON3.ico"#.into(), None).pre_compile(NumberId(3));
+    let cursor1 = Cursor(r#".\test_res\CURSOR1.cur"#.into(), None).pre_compile(NumberId(4));
     let menu1 = MenuTemplate {
         language: None,
         items: vec![

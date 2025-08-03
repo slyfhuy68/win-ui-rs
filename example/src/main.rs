@@ -1,8 +1,8 @@
+use capdows::Lc;
+use capdows::msg_box;
 use capdows::prelude::*;
 use capdows::ui::msg::NoProcessed;
-use capdows::*;
 use capdows_controls::prelude::*;
-use capdows_controls::*;
 use euclid::rect;
 use std::marker::PhantomData;
 // use capdows_example::*;
@@ -104,10 +104,9 @@ impl MessageReceiver for Mycb {
         const FONT: ControlFont = ControlFont::CaptionFont;
         let mut link_button_1 = Button::new(
             window,
-            "链接按钮01",
             Some(rect(400, 0, 150, 50)),
             LINK_BUTTON_01,
-            Default::default(),
+            ButtonStyle::new(ButtonType::Link, "链接按钮01"),
             Some(FONT),
         )
         .unwrap();
@@ -115,104 +114,95 @@ impl MessageReceiver for Mycb {
         link_button_1.neednot();
         Button::new(
             window,
-            "按钮01",
             Some(rect(0, 0, 150, 50)),
             BUTTON_01,
-            Default::default(),
+            ButtonStyle::new(ButtonType::Normal, "按钮01"),
             Some(FONT),
         )
         .unwrap()
         .neednot();
-        SplitButton::new(
+        Button::new(
             window,
-            "分割按钮01",
+            // "分割按钮01",
             Some(rect(200, 0, 150, 50)),
             SPLIT_BUTTON_01,
-            Default::default(),
+            ButtonStyle::new(ButtonType::Normal, "分割按钮01"),
             Some(FONT),
         )
         .unwrap()
         .neednot();
-        ImageTextView::new(
-            window,
-            "展示框01",
-            Some(rect(400, 100, 130, 50)),
-            VIEW_02,
-            ImageTextViewStyle::new_text("文字"),
-            Some(FONT),
-        )
-        .unwrap()
-        .neednot();
+        // ImageTextView::new(
+        //     window,
+        //     "展示框01",
+        //     Some(rect(400, 100, 130, 50)),
+        //     VIEW_02,
+        //     ImageTextViewStyle::new_text("文字"),
+        //     Some(FONT),
+        // )
+        // .unwrap()
+        // .neednot();
         let mut g_b = GroupBox::new(
             window,
-            "分组框01",
             Some(rect(575, 0, 300, 100)),
             GROUP_BOX_01,
-            Default::default(),
+            GroupBoxStyle::new("分组框01"),
             Some(FONT),
         )
         .unwrap();
         let useful_controls = MyControls {
             a1: RadioBox::new(
                 g_b.get_window_mut(),
-                "单选按钮a01",
                 Some(rect(20, 20, 100, 20)),
                 RADIO_BOX_01_01,
-                RadioBoxDrawType::group_leader(),
+                RadioBoxStyle::new_text("单选按钮a01").group_leader(),
                 Some(FONT),
             )
             .unwrap(),
             a2: RadioBox::new(
                 g_b.get_window_mut(),
-                "单选按钮a02",
                 Some(rect(150, 20, 100, 20)),
                 RADIO_BOX_01_02,
-                Default::default(),
+                RadioBoxStyle::new_text("单选按钮a02"),
                 Some(FONT),
             )
             .unwrap(),
             b1: RadioBox::new(
                 g_b.get_window_mut(),
-                "单选按钮b01",
                 Some(rect(20, 70, 100, 20)),
                 RADIO_BOX_02_01,
-                RadioBoxDrawType::group_leader(),
+                RadioBoxStyle::new_text("单选按钮b01").group_leader(),
                 Some(FONT),
             )
             .unwrap(),
             b2: RadioBox::new(
                 g_b.get_window_mut(),
-                "单选按钮b02",
                 Some(rect(150, 70, 100, 20)),
                 RADIO_BOX_02_02,
-                Default::default(),
+                RadioBoxStyle::new_text("单选按钮b02"),
                 Some(FONT),
             )
             .unwrap(),
             boxed1: CheckBox::new(
                 window,
-                "选择框01",
                 Some(rect(900, 0, 150, 50)),
                 CHECK_BOX_01,
-                Default::default(),
+                CheckBoxStyle::new_text("选择框01"),
                 Some(FONT),
             )
             .unwrap(),
             boxed2: CheckBox::new(
                 window,
-                "选择框02",
                 Some(rect(900, 50, 150, 50)),
                 CHECK_BOX_02,
-                CheckBoxDrawType::three_state(),
+                CheckBoxStyle::new_text("选择框02").three_state(),
                 Some(FONT),
             )
             .unwrap(),
             edit: Edit::new(
                 window,
-                "编辑框01",
                 Some(rect(15, 75, 130, 50)),
                 EDIT_01,
-                Default::default(),
+                EditStyle::new("编辑框01"),
                 Some(FONT),
             )
             .unwrap(),
@@ -228,19 +218,19 @@ impl MessageReceiver for Mycb {
         msg: &mut RawMessage,
         id: WindowID,
     ) -> MessageReceiverResult<isize> {
-        let controls = MY_CONTROLS.get_mut().ok_or(NoProcessed)?;
+        let controls = MY_CONTROLS.get().unwrap();
         match id {
             BUTTON_01 => {
                 use ButtonMsgType::*;
-                let msg = msg.get_control_msg::<Button>()?;
+                let msg = msg.get_control_msg::<Button>().unwrap();
                 match msg.get_type() {
                     Clicked => {
                         println!(
                             "按钮1点了a1:{} a2:{} b1:{} b2:{}",
-                            controls.a1.is_checked()?,
-                            controls.a2.is_checked()?,
-                            controls.b1.is_checked()?,
-                            controls.b2.is_checked()?
+                            controls.a1.is_checked().unwrap(),
+                            controls.a2.is_checked().unwrap(),
+                            controls.b1.is_checked().unwrap(),
+                            controls.b2.is_checked().unwrap()
                         );
                         Ok(0)
                     }
@@ -249,13 +239,13 @@ impl MessageReceiver for Mycb {
             }
             SPLIT_BUTTON_01 => {
                 use ButtonMsgType::*;
-                let msg = msg.get_control_msg::<Button>()?;
+                let msg = msg.get_control_msg::<Button>().unwrap();
                 match msg.get_type() {
                     Clicked => {
                         println!(
                             "分割按钮1点了box1:{} box2:{}",
-                            controls.boxed1.is_checked()?,
-                            controls.boxed2.is_checked()?,
+                            controls.boxed1.is_checked().unwrap(),
+                            controls.boxed2.is_checked().unwrap(),
                         );
                         Ok(0)
                     }
@@ -268,10 +258,10 @@ impl MessageReceiver for Mycb {
             }
             LINK_BUTTON_01 => {
                 use ButtonMsgType::*;
-                let msg = msg.get_control_msg::<Button>()?;
+                let msg = msg.get_control_msg::<Button>().unwrap();
                 match msg.get_type() {
                     Clicked => {
-                        println!("链接按钮1点了，文本：{}", controls.edit.get_text()?);
+                        println!("链接按钮1点了，文本：{}", controls.edit.get_text().unwrap());
                         Ok(0)
                     }
                     _ => Err(NoProcessed),

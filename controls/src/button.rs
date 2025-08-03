@@ -64,6 +64,19 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Butt
         (ms_style | style2 | pos, ex, ditype, text)
     }
 }
+impl ButtonStyle {
+    pub fn new(btype: ButtonType, text: &str) -> Self {
+        ButtonOption {
+            style: ChildWindowStyles::default(),
+            btype,
+            contect: ButtonContent::new_text(text),
+            pos: BottonContentPos::default(),
+            extra_msg: false,
+            flat: false,
+            focused: false,
+        }
+    }
+}
 pub type ButtonTemple = ButtonOption<ButtonTempleContent>;
 impl DialogTempleControl for ButtonTemple {
     fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {

@@ -18,3 +18,6 @@ path = "../controls"
 [build-dependencies.capdows_resource]
 path = "../res"
 
+[build-dependencies.capdows_controls]
+path = "../controls"
+

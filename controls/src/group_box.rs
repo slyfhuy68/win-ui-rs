@@ -28,6 +28,14 @@ pub struct GroupBoxStyle {
     pub style: ChildWindowStyles,
     pub text: String,
 }
+impl GroupBoxStyle {
+    pub fn new(text: &str) -> Self {
+        GroupBoxStyle {
+            style: ChildWindowStyles::default(),
+            text: text.to_string(),
+        }
+    }
+}
 pub type GroupBoxTemple = GroupBoxStyle;
 impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for GroupBoxStyle {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {

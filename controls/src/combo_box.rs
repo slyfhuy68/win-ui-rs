@@ -25,7 +25,7 @@ pub struct OwnerDrawType {
     pub owner_save_list: bool, //CBS_HASSTRINGS
     pub variable_height: bool, //false: CBS_OWNERDRAWFIXED, true: CBS_OWNERDRAWVARIABLE
 }
-type ComboBoxTemple = ComboBoxStyle;
+pub type ComboBoxTemple = ComboBoxStyle;
 impl DialogTempleControl for ComboBoxTemple {
     fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
         let (ms_style, ex, ct) = self.into();
