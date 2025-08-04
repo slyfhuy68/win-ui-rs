@@ -1,7 +1,6 @@
 use capdows::L;
 use capdows::prelude::*;
-// use capdows::ui::image::*;
-use capdows::ui::{control::*, style::*, *};
+use capdows::ui::{control::*, image::*, style::*, *};
 use capdows_resource::dialog::{ControlPreCompilePruduct, DialogTempleControl};
 use std::ffi::c_void;
 use utility::*;
@@ -23,7 +22,7 @@ pub mod combo_box;
 pub mod edit;
 pub mod group_box;
 pub mod radio_box;
-// pub mod view;
+pub mod view;
 pub mod prelude {
     #[doc(no_inline)]
     pub use crate::{
@@ -45,18 +44,16 @@ pub mod prelude {
             RadioBox, RadioBoxContent, RadioBoxContentPos, RadioBoxMsg, RadioBoxMsgType,
             RadioBoxStyle,
         },
-        // view::{
-        //
-        // },
         traits::*,
+        view::{
+            Alignment, EllipsisType, ImageView, ImageViewContent, ImageViewMsg, ImageViewMsgType,
+            ImageViewStyle, TextView, TextViewContent, TextViewMsg, TextViewMsgType, TextViewStyle,
+        },
     };
 }
 pub mod prelude_build {
     #[doc(no_inline)]
     pub use crate::{
-        // view::{
-        //
-        // },
         build::*,
         button::{BottonContentPos, ButtonTemple, ButtonTempleContent, ButtonType},
         check_box::{CheckBoxContentPos, CheckBoxState, CheckBoxTemple, CheckBoxTempleContent},
@@ -67,6 +64,10 @@ pub mod prelude_build {
         edit::{CaseType as EditCaseType, EditTemple, EditTempleType},
         group_box::GroupBoxTemple,
         radio_box::{RadioBoxContentPos, RadioBoxTemple, RadioBoxTempleContent},
+        view::{
+            Alignment, EllipsisType, ImageViewTemple, ImageViewTempleContent, TextViewContent,
+            TextViewTemple,
+        },
     };
 }
 // 警告：由于此mod用于build.rs在编译期嵌入资源, 遇到任何错误都会直接panic（也就是编译期错误）
@@ -211,7 +212,7 @@ fn is_some_window(wnd: &Window, class: &'static widestr) -> Result<bool> {
     Ok(unsafe { class.eq_ignore_ascii_case(widestr::from_utf16_unchecked(new_buffer)) })
 }
 use capdows_macros::define_control;
-mod traits {
+pub mod traits {
     use super::*;
     pub trait CommonControl: Control + Sized {
         type Style: Send + Sync;

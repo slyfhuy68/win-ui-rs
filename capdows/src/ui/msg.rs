@@ -171,9 +171,7 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                         }
                     }
                 }
-                WM_NOTIFYFORMAT => {
-                    Some(2isize) //此crate只能创建Unicode窗口NFR_UNICODE
-                }
+                WM_NOTIFYFORMAT => Some(2isize), //此crate只能创建Unicode窗口NFR_UNICODE
                 WM_MENUCOMMAND => {
                     let mut hmenu = param2 as HMENU;
                     do_nofity! { C::menu_command(
@@ -284,8 +282,8 @@ pub enum MouseMsg {
     // Activate {
     //     activation: MouseActivateState,
     // },
-    //
-    // HitTest {
+    // {
+    // HitTest
     //     hit_test_code: HitTestCode,
     // },//自动响应
 }

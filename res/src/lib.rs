@@ -22,12 +22,15 @@ use compile_resource::compile_win32_res;
 // };
 pub struct PreCompilePruduct(String);
 impl PreCompilePruduct {
+    #[inline]
     pub fn from(s: String) -> Self {
         Self(s)
     }
+    #[inline]
     pub fn get(self) -> String {
         self.0
     }
+    #[inline]
     pub fn compile(self) {
         self.compile_for(Default::default())
     }
@@ -73,7 +76,7 @@ macro_rules! compile_all_for {//ai宏
         ($first $(+ $rest)+).compile_for($for)
     };
 }
-fn pre_compile_resource_id(id: ResourceID) -> PreCompilePruduct {
+pub fn pre_compile_resource_id(id: ResourceID) -> PreCompilePruduct {
     PreCompilePruduct::from(match id {
         StringId(y) => {
             let result = y.to_string();
@@ -85,7 +88,7 @@ fn pre_compile_resource_id(id: ResourceID) -> PreCompilePruduct {
         NumberId(x) => x.to_string(),
     })
 }
-fn pre_compile_lang_id(id: Option<LangID>) -> PreCompilePruduct {
+pub fn pre_compile_lang_id(id: Option<LangID>) -> PreCompilePruduct {
     PreCompilePruduct::from(match id {
         None => String::from("\nLANGUAGE 0x000, 0x00\n"), //LANG_NEUTRAL, SUBLANG_NEUTRAL
         Some(id) => {

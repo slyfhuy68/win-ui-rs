@@ -31,8 +31,8 @@ const RADIO_BOX_02_02: WindowID = 4u16;
 const CHECK_BOX_01: WindowID = 5u16;
 const CHECK_BOX_02: WindowID = 6u16;
 const EDIT_01: WindowID = 7u16;
-// const VIEW_01: WindowID = 8u16;
-// const VIEW_02: WindowID = 8u16;
+const VIEW_01: WindowID = 8u16;
+// const VIEW_02: WindowID = 9u16;
 //------------------------
 const MENU_ITEM_1: MenuItemID = 1145u16;
 impl MessageReceiver for Mycb {
@@ -139,16 +139,15 @@ impl MessageReceiver for Mycb {
         )
         .unwrap()
         .neednot();
-        // ImageTextView::new(
-        //     window,
-        //     "展示框01",
-        //     Some(rect(400, 100, 130, 50)),
-        //     VIEW_02,
-        //     ImageTextViewStyle::new_text("文字"),
-        //     Some(FONT),
-        // )
-        // .unwrap()
-        // .neednot();
+        TextView::new(
+            window,
+            Some(rect(400, 100, 130, 50)),
+            VIEW_01,
+            TextViewStyle::new("文字"),
+            Some(FONT),
+        )
+        .unwrap()
+        .neednot();
         let mut g_b = GroupBox::new(
             window,
             Some(rect(575, 0, 300, 100)),
@@ -202,7 +201,7 @@ impl MessageReceiver for Mycb {
                 window,
                 Some(rect(900, 50, 150, 50)),
                 CHECK_BOX_02,
-                CheckBoxStyle::new_text("aa").three_state(),
+                CheckBoxStyle::new_text("选择框02").three_state(),
                 Some(FONT),
             )
             .unwrap(),
