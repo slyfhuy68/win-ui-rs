@@ -27,19 +27,12 @@ impl DialogTempleControl for CheckBoxTemple {
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
         set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
-        if self.three_state {
-            if self.auto {
-                ms_style |= BS_AUTO3STATE as WINDOW_STYLE;
-            } else {
-                ms_style |= BS_3STATE as WINDOW_STYLE;
-            };
-        } else {
-            if self.auto {
-                ms_style |= BS_AUTOCHECKBOX as WINDOW_STYLE;
-            } else {
-                ms_style |= BS_CHECKBOX as WINDOW_STYLE;
-            };
-        };
+        ms_style |= match (self.three_state, self.auto) {
+            (true, true) => BS_AUTO3STATE,
+            (true, false) => BS_3STATE,
+            (false, true) => BS_AUTOCHECKBOX,
+            (false, false) => BS_CHECKBOX,
+        } as WINDOW_STYLE;
         ControlPreCompilePruduct::from(format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex

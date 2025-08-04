@@ -25,22 +25,30 @@ pub fn msg_box(
 pub fn msg_box_timeout(
     text: &str,
     caption: Option<&str>,
-    time_out: Option<Duration>,
+    time_out: std::time::Duration,
     owner: MessageBoxOwnerWindow,
     options: MessageBoxOptions,
 ) -> Result<MessageBoxResult> {
-    windows_link::link!("user32.dll" "system" fn MessageBoxTimeoutW(hwnd : HWND, lptext : windows::core::PCWSTR, lpcaption : windows::core::PCWSTR, utype : MESSAGEBOX_STYLE, wlanguageid : u16, dwMilliseconds: u32) -> MESSAGEBOX_RESULT);
+    windows_link::link!("user32.dll" "system" fn MessageBoxTimeoutW(hwnd : HWND, lptext : PCWSTR, lpcaption : PCWSTR, utype : MESSAGEBOX_STYLE, wlanguageid : u16, dwMilliseconds: u32) -> MESSAGEBOX_RESULT);
     let (text, _buffer1) = str_to_pcwstr(text);
     let (caption, _buffer2) = match caption {
-        None => (PCWSTR::null(), Vec::new()),
+        None => (0 as *const u16, Vec::new()),
         Some(s) => str_to_pcwstr(s),
     };
     let (style1, lang_id) = options.into();
     let (style2, hwnd) = owner.into();
-    match unsafe { MessageBoxTimeoutW(hwnd, text, caption, style1 | style2, lang_id) } {
-        MESSAGEBOX_RESULT(0) => Err(correct_error()),
-        x => Ok(x.try_into()?),
-    }
+    Ok(error_from_win32_num!(MessageBoxTimeoutW(
+        hwnd,
+        text,
+        caption,
+        style1 | style2,
+        lang_id,
+        time_out
+            .as_millis()
+            .try_into()
+            .map_err(|_| ERROR_INVALID_DATA)?
+    ))?
+    .try_into()?)
 }
 #[macro_export] //AI宏
 macro_rules! msg_box {
@@ -281,7 +289,7 @@ impl Into<MESSAGEBOX_RESULT> for MessageBoxResult {
             MessageBoxResult::Continue => IDCONTINUE,
             MessageBoxResult::TryAgain => IDTRYAGAIN,
             #[cfg(feature = "timeout_msg_box")]
-            MessageBoxResult::TimeOut => MESSAGEBOX_RESULT(32000),
+            MessageBoxResult::TimeOut => 32000 as MESSAGEBOX_RESULT,
         }
     }
 }
@@ -314,7 +322,7 @@ impl TryFrom<MESSAGEBOX_RESULT> for MessageBoxResult {
             IDCONTINUE => Ok(Self::Continue),
             IDTRYAGAIN => Ok(Self::TryAgain),
             #[cfg(feature = "timeout_msg_box")]
-            MESSAGEBOX_RESULT(32000) => Ok(Self::TimeOut),
+            32000 => Ok(Self::TimeOut),
             _ => Err(InvalidMessageBoxResult),
         }
     }

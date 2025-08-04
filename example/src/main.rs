@@ -31,8 +31,8 @@ const RADIO_BOX_02_02: WindowID = 4u16;
 const CHECK_BOX_01: WindowID = 5u16;
 const CHECK_BOX_02: WindowID = 6u16;
 const EDIT_01: WindowID = 7u16;
-const VIEW_01: WindowID = 8u16;
-const VIEW_02: WindowID = 8u16;
+// const VIEW_01: WindowID = 8u16;
+// const VIEW_02: WindowID = 8u16;
 //------------------------
 const MENU_ITEM_1: MenuItemID = 1145u16;
 impl MessageReceiver for Mycb {
@@ -50,18 +50,23 @@ impl MessageReceiver for Mycb {
                             None,
                             MenuItem::Normal(
                                 MenuItemStyle::default(),
-                                MenuItemShow::String(MenuCheckIcon::default(), "测试1".to_string()),
+                                MenuItemShow::String(
+                                    MenuCheckIcon::default(),
+                                    "点击测试1".to_string(),
+                                ),
                                 Some(MENU_ITEM_1),
                             ),
                         )
                         .unwrap();
                     })
                     .unwrap();
-                msg_box!(&format!("菜单点击, 编号：{:?}", id), "提示").unwrap();
+                msg_box!(
+                    &format!("菜单点击, 编号：{:?}", (id + 1 - MENU_ITEM_1)),
+                    "提示"
+                )
+                .unwrap();
                 msg_box!("重新开始", "提示").unwrap();
                 window.redraw_menu_bar().unwrap();
-                return Ok(());
-            } else if id > 4 {
                 return Ok(());
             }
             window
@@ -74,7 +79,7 @@ impl MessageReceiver for Mycb {
                             MenuItemStyle::default(),
                             MenuItemShow::String(
                                 MenuCheckIcon::default(),
-                                "点击测试".to_string() + &((id + 1).to_string()),
+                                "点击测试".to_string() + &((id + 2 - MENU_ITEM_1).to_string()),
                             ),
                             Some(id + 1),
                         ),
@@ -82,7 +87,11 @@ impl MessageReceiver for Mycb {
                     .unwrap();
                 })
                 .unwrap();
-            msg_box!(&format!("菜单点击, 编号：{:?}", id), "点击测试").unwrap();
+            msg_box!(
+                &format!("菜单点击, 编号：{:?}", (id + 1 - MENU_ITEM_1)),
+                "点击测试"
+            )
+            .unwrap();
             window.redraw_menu_bar().unwrap();
         };
         Ok(())
@@ -123,10 +132,9 @@ impl MessageReceiver for Mycb {
         .neednot();
         Button::new(
             window,
-            // "分割按钮01",
             Some(rect(200, 0, 150, 50)),
             SPLIT_BUTTON_01,
-            ButtonStyle::new(ButtonType::Normal, "分割按钮01"),
+            ButtonStyle::new(ButtonType::Split, "分割按钮01"),
             Some(FONT),
         )
         .unwrap()
@@ -194,7 +202,7 @@ impl MessageReceiver for Mycb {
                 window,
                 Some(rect(900, 50, 150, 50)),
                 CHECK_BOX_02,
-                CheckBoxStyle::new_text("选择框02").three_state(),
+                CheckBoxStyle::new_text("aa").three_state(),
                 Some(FONT),
             )
             .unwrap(),
@@ -218,7 +226,7 @@ impl MessageReceiver for Mycb {
         msg: &mut RawMessage,
         id: WindowID,
     ) -> MessageReceiverResult<isize> {
-        let controls = MY_CONTROLS.get().unwrap();
+        let controls = MY_CONTROLS.get().ok_or(NoProcessed)?;
         match id {
             BUTTON_01 => {
                 use ButtonMsgType::*;

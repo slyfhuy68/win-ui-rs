@@ -144,13 +144,12 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                     let _ = ManuallyDrop::new((wtype, wc));
                     result
                 }
-                WM_DESTROY => do_nofity! {C::destroy(callback_id, &mut w)
-                },
+                WM_DESTROY => do_nofity! { C::destroy(callback_id, &mut w) },
                 WM_COMMAND => {
                     if param2 != 0 {
                         let param2e = param2;
                         let param1e = param1;
-                        do_msg! {C::control_message(
+                        do_msg! { C::control_message(
                             callback_id,
                             &mut w,
                             &mut RawMessage(WM_COMMAND, param1e, param2e),
@@ -161,12 +160,11 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                         let low = (param1 & 0xffff) as u16;
                         match high {
                             0 => {
-                                do_nofity! {C::menu_command(
+                                do_nofity! { C::menu_command(
                                     callback_id,
                                     &mut w,
                                     MenuCommandMsgItemPos::CostomId(low as MenuItemID),
-                                )
-                                }
+                                ) }
                             }
                             // 1 => ,//加速器
                             _ => None,
@@ -182,17 +180,16 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                         callback_id,
                         &mut w,
                         MenuCommandMsgItemPos::Position(Menu::from_mut_ref(&mut hmenu), param1 as u16),
-                    )
-                    }
+                    ) }
                 }
                 WM_NOTIFY => {
                     let nmhdr_ptr = param2 as *mut NMHDR;
-                    do_msg! {C::control_message(
+                    do_msg! { C::control_message(
                         callback_id,
                         &mut w,
                         &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                         (*nmhdr_ptr).idFrom as WindowID,
-                    )}
+                    ) }
                 }
                 WM_CTLCOLORSTATIC => {
                     let mut nmhdr = NMHDRSTATIC {
@@ -204,18 +201,16 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                         DC: param1 as HANDLE,
                     };
                     let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
-                    do_msg! {C::control_message(
+                    do_msg! { C::control_message(
                         callback_id,
                         &mut w,
                         &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                         nmhdr.nmhdr.idFrom as WindowID,
-                    )
-                    }
+                    ) }
                 }
-                WM_NULL => do_nofity! {C::alive_test(callback_id, &mut w)
-                },
+                WM_NULL => do_nofity! { C::alive_test(callback_id, &mut w) },
                 WM_LBUTTONDOWN => {
-                    do_nofity! {C::mouse_msg(
+                    do_nofity! { C::mouse_msg(
                         callback_id,
                         &mut w,
                         MouseMsg::Button {
@@ -227,11 +222,10 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                                 (param2 >> 16) as u16 as i32,
                             ),
                         },
-                    )
-                    }
+                    ) }
                 }
                 WM_LBUTTONUP => {
-                    do_nofity! {C::mouse_msg(
+                    do_nofity! { C::mouse_msg(
                         callback_id,
                         &mut w,
                         MouseMsg::Button {
@@ -243,8 +237,7 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
                                 (param2 >> 16) as u16 as i32,
                             ),
                         },
-                    )
-                    }
+                    ) }
                 }
                 _ => None,
             };

@@ -2,7 +2,8 @@ use super::*;
 #[derive(Default, Clone, Copy, Hash)]
 pub enum BottonContentPos {
     #[default]
-    Center, //BS_CENTER | BS_VCENTER
+    DefaultPos,
+    Center,      //BS_CENTER | BS_VCENTER
     Left,        //BS_LEFT | BS_VCENTER
     Right,       //BS_RIGHT | BS_VCENTER
     Top,         //BS_TOP | BS_CENTER
@@ -16,6 +17,7 @@ impl Into<WINDOW_STYLE> for BottonContentPos {
     fn into(self) -> WINDOW_STYLE {
         use BottonContentPos::*;
         (match self {
+            DefaultPos => 0,
             Center => BS_CENTER | BS_VCENTER,
             Left => BS_LEFT | BS_VCENTER,
             Right => BS_RIGHT | BS_VCENTER,

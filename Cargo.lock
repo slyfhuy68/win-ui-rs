@@ -15,8 +15,8 @@ dependencies = [
  "capdows_utility",
  "either",
  "euclid",
+ "windows-link",
  "windows-sys",
- "windows-targets",
 ]
 
 [[package]]

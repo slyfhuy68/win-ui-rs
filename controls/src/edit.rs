@@ -174,6 +174,7 @@ impl EditStyle {
                 style: NormalWindowStyles {
                     edge_type: WindowEdgeType::Sunken,
                     border_type: WindowBorderType::NoBorder,
+                    visible: true,
                     ..Default::default()
                 },
                 ..Default::default()

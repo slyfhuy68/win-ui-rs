@@ -10,6 +10,7 @@ either = "1.14.0"
 euclid = "0.22.11"
 
 [dependencies.capdows]
+features = ["timeout_msg_box"]
 path = "../capdows"
 
 [dependencies.capdows_controls]
