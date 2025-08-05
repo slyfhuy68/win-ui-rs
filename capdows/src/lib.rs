@@ -12,7 +12,7 @@ pub mod prelude {
         error::*,
         i18n::LangID,
         positioning::{DPIAwareDeviceUnit, DeviceUnit, DialogTemplateUnit, Point, Rect, Size},
-        strings::{CWideStr, WideString, widestr},
+        strings::{CWideStr, L, Lc, WideString, widestr},
         ui::{
             class::{WindowClass, WindowClassBuilder},
             control::{Control, ControlMsg, ControlMsgType, DefaultNMHDR, NotifyMessage},
@@ -38,4 +38,8 @@ pub mod prelude {
     };
     #[doc(no_inline)]
     pub use std::os::windows::{prelude::*, raw::HANDLE};
+}
+pub mod utilities {
+    #[doc(inline)]
+    pub use capdows_utility::{do_escapes, icontain, runtime_fmt, set_istyle, set_style, ucontain};
 }

@@ -51,6 +51,22 @@ pub fn runtime_fmt(temple: &str, list: &[&str]) -> Option<String> {
     // result.shrink_to_fit();
     Some(result)
 }
+#[inline]
+pub const fn ucontain(some: u32, other: u32) -> bool {
+    some & other == other
+}
+#[inline]
+pub const fn icontain(some: i32, other: i32) -> bool {
+    some & other == other
+}
+#[inline]
+pub fn set_style(style: &mut u32, flag: u32, condition: bool) {
+    *style |= flag * condition as u32;
+}
+#[inline]
+pub fn set_istyle(style: &mut i32, flag: i32, condition: bool) {
+    *style |= flag * condition as i32;
+}
 pub fn do_escapes(string: &str) -> String {
     let iter = string.chars();
     let mut result = String::with_capacity(string.len());
@@ -373,5 +389,70 @@ macro_rules! error_from_win32_bool {
                 _ => Ok(()),
             }
         }
+    };
+}
+#[macro_export]
+macro_rules! Lc {
+    ($s:literal) => {{
+        const LEN: usize = {
+            let mut pos = 0;
+            let mut len = 0;
+            while let Some((code_point, new_pos)) =
+                capdows::strings::decode_utf8_char($s.as_bytes(), pos)
+            {
+                pos = new_pos;
+                len += if code_point <= 0xffff { 1 } else { 2 };
+            }
+            len + 1
+        };
+        const WIDE: &[u16; LEN] = {
+            let mut buffer = [0; LEN];
+            capdows::strings::do_input($s.as_bytes(), &mut buffer);
+            &{ buffer }
+        };
+        unsafe { CWideStr::from_utf16_unchecked(WIDE.as_slice()) }
+    }};
+}
+#[macro_export]
+macro_rules! L {
+    ($s:literal) => {{
+        const LEN: usize = {
+            let mut pos = 0;
+            let mut len = 0;
+            while let Some((code_point, new_pos)) =
+                capdows::strings::decode_utf8_char($s.as_bytes(), pos)
+            {
+                pos = new_pos;
+                len += if code_point <= 0xffff { 1 } else { 2 };
+            }
+            len
+        };
+        const WIDE: &[u16; LEN] = {
+            let mut buffer = [0; LEN];
+            capdows::strings::do_input($s.as_bytes(), &mut buffer);
+            &{ buffer }
+        };
+        unsafe { widestr::from_utf16_unchecked(WIDE.as_slice()) }
+    }};
+}
+
+#[macro_export] //AI宏
+macro_rules! msg_box {
+    ($text:expr) => {
+        capdows::ui::tools::msg_box($text, None, Default::default(), Default::default())
+    };
+    ($text:expr, $caption:expr) => {
+        capdows::ui::tools::msg_box(
+            $text,
+            Some($caption),
+            Default::default(),
+            Default::default(),
+        )
+    };
+    ($text:expr, $caption:expr, $owner:expr) => {
+        capdows::ui::tools::msg_box($text, Some($caption), $owner, Default::default())
+    };
+    ($text:expr, $caption:expr, $owner:expr, $options:expr) => {
+        capdows::ui::tools::msg_box($text, Some($caption), $owner, $options)
     };
 }

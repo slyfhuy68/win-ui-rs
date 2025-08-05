@@ -1,3 +1,8 @@
+#[doc(inline)]
+pub use capdows_utility::{
+    error_from_win32, error_from_win32_bool, error_from_win32_num, error_from_win32_or_invalid,
+    error_from_win32_zero, error_from_win32_zero_num,
+};
 pub use std::result::Result as sResult;
 use std::string::FromUtf8Error;
 use windows_sys::Win32::Foundation as win32f;

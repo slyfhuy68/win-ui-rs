@@ -234,6 +234,10 @@ pub enum WindowAnimateShowType {
 }
 impl Window {
     #[inline]
+    pub fn handle_eq(&self, other: &Window) -> bool {
+        self.handle == other.handle
+    }
+    #[inline]
     pub fn from_mut_ref(handle: &mut HWND) -> &mut Window {
         unsafe { std::mem::transmute(handle) }
     }

@@ -1,9 +1,8 @@
-use capdows::L;
 use capdows::prelude::*;
 use capdows::ui::{control::*, image::*, style::*, *};
+use capdows::utilities::*;
 use capdows_resource::dialog::{ControlPreCompilePruduct, DialogTempleControl};
 use std::ffi::c_void;
-use utility::*;
 use windows_sys::Win32::Foundation::{
     HINSTANCE,
     // HMODULE,
@@ -72,6 +71,7 @@ pub mod prelude_build {
 }
 // 警告：由于此mod用于build.rs在编译期嵌入资源, 遇到任何错误都会直接panic（也就是编译期错误）
 pub mod build {
+    use capdows::utilities::do_escapes;
     use capdows_resource::{LinkFor, PreCompilePruduct};
     use std::env;
     use std::fs::File;
@@ -112,16 +112,13 @@ pub mod build {
         PreCompilePruduct::from(format!(
             "#define RT_MANIFEST 24
 1 RT_MANIFEST \"{}\"",
-            capdows::ui::utility::do_escapes(&dest_path.display().to_string())
+            do_escapes(&dest_path.display().to_string())
         ))
         .compile_for(LinkFor::AllBinaries)
     }
 }
 pub type ButtonImage = Either<Bitmap, Icon>;
 use either::*;
-// fn style_of(wnd: &Window) -> WINDOW_STYLE {
-//     style_of_raw(wnd) as WINDOW_STYLE
-// }
 fn style_of_raw(wnd: &Window) -> i32 {
     unsafe { GetWindowLongW(wnd.handle(), GWL_STYLE) as i32 }
 }

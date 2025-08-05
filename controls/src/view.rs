@@ -237,6 +237,13 @@ pub struct ViewOption<T> {
     pub sunken: bool,       // SS_SUNKEN
     pub extra_notify: bool, // SS_NOTIFY
 }
+impl<T> ViewOption<T> {
+    #[inline]
+    pub fn enable_notify(mut self) -> Self {
+        self.extra_notify = true;
+        self
+    }
+}
 impl ImageViewStyle {
     pub fn new_icon(name: &str, icon: Icon) -> Self {
         Self {

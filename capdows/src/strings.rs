@@ -40,6 +40,8 @@ impl DerefMut for CWideStr {
         unsafe { widestr::from_utf16_unchecked_mut(&mut self.inner[0..len]) }
     }
 }
+#[doc(inline)]
+pub use capdows_utility::{L, Lc};
 #[repr(transparent)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WideString(pub(crate) Vec<u16>);
@@ -532,50 +534,7 @@ pub const fn decode_utf8_char(bytes: &[u8], mut pos: usize) -> Option<(u32, usiz
     }
     None
 }
-#[macro_export]
-macro_rules! Lc {
-    ($s:literal) => {{
-        const LEN: usize = {
-            let mut pos = 0;
-            let mut len = 0;
-            while let Some((code_point, new_pos)) =
-                $crate::strings::decode_utf8_char($s.as_bytes(), pos)
-            {
-                pos = new_pos;
-                len += if code_point <= 0xffff { 1 } else { 2 };
-            }
-            len + 1
-        };
-        const WIDE: &[u16; LEN] = {
-            let mut buffer = [0; LEN];
-            $crate::strings::do_input($s.as_bytes(), &mut buffer);
-            &{ buffer }
-        };
-        unsafe { CWideStr::from_utf16_unchecked(WIDE.as_slice()) }
-    }};
-}
-#[macro_export]
-macro_rules! L {
-    ($s:literal) => {{
-        const LEN: usize = {
-            let mut pos = 0;
-            let mut len = 0;
-            while let Some((code_point, new_pos)) =
-                $crate::strings::decode_utf8_char($s.as_bytes(), pos)
-            {
-                pos = new_pos;
-                len += if code_point <= 0xffff { 1 } else { 2 };
-            }
-            len
-        };
-        const WIDE: &[u16; LEN] = {
-            let mut buffer = [0; LEN];
-            $crate::strings::do_input($s.as_bytes(), &mut buffer);
-            &{ buffer }
-        };
-        unsafe { widestr::from_utf16_unchecked(WIDE.as_slice()) }
-    }};
-}
+
 #[doc(hidden)]
 pub const fn do_input(input: &[u8], buffer: &mut [u16]) {
     let mut input_pos = 0;

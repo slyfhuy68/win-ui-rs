@@ -1,11 +1,9 @@
-use capdows::Lc;
-use capdows::msg_box;
 use capdows::prelude::*;
 use capdows::ui::msg::NoProcessed;
 use capdows_controls::prelude::*;
+use capdows_example::*;
 use euclid::rect;
-use std::marker::PhantomData;
-// use capdows_example::*;
+use std::marker::PhantomData; //从lib.rs导入
 #[derive(Debug)]
 struct MyControls {
     a1: RadioBox,

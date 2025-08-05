@@ -30,35 +30,16 @@ use style::*;
 pub mod sys_prop;
 pub mod timer;
 pub mod window;
-use window::*;
-pub mod utility {
-    #[doc(no_inline)]
-    pub use capdows_utility::*;
-    #[inline]
-    pub const fn ucontain(some: u32, other: u32) -> bool {
-        some & other == other
-    }
-    #[inline]
-    pub const fn icontain(some: i32, other: i32) -> bool {
-        some & other == other
-    }
-    #[inline]
-    pub fn set_style(style: &mut u32, flag: u32, condition: bool) {
-        *style |= flag * condition as u32;
-    }
-    #[inline]
-    pub fn set_istyle(style: &mut i32, flag: i32, condition: bool) {
-        *style |= flag * condition as i32;
-    }
-}
 use crate::error::*;
 use crate::positioning::ext_methods::*;
 use crate::positioning::*;
 use crate::strings::*;
+use capdows_utility::*;
 use euclid::{point2, rect};
-use utility::*;
+use window::*;
 pub mod core {
     use super::*;
+    pub use std::marker::PhantomData;
     pub type ResourceStringId = String;
     pub type ResourceNumberId = u16;
     pub enum ResourceID {
@@ -84,7 +65,6 @@ use either::*;
 //----------------------------------------------------------------------------------
 use crate::error::WinError as Error;
 use std::ffi::c_void;
-use std::marker::PhantomData;
 use std::num::NonZeroI32;
 use std::num::NonZeroU32;
 use std::os::windows::raw::HANDLE;

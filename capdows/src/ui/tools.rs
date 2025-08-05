@@ -50,26 +50,8 @@ pub fn msg_box_timeout(
     ))?
     .try_into()?)
 }
-#[macro_export] //AI宏
-macro_rules! msg_box {
-    ($text:expr) => {
-        $crate::ui::tools::msg_box($text, None, Default::default(), Default::default())
-    };
-    ($text:expr, $caption:expr) => {
-        $crate::ui::tools::msg_box(
-            $text,
-            Some($caption),
-            Default::default(),
-            Default::default(),
-        )
-    };
-    ($text:expr, $caption:expr, $owner:expr) => {
-        $crate::ui::tools::msg_box($text, Some($caption), $owner, Default::default())
-    };
-    ($text:expr, $caption:expr, $owner:expr, $options:expr) => {
-        $crate::ui::tools::msg_box($text, Some($caption), $owner, $options)
-    };
-}
+#[doc(inline)]
+pub use capdows_utility::msg_box;
 pub mod msg_box_style {
     use super::*;
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

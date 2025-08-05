@@ -245,7 +245,7 @@ define_control! {
         }
     },
     {
-        is_some_window(wnd, capdows::L!("Button"))
+        is_some_window(wnd, L!("Button"))
     },
     {
         todo!()
