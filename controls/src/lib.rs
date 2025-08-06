@@ -221,6 +221,28 @@ pub mod traits {
             font: Option<ControlFont>,
         ) -> Result<Self>;
     }
+    pub trait RawHwndControl: Control + Sized {
+        fn from_window_ref(wnd: &Window) -> Result<&Self> {
+            unsafe {
+                if Self::is_self(wnd)? {
+                    Ok(Self::from_window_ref_unchecked(wnd))
+                } else {
+                    Err(ERROR_INVALID_WINDOW_HANDLE)
+                }
+            }
+        }
+        fn from_window_ref_mut(wnd: &mut Window) -> Result<&mut Self> {
+            unsafe {
+                if Self::is_self(wnd)? {
+                    Ok(Self::from_window_ref_mut_unchecked(wnd))
+                } else {
+                    Err(ERROR_INVALID_WINDOW_HANDLE)
+                }
+            }
+        }
+        unsafe fn from_window_ref_unchecked(wnd: &Window) -> &Self;
+        unsafe fn from_window_ref_mut_unchecked(wnd: &mut Window) -> &mut Self;
+    }
     pub trait TextControl: Control + Sized {
         const INSUFFICIENT_SPACE_RESULT: u32 = 0;
         const NOT_SUPPORT_RESULT: u32 = CB_ERR as u32;

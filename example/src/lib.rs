@@ -75,6 +75,10 @@ impl WindowFinder {
             .add_msg_receiver(10, PhantomData::<WindowsFinderMessageReceiver>)?;
         Ok(Self(view))
     }
+    #[inline]
+    pub fn neednot(self) {
+        self.0.neednot()
+    }
 }
 #[derive(Debug)]
 pub enum WindowFinderMsgType {
@@ -90,6 +94,7 @@ impl Drop for WindowFinderMsg {
     }
 }
 impl WindowFinderMsg {
+    #[inline]
     pub fn get_type(&self) -> &WindowFinderMsgType {
         &self.1
     }

@@ -128,24 +128,25 @@ impl WindowClass {
         self.name.is_null()
     }
 }
-// impl Drop for WindowClass {
-//     fn drop(&mut self) {
-//         unsafe {
-//             let _ = UnregisterClassW(self.name, 0 as HINSTANCE);
-//         }
-//     }
-// }
 impl Drop for WindowClass {
     fn drop(&mut self) {
-        if !(std::thread::panicking() || self.name.is_null()) {
-            println!("debug-class, {:?}", self);
-            println!("Backtrace:\n{}", std::backtrace::Backtrace::capture());
-            println!(
-                "note: run with `RUST_BACKTRACE=1` or `RUST_BACKTRACE=full` for a verbose backtrace."
-            );
+        unsafe {
+            let _ = UnregisterClassW(self.name, 0 as HINSTANCE);
         }
     }
 }
+// impl Drop for WindowClass {
+//     fn drop(&mut self) {
+//         if !(std::thread::panicking() || self.name.is_null()) {
+//             println!("debug-class, {:?}", self);
+//             println!("Backtrace:\n{}", std::backtrace::Backtrace::capture());
+//             println!(
+//                 "note: run with `RUST_BACKTRACE=1` or `RUST_BACKTRACE=full` for a verbose backtrace."
+//             );
+//         }
+//     }
+// }
+
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum ExtraMemory {

@@ -356,7 +356,7 @@ pub trait MessageReceiver: std::fmt::Debug + Default + Send + Sync + Unpin {
         Err(NoProcessed)
     } //true 0 false -1
     fn destroy(id: usize, window: &mut Window) -> MessageReceiverResult<()> {
-        stop_msg_loop();
+        stop_msg_loop(0);
         Ok(())
     }
     fn class_messages(
@@ -392,17 +392,26 @@ pub trait MessageReceiver: std::fmt::Debug + Default + Send + Sync + Unpin {
         Err(NoProcessed) //code = raw_code(大于 0xFFFF) - 0xFFFF，由系统保留
     }
 }
-pub fn msg_loop() {
+#[inline(always)]
+pub fn msg_loop() -> Result<i32>{
     let mut msg = MSG::default();
     unsafe {
-        while GetMessageW(&mut msg, 0 as HWND, 0, 0) != 0 {
-            let _ = TranslateMessage(&msg);
-            let _ = DispatchMessageW(&msg);
+        loop {
+            let ret = GetMessageW(&mut msg, 0 as HWND, 0, 0);
+            match ret{
+                0 => return Ok(msg.wParam as i32), 
+                -1 => return Err(Error::current_error()), 
+                _ => {
+                    let _ = TranslateMessage(&msg);
+                    let _ = DispatchMessageW(&msg);
+                }
+            }
         }
     }
 }
-pub fn stop_msg_loop() {
-    unsafe { PostQuitMessage(0) };
+#[inline]
+pub fn stop_msg_loop(code:i32) {
+    unsafe { PostQuitMessage(code) };
 }
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]
 pub struct RawMessage(

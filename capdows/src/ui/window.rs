@@ -547,14 +547,14 @@ impl Window {
 // impl std::panic::UnwindSafe for WindowRawMsgFuture {}
 
 impl Window {
-    pub unsafe fn add_msg_to_queue<C: UnsafeMessage>(&self, msg: C) -> Result<()> {
+    pub unsafe fn add_msg_to_queue<C: UnsafeMessage + 'static>(&self, msg: C) -> Result<()> {
         unsafe {
             let ptr = msg.into_raw_msg()?;
             let RawMessage(code, wparam, lparam) = ptr.as_msg();
             error_from_win32_bool!(PostMessageW(self.handle, code, wparam, lparam))
         }
     }
-    // pub async unsafe fn send_msg_unsafe_async<C: UnsafeMessage>(&self, msg: C) -> Result<isize> {
+    // pub async unsafe fn send_msg_unsafe_async<C: UnsafeMessage + 'static>(&self, msg: C) -> Result<isize> {
     //     use tokio::task;
     //     let hwnd = self.handle() as usize;
     //     let ptr = msg.into_raw_msg()?;
@@ -577,6 +577,7 @@ impl Window {
     //         Ok(x) => x,
     //     }
     // }
+    ///当向自己线程发消息时，自己调用处理函数，否则添加到队列并等待
     pub unsafe fn send_msg_unsafe<C: UnsafeMessage>(&self, msg: C) -> Result<isize> {
         unsafe {
             let ptr = msg.into_raw_msg()?;
@@ -604,7 +605,7 @@ impl Window {
     //     }
     // }
     ///向自己的父窗口发送控件消息（不获取返回值）
-    pub fn send_control_nofiy<M: UnsafeControlMsg>(&self, msg: M) -> Result<()> {
+    pub fn send_control_nofiy<M: UnsafeControlMsg+ 'static>(&self, msg: M) -> Result<()> {
         unsafe {
             self.parent()
                 .ok_or(ERROR_WINDOW_TYPE_NOT_SUPPORT)?

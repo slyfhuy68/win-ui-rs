@@ -22,15 +22,16 @@ const BUTTON_01: WindowID = 1u16;
 const SPLIT_BUTTON_01: WindowID = 2u16;
 const LINK_BUTTON_01: WindowID = 3u16;
 const GROUP_BOX_01: WindowID = 4u16;
-const RADIO_BOX_01_01: WindowID = 1u16;
-const RADIO_BOX_01_02: WindowID = 2u16;
-const RADIO_BOX_02_01: WindowID = 3u16;
-const RADIO_BOX_02_02: WindowID = 4u16;
 const CHECK_BOX_01: WindowID = 5u16;
 const CHECK_BOX_02: WindowID = 6u16;
 const EDIT_01: WindowID = 7u16;
 const VIEW_01: WindowID = 8u16;
-// const VIEW_02: WindowID = 9u16;
+const FINDER_01: WindowID = 9u16;
+
+const RADIO_BOX_01_01: WindowID = 1u16;
+const RADIO_BOX_01_02: WindowID = 2u16;
+const RADIO_BOX_02_01: WindowID = 3u16;
+const RADIO_BOX_02_02: WindowID = 4u16;
 //------------------------
 const MENU_ITEM_1: MenuItemID = 1145u16;
 impl MessageReceiver for Mycb {
@@ -146,6 +147,9 @@ impl MessageReceiver for Mycb {
         )
         .unwrap()
         .neednot();
+        WindowFinder::new(window, Some(rect(200, 100, 130, 50)), FINDER_01)
+            .unwrap()
+            .neednot();
         let mut g_b = GroupBox::new(
             window,
             Some(rect(575, 0, 300, 100)),
@@ -329,6 +333,6 @@ fn main() -> Result<()> {
     let _ = window.show(ShowWindowType::Normal);
     // window.redraw_menu_bar().unwrap();
     println!("ok");
-    capdows::ui::msg::msg_loop();
+    capdows::ui::msg::msg_loop()?;
     Ok(())
 }

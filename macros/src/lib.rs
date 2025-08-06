@@ -57,6 +57,7 @@ pub fn define_control(input: TokenStream) -> TokenStream {
         unsafe impl Sync for #control_name {}
 
         impl #control_name {
+            #[inline]
             pub fn neednot(self){
                 let _ = std::mem::ManuallyDrop::new(self);
             }
@@ -66,25 +67,35 @@ pub fn define_control(input: TokenStream) -> TokenStream {
             type MsgType = #msg_name_ident;
             const CLASS_NAME: &'static str = #class_name;
             const CLASS_NAME_WIDE: &'static widestr = L!(#class_name);
+            #[inline]
             unsafe fn force_from_window(wnd: Window) -> Self {
                 Self(wnd)
             }
-
+            #[inline]
             fn to_window(mut self) -> Window {
                 unsafe {self.0.move_out()}
             }
-
+            #[inline]
             fn get_window(&self) -> &Window {
                 &self.0
             }
-
+            #[inline]
             fn get_window_mut(&mut self) -> &mut Window {
                 &mut self.0
             }
-
+            #[inline]
             fn is_self(wnd: &Window) -> Result<bool> {
                 #[allow(unused_unsafe)]
                 unsafe #is_self_block
+            }
+        }
+
+        impl RawHwndControl for #control_name{
+            unsafe fn from_window_ref_unchecked(wnd:&Window)->&Self{
+                unsafe { std::mem::transmute(wnd) }
+            }
+            unsafe fn from_window_ref_mut_unchecked(wnd:&mut Window)->&mut Self{
+                unsafe { std::mem::transmute(wnd) }
             }
         }
 
@@ -94,14 +105,15 @@ pub fn define_control(input: TokenStream) -> TokenStream {
         }
 
         impl #msg_name_ident {
+            #[inline]
             pub fn new(control: #control_name, msg_type: #msg_type_name_ident) -> Self {
                 Self { control, msg_type }
             }
-
+            #[inline]
             pub fn get_type(&self) -> & #msg_type_name_ident {
                 &self.msg_type
             }
-
+            #[inline]
             pub unsafe fn get_type_mut(&mut self) -> &mut #msg_type_name_ident {
                 &mut self.msg_type
             }
@@ -109,9 +121,11 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
         impl ControlMsgType for #msg_name_ident {
             type ControlType = #control_name;
+            #[inline]
             fn get_control(&self) -> &Self::ControlType{
                 &self.control
             }
+            #[inline]
             fn get_control_mut(&mut self) -> &mut Self::ControlType{
                 &mut self.control
             }

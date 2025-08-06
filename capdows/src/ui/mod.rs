@@ -70,12 +70,13 @@ use std::num::NonZeroU32;
 use std::os::windows::raw::HANDLE;
 use std::{ptr::null_mut as NULL_PTR, string::*};
 use windows_sys::Win32::Foundation::{
+    HINSTANCE,
     HMODULE,
     HWND,
     LPARAM,
     LRESULT,
     WPARAM,
-    // POINT, POINTS, RECT, SIZE, WIN32_ERROR, HINSTANCE,
+    // POINT, POINTS, RECT, SIZE, WIN32_ERROR,
 };
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
