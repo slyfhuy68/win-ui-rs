@@ -6,7 +6,7 @@ impl LangID {
     pub fn from_hex(value: &str) -> Self {
         let x = value;
         if x.len() > 4 {
-            panic!("无效的资源ID，信息资源专用的语言ID的长度必须小于等于4, ")
+            panic!("无效的语言ID，信息资源专用的语言ID的长度必须小于等于4, ")
         }
         let y = u16::from_str_radix(x, 16).expect("在把字符串转换为数字时出错");
         LangID(y)

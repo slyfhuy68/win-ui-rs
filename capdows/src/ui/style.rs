@@ -323,7 +323,7 @@ pub struct NormalWindowStyles {
     pub tool_window: bool,           // WS_EX_TOOLWINDOW
     pub right_aligned: bool,         // WS_EX_RIGHT
     pub right_to_left_reading: bool, // WS_EX_RTLREADING
-    pub left_scrroll_bar: bool,      // WS_EX_LEFTSCROLLBAR
+    pub left_scroll_bar: bool,       // WS_EX_LEFTSCROLLBAR
     pub control_parent: bool,        // WS_EX_CONTROLPARENT
     pub app_window: bool,            // WS_EX_APPWINDOW
     pub no_inherit_layout: bool,     // WS_EX_NOINHERITLAYOUT
@@ -376,7 +376,7 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
             tool_window: ucontain(style_ex, WS_EX_TOOLWINDOW),
             right_aligned: ucontain(style_ex, WS_EX_RIGHT),
             right_to_left_reading: ucontain(style_ex, WS_EX_RTLREADING),
-            left_scrroll_bar: ucontain(style_ex, WS_EX_LEFTSCROLLBAR),
+            left_scroll_bar: ucontain(style_ex, WS_EX_LEFTSCROLLBAR),
             control_parent: ucontain(style_ex, WS_EX_CONTROLPARENT),
             app_window: ucontain(style_ex, WS_EX_APPWINDOW),
             no_inherit_layout: ucontain(style_ex, WS_EX_NOINHERITLAYOUT),
@@ -406,7 +406,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
         set_style(&mut style_ex, WS_EX_TOOLWINDOW, self.tool_window);
         set_style(&mut style_ex, WS_EX_RIGHT, self.right_aligned);
         set_style(&mut style_ex, WS_EX_RTLREADING, self.right_to_left_reading);
-        set_style(&mut style_ex, WS_EX_LEFTSCROLLBAR, self.left_scrroll_bar);
+        set_style(&mut style_ex, WS_EX_LEFTSCROLLBAR, self.left_scroll_bar);
         set_style(&mut style_ex, WS_EX_CONTROLPARENT, self.control_parent);
         set_style(&mut style_ex, WS_EX_APPWINDOW, self.app_window);
         set_style(&mut style_ex, WS_EX_NOINHERITLAYOUT, self.no_inherit_layout);

@@ -393,14 +393,14 @@ pub trait MessageReceiver: std::fmt::Debug + Default + Send + Sync + Unpin {
     }
 }
 #[inline(always)]
-pub fn msg_loop() -> Result<i32>{
+pub fn msg_loop() -> Result<i32> {
     let mut msg = MSG::default();
     unsafe {
         loop {
             let ret = GetMessageW(&mut msg, 0 as HWND, 0, 0);
-            match ret{
-                0 => return Ok(msg.wParam as i32), 
-                -1 => return Err(Error::current_error()), 
+            match ret {
+                0 => return Ok(msg.wParam as i32),
+                -1 => return Err(Error::current_error()),
                 _ => {
                     let _ = TranslateMessage(&msg);
                     let _ = DispatchMessageW(&msg);
@@ -410,7 +410,7 @@ pub fn msg_loop() -> Result<i32>{
     }
 }
 #[inline]
-pub fn stop_msg_loop(code:i32) {
+pub fn stop_msg_loop(code: i32) {
     unsafe { PostQuitMessage(code) };
 }
 #[derive(Eq, PartialEq, Debug, Copy, Clone)]

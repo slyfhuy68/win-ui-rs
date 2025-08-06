@@ -520,6 +520,10 @@ impl Window {
     pub fn allow_set_foreground_window(_pid: Option<u32>) -> Result<()> {
         todo!() //AllowSetForegroundWindow
     }
+    #[inline]
+    pub fn set_foreground(&self) -> Result<()> {
+        todo!() //SetForegroundWindow
+    }
 }
 // use std::fmt;
 // pub struct WindowRawMsgFuture {
@@ -605,7 +609,7 @@ impl Window {
     //     }
     // }
     ///向自己的父窗口发送控件消息（不获取返回值）
-    pub fn send_control_nofiy<M: UnsafeControlMsg+ 'static>(&self, msg: M) -> Result<()> {
+    pub fn send_control_nofiy<M: UnsafeControlMsg + 'static>(&self, msg: M) -> Result<()> {
         unsafe {
             self.parent()
                 .ok_or(ERROR_WINDOW_TYPE_NOT_SUPPORT)?

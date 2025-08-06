@@ -43,7 +43,7 @@ fn main() {
                 help_id: None,
                 items: vec![
                     MenuTemplateItem::Item {
-                        content: "测试3".to_string(),
+                        content: "测试3\tCtrl+P".to_string(),
                         id: 12,
                         style: MenuItemStyle::default(),
                     },
@@ -76,18 +76,41 @@ fn main() {
             (50, "Hello, {1}!".to_string()),
             (51, "Bye, {1}!".to_string()),
             (52, "中文".to_string()),
-            (53, "{1}爱吃𰻞𰻞面".to_string()),
+            (53, "\"𰻞𰻞面\"的{1}字像{2}一样{3}".to_string()),
         ]),
     }
     .pre_compile();
-    compile_all_for!(
-        LinkFor::Everything,
-        vstr,
-        icon1,
-        icon2,
-        icon3,
-        cursor1,
-        menu1,
-        st
-    );
+    use dialog::*;
+    use euclid::*;
+    let my_dialog = DialogTemple {
+        pos: point2(0, 0),
+        size: size2(250, 100),
+        style: DialogStyles::default().set_modalfame(),
+        dtype: DialogTempleType::Popup {
+            style: Default::default(),
+            is_layered: false,
+        },
+        caption: "abc\t123".to_string(),
+        class_name: None,
+        font: DialogTempleFont {
+            face_name: None,
+            size: 9,
+            char_set: FontCharSet::default(),
+            italic: false,
+            weight: Some(400),
+        },
+        menu: Some(NumberId(5)),
+        language: None,
+        help_id: None,
+        controls: vec![
+            PreCompilePruduct::from(
+                r#"CONTROL "&OK", 1, BUTTON, 0x50010001, 130, 78, 50, 11"#.to_string(),
+            ),
+            PreCompilePruduct::from(
+                r#"CONTROL "&Cancel", 2, BUTTON, 0x50010001, 187, 78, 50, 11"#.to_string(),
+            ),
+        ],
+    }
+    .pre_compile(NumberId(6));
+    compile_all!(vstr, icon1, icon2, icon3, cursor1, menu1, st, my_dialog);
 }

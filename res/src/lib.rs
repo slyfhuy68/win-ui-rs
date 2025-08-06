@@ -1,5 +1,6 @@
 //! 警告：由于此crate为build.rs在编译期嵌入资源使用, 遇到任何错误都会直接panic（也就是编译期错误）
 use capdows::prelude::*;
+use capdows::utilities::do_escapes;
 use capdows::utilities::set_style;
 use std::collections::HashMap;
 use std::env;
@@ -10,7 +11,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use windows_sys::Win32::Storage::FileSystem::*;
-
 mod compile_resource;
 pub use compile_resource::LinkFor;
 use compile_resource::compile_win32_res;
@@ -80,9 +80,7 @@ pub fn pre_compile_resource_id(id: ResourceID) -> PreCompilePruduct {
     PreCompilePruduct::from(match id {
         StringId(y) => {
             let result = y.to_string();
-            if result.parse::<f32>().is_ok() {
-                panic!("无效的资源ID，StringId不能由纯数字组成（包括小数）")
-            };
+            check_res_id(&result);
             result
         }
         NumberId(x) => x.to_string(),
@@ -96,5 +94,21 @@ pub fn pre_compile_lang_id(id: Option<LangID>) -> PreCompilePruduct {
             format!("\nLANGUAGE 0x{:03x}, 0x{:02x}\n", lang_id, sub_lang_id)
         }
     })
+}
+pub fn check_res_id(result: &str) {
+    if result
+        .chars()
+        .next()
+        .expect("无效的资源ID：StringId不能为空")
+        .is_ascii_digit()
+    {
+        panic!("无效的资源ID：StringId 不能以数字开头");
+    }
+    if !result
+        .chars()
+        .all(|x| matches!(x, '0'..='9' | 'A'..='Z' | 'a'..='z' | '_' ))
+    {
+        panic!("无效的资源ID：StringId只能由数字大小写字母、下划线组成")
+    };
 }
 pub use capdows::i18n::LangID;

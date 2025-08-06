@@ -15,7 +15,7 @@ impl StringTable {
             pre_compile_lang_id(self.language).get(),
             self.strings
                 .into_iter()
-                .map(|(id, string)| { format!("  {}, \"{}\"", id, string) })
+                .map(|(id, string)| { format!("  {}, \"{}\"", id, do_escapes(&string)) })
                 .collect::<Vec<_>>()
                 .join("\n")
         ))

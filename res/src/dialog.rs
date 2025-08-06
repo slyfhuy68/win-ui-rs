@@ -1,6 +1,7 @@
 use super::*;
-use capdows::ui::font::FontCharSet;
+pub use capdows::ui::font::FontCharSet;
 use capdows::ui::help::HelpId;
+pub use capdows::ui::style::{ChildWindowStyles, NormalWindowStyles};
 use capdows::ui::window::WindowID;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 ///由DialogTempleControl的pre_compile方法得到
@@ -11,32 +12,43 @@ pub trait DialogTempleControl {
 }
 pub struct DialogTempleFont {
     /// 字体名称（最多 30 个字符）。
-    pub face_name: &'static str,
+    ///
+    ///None表示系统自动设置
+    pub face_name: Option<&'static str>, //None => MS Shell Dlg + DS_SHELLFONT
     /// 字体大小
     pub size: i32,
     /// 字符集。
     pub char_set: FontCharSet,
     /// 是否为斜体。
     pub italic: bool,
-    /// 字体粗细（0 ~ 1000）。
+    /// 字体粗细（0 ~ 1000）。None表示400
     pub weight: Option<i32>,
 }
 pub struct DialogTemple {
-    pos: Point,
-    size: Size,
-    dtype: DialogTempleType,
-    caption: String,
-    class_name: Option<String>,
-    font: DialogTempleFont,
-    menu: Option<ResourceID>,
-    language: Option<LangID>,
-    help_id: Option<HelpId>,
+    pub pos: Point,
+    pub size: Size,
+    pub style: DialogStyles,
+    pub dtype: DialogTempleType,
+    pub caption: String,
+    pub class_name: Option<String>,
+    pub font: DialogTempleFont,
+    pub menu: Option<ResourceID>,
+    pub language: Option<LangID>,
+    pub help_id: Option<HelpId>,
     /// 可以手动编写，也可以使用DialogTempleControl
-    controls: Vec<ControlPreCompilePruduct>,
+    pub controls: Vec<ControlPreCompilePruduct>,
 }
 impl DialogTemple {
     pub fn pre_compile(self, id: ResourceID) -> PreCompilePruduct {
-        let (style, style_ex) = self.dtype.into();
+        let (mut style, style_ex) = self.dtype.into();
+        style |= <DialogStyles as Into<WINDOW_STYLE>>::into(self.style);
+        let font_name = match self.font.face_name {
+            Some(x) => do_escapes(x),
+            None => {
+                style |= (DS_SETFONT | DS_FIXEDSYS) as u32;
+                "MS Shell Dlg".to_string()
+            }
+        };
         PreCompilePruduct::from(format!(
             "
 {} DIALOGEX {}, {}, {}, {}, {}
@@ -57,25 +69,23 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
             },
             style,
             style_ex,
-            self.caption,
+            do_escapes(&self.caption),
             match self.menu {
                 Some(StringId(y)) => {
                     let result = y.to_string();
-                    if result.parse::<f32>().is_ok() {
-                        panic!("无效的资源ID，StringId不能由纯数字组成（包括小数）")
-                    };
-                    format!("\nMENU \"{}\"", result)
+                    check_res_id(&result);
+                    format!("\nMENU \"{}\"", do_escapes(&result))
                 }
                 Some(NumberId(x)) => format!("\nMENU {}", x),
                 None => "".to_string(),
             },
             match self.class_name {
                 None => "".to_string(),
-                Some(x) => format!("\nCLASS  \"{}\"", x),
+                Some(x) => format!("\nCLASS  \"{}\"", do_escapes(&x)),
             },
             pre_compile_lang_id(self.language).get(),
             self.font.size,
-            self.font.face_name,
+            font_name,
             self.font.weight.unwrap_or(400),
             self.font.italic as u8,
             self.font.char_set as u8,
@@ -132,8 +142,70 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for DialogTempleType {
                 if is_layered {
                     style_ex |= WS_EX_LAYERED;
                 };
-                (style | WS_CHILD, style_ex)
+                (style, style_ex)
             }
         }
+    }
+}
+#[derive(Clone, PartialEq, Copy, Debug, Default)]
+#[repr(packed)]
+/// DS_CONTEXTHELP 请用替代 [`capdows::ui::style::WindowContextBarButton::Help`]
+/// 未包含DS_FIXEDSYS、DS_USEPIXELS。
+pub struct DialogStyles {
+    /// 将对话框在其所有者的监视器工作区中居中。
+    ///
+    /// 如果没有所有者，则在系统选择的监视器中居中。
+    pub center: bool, // DS_CENTER
+
+    /// 对话框创建时将自动其置于前台。
+    ///
+    ///相当于调用Window上的set_foreground方法。
+    pub set_foreground: bool, // DS_SETFOREGROUND
+
+    /// 是否**禁止**对话框创建时自动递归设置子窗口的字体。
+    ///
+    /// 相当于[`capdows_controls::traits::CommonControl`]的new函数的最后一个参数
+    pub no_set_font: bool, // DS_SETFONT
+
+    /// 允许对话框在鼠标光标位置居中。
+    pub center_mouse: bool, // DS_CENTERMOUSE
+
+    /// 创建一个可作为子窗口使用的对话框（如属性页）。
+    ///
+    /// 允许 Tab 切换、快捷键等。
+    pub control_like: bool, // DS_CONTROL
+
+    /// 禁止发送 WM_ENTERIDLE 消息给所有者。
+    pub no_idle_msg: bool, // DS_NOIDLEMSG
+
+    /// 即使创建子控件失败也继续创建对话框。
+    pub no_fail_create: bool, // DS_NOFAILCREATE
+
+    ///使用模式对话框框架创建一个对话框
+    pub modalfame: bool, //DS_MODALFRAME
+
+    /// 坐标为屏幕坐标。
+    #[deprecated(note = "Use relative layout instead of hard-coded screen coordinates")]
+    pub abs_align: bool, // DS_ABSALIGN
+}
+impl DialogStyles {
+    pub fn set_modalfame(mut self) -> Self {
+        self.modalfame = true;
+        self
+    }
+}
+impl Into<WINDOW_STYLE> for DialogStyles {
+    #[allow(deprecated)]
+    #[inline]
+    fn into(self) -> WINDOW_STYLE {
+        ((self.center as i32) * DS_CENTER
+            + (self.set_foreground as i32) * DS_SETFOREGROUND
+            + ((!self.no_set_font) as i32) * DS_SETFONT
+            + (self.center_mouse as i32) * DS_CENTERMOUSE
+            + (self.control_like as i32) * DS_CONTROL
+            + (self.no_idle_msg as i32) * DS_NOIDLEMSG
+            + (self.no_fail_create as i32) * DS_NOFAILCREATE
+            + (self.modalfame as i32) * DS_MODALFRAME
+            + (self.abs_align as i32) * DS_ABSALIGN) as WINDOW_STYLE
     }
 }

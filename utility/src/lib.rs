@@ -75,7 +75,7 @@ pub fn do_escapes(string: &str) -> String {
         result.push_str(match i {
             '\\' => "\\\\",
             '\'' => "\\'",
-            '\"' => "\\\"",
+            '\"' => r#""""#,
             '\n' => "\\n",
             '\t' => "\\t",
             other => {

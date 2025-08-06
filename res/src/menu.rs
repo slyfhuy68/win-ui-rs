@@ -37,7 +37,13 @@ impl MenuTemplateItem {
         PreCompilePruduct::from(match self {
             MenuTemplateItem::Item { content, id, style } => {
                 let (mtype, state) = style.into();
-                format!("MENUITEM \"{}\", {}, {}, {}", content, id, mtype, state)
+                format!(
+                    "MENUITEM \"{}\", {}, {}, {}",
+                    do_escapes(&content),
+                    id,
+                    mtype,
+                    state
+                )
             }
             MenuTemplateItem::Separator => String::from("MENUITEM \"\", 0, 0x800, 0"),
             MenuTemplateItem::Child {
@@ -49,7 +55,7 @@ impl MenuTemplateItem {
                 let (mtype, state) = style.into();
                 format!(
                     "POPUP \"{}\", 0, {}, {}, {} \n{{\n{}\n}}",
-                    content,
+                    do_escapes(&content),
                     mtype,
                     state,
                     match help_id {
