@@ -4,12 +4,6 @@ use capdows::ui::help::HelpId;
 pub use capdows::ui::style::{ChildWindowStyles, NormalWindowStyles};
 use capdows::ui::window::WindowID;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
-///由DialogTempleControl的pre_compile方法得到
-pub type ControlPreCompilePruduct = PreCompilePruduct;
-//CONTROL <content>, <id>, "<class>", <style>, <x>, <y>, <w>, <h>, <ex_style>
-pub trait DialogTempleControl {
-    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct;
-}
 pub struct DialogTempleFont {
     /// 字体名称（最多 30 个字符）。
     ///
@@ -21,12 +15,23 @@ pub struct DialogTempleFont {
     pub char_set: FontCharSet,
     /// 是否为斜体。
     pub italic: bool,
-    /// 字体粗细（0 ~ 1000）。None表示400
-    pub weight: Option<i32>,
+    /// 字体粗细（0 ~ 1000）。默认400
+    pub weight: i32,
+}
+impl Default for DialogTempleFont {
+    fn default() -> Self {
+        Self {
+            face_name: None,
+            size: 9,
+            char_set: FontCharSet::default(),
+            italic: false,
+            weight: 400,
+        }
+    }
 }
 pub struct DialogTemple {
-    pub pos: Point,
-    pub size: Size,
+    pub pos: FontPoint,
+    pub size: FontSize,
     pub style: DialogStyles,
     pub dtype: DialogTempleType,
     pub caption: String,
@@ -35,10 +40,45 @@ pub struct DialogTemple {
     pub menu: Option<ResourceID>,
     pub language: Option<LangID>,
     pub help_id: Option<HelpId>,
-    /// 可以手动编写，也可以使用DialogTempleControl
-    pub controls: Vec<ControlPreCompilePruduct>,
+    controls: String,
 }
+use crate::ui::font::FontCharSet;
 impl DialogTemple {
+    pub fn new(pos: FontPoint, size: FontSize, dtype: DialogTempleType) -> Self {
+        Self {
+            pos,
+            size,
+            style: DialogStyles::default(),
+            dtype,
+            caption: String::new(),
+            class_name: None,
+            font: DialogTempleFont::default(),
+            menu: None,
+            language: None,
+            help_id: None,
+            controls: String::new(),
+        }
+    }
+
+    #[inline]
+    pub fn append_control<C: DialogTempleControl>(
+        &mut self,
+        control: DialogTempleControl,
+        pos: FontPoint,
+        size: FontSize,
+        identifier: WindowID,
+    ) {
+        self.controls
+            .push_str(&control.pre_compile(pos, size, identifier).get().push("\n"));
+    }
+    #[inline]
+    pub unsafe fn get_controls_raw(&self) -> &str {
+        &self.controls
+    }
+    #[inline]
+    pub unsafe fn get_controls_raw_mut(&mut self) -> &mut str {
+        &mut self.controls
+    }
     pub fn pre_compile(self, id: ResourceID) -> PreCompilePruduct {
         let (mut style, style_ex) = self.dtype.into();
         style |= <DialogStyles as Into<WINDOW_STYLE>>::into(self.style);
@@ -86,14 +126,10 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
             pre_compile_lang_id(self.language).get(),
             self.font.size,
             font_name,
-            self.font.weight.unwrap_or(400),
+            self.font.weight,
             self.font.italic as u8,
             self.font.char_set as u8,
-            self.controls
-                .into_iter()
-                .map(|x| x.get())
-                .collect::<Vec<_>>()
-                .join("\n"),
+            self.controls.join("\n"),
         ))
     }
 }

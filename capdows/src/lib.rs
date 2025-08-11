@@ -11,7 +11,7 @@ pub mod prelude {
         error::WinError as Error,
         error::*,
         i18n::LangID,
-        positioning::{DPIAwareDeviceUnit, DeviceUnit, DialogTemplateUnit, Point, Rect, Size},
+        positioning::{DPIAwareDeviceUnit, DeviceUnit, FontUnit, Point, Rect, Size},
         strings::{CWideStr, L, Lc, WideString, widestr},
         ui::{
             class::{WindowClass, WindowClassBuilder},

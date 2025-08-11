@@ -44,23 +44,19 @@ impl From<Error> for MessageReceiverError {
 //              panic!()
 //      }
 // }
-pub unsafe trait RawMessageHandler {
+pub enum MessageKind {
+    MainProc,
+    SubProc(usize),
+    Dialog,
+}
+pub unsafe trait RawMessageHandler<W: WindowLike = Window> {
     unsafe fn handle_msg(
         hwnd: HWND,
         msg: u32,
         wparam: WPARAM,
         lparam: LPARAM,
-        callback_id: usize,
+        msg_kind: MessageKind,
     ) -> Option<isize>;
-    #[inline]
-    unsafe fn handle_normal_msg(
-        hwnd: HWND,
-        msg: u32,
-        wparam: WPARAM,
-        lparam: LPARAM,
-    ) -> Option<isize> {
-        unsafe { Self::handle_msg(hwnd, msg, wparam, lparam, 0) }
-    }
 }
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -88,159 +84,179 @@ macro_rules! do_nofity {
         }
     };
 }
+unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>(
+    mut hwnd: HWND,
+    msg: u32,
+    param1: WPARAM,
+    param2: LPARAM,
+    msg_kind: MessageKind,
+) -> Option<isize> {
+    unsafe {
+        let wnd = W::from_hwnd_mut(&mut *&raw mut hwnd);
+        use MessageReceiverError::*;
+        let result = match msg {
+            WM_CREATE => {
+                let s = *(param2 as *mut CREATESTRUCTW);
+                let (mut wc, _buffer) = {
+                    let mut buffer = [0u16; 256];
+                    let len = GetClassNameW(hwnd, buffer.as_mut_ptr(), 256) as usize;
+                    if len == 0 {
+                        (WindowClass::from_raw(s.lpszClass), None)
+                    } else {
+                        let mut vec = buffer[..len].to_vec();
+                        vec.push(0);
+                        (WindowClass::from_raw(vec.as_ptr() as PCWSTR), Some(vec))
+                    }
+                };
+                let mut wtype = WindowType::from_data(
+                    s.style as WINDOW_STYLE,
+                    s.dwExStyle,
+                    s.hMenu,
+                    s.hwndParent,
+                );
+
+                let len = lstrlenW(s.lpszName) as usize;
+                let result = match C::create(
+                    msg_kind,
+                    wnd,
+                    &(String::from_utf16(std::slice::from_raw_parts(s.lpszName, len))
+                        .unwrap_or(String::from(""))),
+                    &mut wc,
+                    &s.hInstance.into(),
+                    rect(s.x, s.y, s.cx, s.cy),
+                    &mut wtype,
+                ) {
+                    Ok(x) => Some(match x {
+                        true => 0isize,
+                        false => -1isize,
+                    }),
+                    Err(NoProcessed) => None,
+                    Err(_) => Some(-1isize),
+                };
+                use std::mem::ManuallyDrop;
+                let _ = ManuallyDrop::new((wtype, wc));
+                result
+            }
+            WM_DESTROY => do_nofity! { C::destroy(msg_kind, wnd) },
+            WM_COMMAND => {
+                if param2 != 0 {
+                    let param2e = param2;
+                    let param1e = param1;
+                    do_msg! { C::control_message(
+                        msg_kind,
+                        wnd,
+                        &mut RawMessage(WM_COMMAND, param1e, param2e),
+                        (param1e & 0xffff) as WindowID,
+                    ) }
+                } else {
+                    let high = ((param1 >> 16) & 0xffff) as u8;
+                    let low = (param1 & 0xffff) as u16;
+                    match high {
+                        0 => {
+                            do_nofity! { C::menu_command(
+                                msg_kind,
+                                wnd,
+                                MenuCommandMsgItemPos::CostomId(low as MenuItemID),
+                            ) }
+                        }
+                        // 1 => ,//加速器
+                        _ => None,
+                    }
+                }
+            }
+            WM_NOTIFYFORMAT => Some(2isize), //此crate只能创建Unicode窗口NFR_UNICODE
+            WM_MENUCOMMAND => {
+                let mut hmenu = param2 as HMENU;
+                do_nofity! { C::menu_command(
+                    msg_kind,
+                    wnd,
+                    MenuCommandMsgItemPos::Position(Menu::from_mut_ref(&mut hmenu), param1 as u16),
+                ) }
+            }
+            WM_NOTIFY => {
+                let nmhdr_ptr = param2 as *mut NMHDR;
+                do_msg! { C::control_message(
+                    msg_kind,
+                    wnd,
+                    &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                    (*nmhdr_ptr).idFrom as WindowID,
+                ) }
+            }
+            WM_CTLCOLORSTATIC => {
+                let mut nmhdr = NMHDRSTATIC {
+                    nmhdr: NMHDR {
+                        hwndFrom: param2 as HWND,
+                        idFrom: GetWindowLongW(param2 as HWND, GWL_ID) as usize,
+                        code: WM_CTLCOLORSTATIC,
+                    },
+                    DC: param1 as HANDLE,
+                };
+                let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
+                do_msg! { C::control_message(
+                    msg_kind,
+                    wnd,
+                    &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
+                    nmhdr.nmhdr.idFrom as WindowID,
+                ) }
+            }
+            WM_NULL => do_nofity! { C::alive_test(msg_kind, wnd) },
+            WM_LBUTTONDOWN => {
+                do_nofity! { C::mouse_msg(
+                    msg_kind,
+                    wnd,
+                    MouseMsg::Button {
+                        button_type: MouseButton::Left,
+                        state: ButtonState::Down,
+                        is_nc: false,
+                        pos: point2(
+                            (param2 & 0xFFFF) as u16 as i32,
+                            (param2 >> 16) as u16 as i32,
+                        ),
+                    },
+                ) }
+            }
+            WM_LBUTTONUP => {
+                do_nofity! { C::mouse_msg(
+                    msg_kind,
+                    wnd,
+                    MouseMsg::Button {
+                        button_type: MouseButton::Left,
+                        state: ButtonState::Up,
+                        is_nc: false,
+                        pos: point2(
+                            (param2 & 0xFFFF) as u16 as i32,
+                            (param2 >> 16) as u16 as i32,
+                        ),
+                    },
+                ) }
+            }
+            _ => None,
+        };
+        result
+    }
+}
 unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
+    #[inline]
     unsafe fn handle_msg(
         hwnd: HWND,
         msg: u32,
         param1: WPARAM,
         param2: LPARAM,
-        callback_id: usize,
+        msg_kind: MessageKind,
     ) -> Option<isize> {
-        unsafe {
-            let mut w = Window::from_handle(hwnd);
-            use MessageReceiverError::*;
-            let result = match msg {
-                WM_CREATE => {
-                    let s = *(param2 as *mut CREATESTRUCTW);
-                    let (mut wc, _buffer) = {
-                        let mut buffer = [0u16; 256];
-                        let len = GetClassNameW(hwnd, buffer.as_mut_ptr(), 256) as usize;
-                        if len == 0 {
-                            (WindowClass::from_raw(s.lpszClass), None)
-                        } else {
-                            let mut vec = buffer[..len].to_vec();
-                            vec.push(0);
-                            (WindowClass::from_raw(vec.as_ptr() as PCWSTR), Some(vec))
-                        }
-                    };
-                    let mut wtype = WindowType::from_data(
-                        s.style as WINDOW_STYLE,
-                        s.dwExStyle,
-                        s.hMenu,
-                        s.hwndParent,
-                    );
-                    unsafe extern "C" {
-                        unsafe fn wcslen(s: *const u16) -> usize;
-                    }
-                    let len = wcslen(s.lpszName);
-                    let result = match C::create(
-                        callback_id,
-                        &mut w,
-                        &(String::from_utf16(std::slice::from_raw_parts(s.lpszName, len))
-                            .unwrap_or(String::from(""))),
-                        &mut wc,
-                        &s.hInstance.into(),
-                        rect(s.x, s.y, s.cx, s.cy),
-                        &mut wtype,
-                    ) {
-                        Ok(x) => Some(match x {
-                            true => 0isize,
-                            false => -1isize,
-                        }),
-                        Err(NoProcessed) => None,
-                        Err(_) => Some(-1isize),
-                    };
-                    use std::mem::ManuallyDrop;
-                    let _ = ManuallyDrop::new((wtype, wc));
-                    result
-                }
-                WM_DESTROY => do_nofity! { C::destroy(callback_id, &mut w) },
-                WM_COMMAND => {
-                    if param2 != 0 {
-                        let param2e = param2;
-                        let param1e = param1;
-                        do_msg! { C::control_message(
-                            callback_id,
-                            &mut w,
-                            &mut RawMessage(WM_COMMAND, param1e, param2e),
-                            (param1e & 0xffff) as WindowID,
-                        ) }
-                    } else {
-                        let high = ((param1 >> 16) & 0xffff) as u8;
-                        let low = (param1 & 0xffff) as u16;
-                        match high {
-                            0 => {
-                                do_nofity! { C::menu_command(
-                                    callback_id,
-                                    &mut w,
-                                    MenuCommandMsgItemPos::CostomId(low as MenuItemID),
-                                ) }
-                            }
-                            // 1 => ,//加速器
-                            _ => None,
-                        }
-                    }
-                }
-                WM_NOTIFYFORMAT => Some(2isize), //此crate只能创建Unicode窗口NFR_UNICODE
-                WM_MENUCOMMAND => {
-                    let mut hmenu = param2 as HMENU;
-                    do_nofity! { C::menu_command(
-                        callback_id,
-                        &mut w,
-                        MenuCommandMsgItemPos::Position(Menu::from_mut_ref(&mut hmenu), param1 as u16),
-                    ) }
-                }
-                WM_NOTIFY => {
-                    let nmhdr_ptr = param2 as *mut NMHDR;
-                    do_msg! { C::control_message(
-                        callback_id,
-                        &mut w,
-                        &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
-                        (*nmhdr_ptr).idFrom as WindowID,
-                    ) }
-                }
-                WM_CTLCOLORSTATIC => {
-                    let mut nmhdr = NMHDRSTATIC {
-                        nmhdr: NMHDR {
-                            hwndFrom: param2 as HWND,
-                            idFrom: GetWindowLongW(param2 as HWND, GWL_ID) as usize,
-                            code: WM_CTLCOLORSTATIC,
-                        },
-                        DC: param1 as HANDLE,
-                    };
-                    let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
-                    do_msg! { C::control_message(
-                        callback_id,
-                        &mut w,
-                        &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
-                        nmhdr.nmhdr.idFrom as WindowID,
-                    ) }
-                }
-                WM_NULL => do_nofity! { C::alive_test(callback_id, &mut w) },
-                WM_LBUTTONDOWN => {
-                    do_nofity! { C::mouse_msg(
-                        callback_id,
-                        &mut w,
-                        MouseMsg::Button {
-                            button_type: MouseButton::Left,
-                            state: ButtonState::Down,
-                            is_nc: false,
-                            pos: point2(
-                                (param2 & 0xFFFF) as u16 as i32,
-                                (param2 >> 16) as u16 as i32,
-                            ),
-                        },
-                    ) }
-                }
-                WM_LBUTTONUP => {
-                    do_nofity! { C::mouse_msg(
-                        callback_id,
-                        &mut w,
-                        MouseMsg::Button {
-                            button_type: MouseButton::Left,
-                            state: ButtonState::Up,
-                            is_nc: false,
-                            pos: point2(
-                                (param2 & 0xFFFF) as u16 as i32,
-                                (param2 >> 16) as u16 as i32,
-                            ),
-                        },
-                    ) }
-                }
-                _ => None,
-            };
-            w.nullify();
-            result
+        unsafe { handle_msg_impl::<Window, C>(hwnd, msg, param1, param2, msg_kind) }
+    }
+}
+unsafe impl<C: DialogMessageReceiver + Sync + 'static> RawMessageHandler<Dialog> for C {
+    unsafe fn handle_msg(
+        hwnd: HWND,
+        msg: u32,
+        param1: WPARAM,
+        param2: LPARAM,
+        msg_kind: MessageKind,
+    ) -> Option<isize> {
+        match msg {
+            _ => unsafe { handle_msg_impl::<Dialog, C>(hwnd, msg, param1, param2, msg_kind) },
         }
     }
 }
@@ -316,36 +332,53 @@ pub enum MenuCommandMsgItemPos<'a> {
     CostomId(MenuItemID),
     Position(&'a mut Menu, u16),
 }
+///与HWND二进制兼容，可直接transmute
+pub unsafe trait WindowLike {
+    fn from_hwnd_ref(hwnd: &HWND) -> &Self;
+    fn from_hwnd_mut(hwnd: &mut HWND) -> &mut Self;
+}
+pub trait DialogMessageReceiver: MessageReceiver<Dialog> {}
 ///每个回调的id表示一个窗口的接收器id，如果这是一个子类化接收器，NoProcessed表示调用子类链上一个接收器，id为子类化id，如果不是，那么id为0，NoProcessed表示进行默认处理
 #[allow(unused_variables)]
-pub trait MessageReceiver: std::fmt::Debug + Default + Send + Sync + Unpin {
+pub trait MessageReceiver<W: WindowLike = Window>:
+    std::fmt::Debug + Default + Send + Sync + Unpin
+{
     // fn activating()包含WM_MOUSEACTIVATE
-    fn mouse_msg(id: usize, window: &mut Window, msg: MouseMsg) -> MessageReceiverResult<()> {
+    #[inline]
+    fn mouse_msg(
+        msg_kind: MessageKind,
+        window: &mut W,
+        msg: MouseMsg,
+    ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
+    #[inline]
     fn menu_command(
-        id: usize,
-        window: &mut Window,
+        msg_kind: MessageKind,
+        window: &mut W,
         item: MenuCommandMsgItemPos,
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     ///WM_NULL, 用于系统测试程序是否响应，一般不处理
-    fn alive_test(id: usize, window: &mut Window) -> MessageReceiverResult<()> {
+    #[inline]
+    fn alive_test(msg_kind: MessageKind, window: &mut W) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
+    #[inline]
     fn control_message(
-        id: usize,
-        window: &mut Window,
+        msg_kind: MessageKind,
+        window: &mut W,
         msg: &mut RawMessage,
         wnd_id: WindowID,
     ) -> MessageReceiverResult<isize> {
         Err(NoProcessed)
     }
     ///itype参数：这只是[`crate::ui::class::WindowClass`]的crate_window方法的参数的一个副本，但是你可以调用所有者/父窗口和菜单上面的方法，因为它们本质是指针
+    #[inline]
     fn create(
-        id: usize,
-        window: &mut Window,
+        msg_kind: MessageKind,
+        window: &mut W,
         name: &str,
         class: &mut WindowClass,
         file: &ExecutableFile,
@@ -355,37 +388,42 @@ pub trait MessageReceiver: std::fmt::Debug + Default + Send + Sync + Unpin {
     ) -> MessageReceiverResult<bool> {
         Err(NoProcessed)
     } //true 0 false -1
-    fn destroy(id: usize, window: &mut Window) -> MessageReceiverResult<()> {
+    #[inline]
+    fn destroy(msg_kind: MessageKind, window: &mut W) -> MessageReceiverResult<()> {
         stop_msg_loop(0);
         Ok(())
     }
+    #[inline]
     fn class_messages(
-        id: usize,
-        window: &mut Window,
+        msg_kind: MessageKind,
+        window: &mut W,
         code: u16,
         msg: RawMessage,
     ) -> MessageReceiverResult<usize> {
         Err(NoProcessed) //code = raw_code(WM_USER 到 0x7FFF) - WM_USER + 1,WM_USER = 0x0400
     }
+    #[inline]
     fn applications_messages(
-        id: usize,
-        window: &mut Window,
+        msg_kind: MessageKind,
+        window: &mut W,
         code: u16,
         msg: RawMessage,
     ) -> MessageReceiverResult<usize> {
         Err(NoProcessed) //code = raw_code(WM_APP 到 0xBFFF) - WM_APP + 1,WM_APP = 0x8000
     }
+    #[inline]
     fn share_messages(
-        id: usize,
-        window: &mut Window,
+        msg_kind: MessageKind,
+        window: &mut W,
         code: &str,
         msg: RawMessage,
     ) -> MessageReceiverResult<usize> {
         Err(NoProcessed) //code = raw_code(0xC000到0xFFFF) - 0xC000 + 1,字符串消息
     }
+    #[inline]
     fn system_reserved_messages(
-        id: usize,
-        window: &mut Window,
+        msg_kind: MessageKind,
+        window: &mut W,
         code: u32,
         msg: RawMessage,
     ) -> MessageReceiverResult<usize> {
@@ -402,6 +440,28 @@ pub fn msg_loop() -> Result<i32> {
                 0 => return Ok(msg.wParam as i32),
                 -1 => return Err(Error::current_error()),
                 _ => {
+                    let _ = TranslateMessage(&msg);
+                    let _ = DispatchMessageW(&msg);
+                }
+            }
+        }
+    }
+}
+#[inline(always)]
+///dialogs参数表示把哪些窗口当作对话框对待，使窗口能拥有与对话框相同的自动键盘选择行为和其他对话框功能。
+pub fn msg_loop_dialog(dialogs: &[Dialog]) -> Result<i32> {
+    let mut msg = MSG::default();
+    unsafe {
+        let dialogs: &[HWND] = std::mem::transmute(dialogs);
+        loop {
+            let ret = GetMessageW(&mut msg, 0 as HWND, 0, 0);
+            match ret {
+                0 => return Ok(msg.wParam as i32),
+                -1 => return Err(Error::current_error()),
+                _ => {
+                    for i in dialogs {
+                        let _ = IsDialogMessageW(*i, &msg);
+                    }
                     let _ = TranslateMessage(&msg);
                     let _ = DispatchMessageW(&msg);
                 }

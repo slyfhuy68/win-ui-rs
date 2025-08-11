@@ -49,10 +49,15 @@ impl<const Y_SCALING: i32, const X_SCALING: i32, const X_ORG: i32, const Y_ORG: 
     for LogicalUnit<Y_SCALING, X_SCALING, X_ORG, Y_ORG>
 {
 }
-///对话框单位，已考虑DPI, 分别是字符宽度和高度, 动态单位
+///字体单位，已考虑DPI, 分别是字符宽度和高度, 动态单位，通常由对话框模板使用
+///此单位到DPIAwareDeviceUnit的公式：
+///left = left * baseunit_x / 4;
+///top = top * baseunit_y / 8;
+///right = right * baseunit_x / 4;
+///bottom = bottom * baseunit_y / 8;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DialogTemplateUnit(i32, i32);
-impl Win32Unit for DialogTemplateUnit {}
+pub struct FontUnit;
+impl Win32Unit for FontUnit {}
 ///经DPI缩放的设备单位, 动态单位
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DPIAwareDeviceUnit;
@@ -72,9 +77,9 @@ impl<const Y_SCALING: i32, const X_SCALING: i32, const X_ORG: i32, const Y_ORG: 
 pub type Point = euclid::Point2D<i32, DPIAwareDeviceUnit>;
 pub type Size = euclid::Size2D<i32, DPIAwareDeviceUnit>;
 pub type Rect = euclid::Rect<i32, DPIAwareDeviceUnit>;
-pub type DialogPonit = euclid::Point2D<i32, DialogTemplateUnit>;
-pub type DialogSize = euclid::Size2D<i32, DialogTemplateUnit>;
-pub type DialogRect = euclid::Rect<i32, DialogTemplateUnit>;
+pub type FontPoint = euclid::Point2D<i32, FontUnit>;
+pub type FontSize = euclid::Size2D<i32, FontUnit>;
+pub type FontRect = euclid::Rect<i32, FontUnit>;
 impl<U> Win32Point for euclid::Point2D<i32, U>
 where
     U: Win32Unit,

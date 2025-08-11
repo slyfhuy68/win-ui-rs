@@ -9,6 +9,8 @@ pub mod class;
 use class::*;
 pub mod control;
 use control::*;
+pub mod dialog;
+use dialog::*;
 pub mod help;
 use help::*;
 pub mod image;
@@ -40,7 +42,6 @@ use window::*;
 pub mod core {
     use super::*;
     pub use std::marker::PhantomData;
-    pub type ResourceStringId = String;
     pub type ResourceNumberId = u16;
     pub enum ResourceID {
         StringId(&'static CWideStr),
@@ -78,6 +79,7 @@ use windows_sys::Win32::Foundation::{
     WPARAM,
     // POINT, POINTS, RECT, SIZE, WIN32_ERROR,
 };
+use windows_sys::Win32::Globalization::lstrlenW;
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
 use windows_sys::Win32::{

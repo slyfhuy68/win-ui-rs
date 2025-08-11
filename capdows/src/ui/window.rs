@@ -7,6 +7,16 @@ use std::fmt;
 pub struct Window {
     handle: HWND,
 }
+unsafe impl WindowLike for Window {
+    #[inline]
+    fn from_hwnd_ref(handle: &HWND) -> &Self {
+        unsafe { std::mem::transmute(handle) }
+    }
+    #[inline]
+    fn from_hwnd_mut(handle: &mut HWND) -> &mut Self {
+        unsafe { std::mem::transmute(handle) }
+    }
+}
 impl Default for Window {
     fn default() -> Self {
         Window { handle: 0 as HWND }
@@ -35,6 +45,12 @@ impl Into<HWND> for Window {
     #[inline]
     fn into(self) -> HWND {
         self.handle
+    }
+}
+impl From<HWND> for Window {
+    #[inline]
+    fn from(handle: HWND) -> Self {
+        Self { handle }
     }
 }
 pub type WindowID = u16;
