@@ -18,7 +18,7 @@ pub struct CheckBoxOption<T> {
 pub type CheckBoxStyle = CheckBoxOption<CheckBoxContent>;
 pub type CheckBoxTemple = CheckBoxOption<CheckBoxTempleContent>;
 impl DialogTempleControl for CheckBoxTemple {
-    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+    fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (mut ms_style, ex) = self.style.into();
         let (style2, ct) = self.contect.into();
         let poss: WINDOW_STYLE = self.pos.into();
@@ -33,10 +33,10 @@ impl DialogTempleControl for CheckBoxTemple {
             (false, true) => BS_AUTOCHECKBOX,
             (false, false) => BS_CHECKBOX,
         } as WINDOW_STYLE;
-        ControlPreCompilePruduct::from(format!(
+        format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
-        ))
+        )
     }
 }
 impl<T> CheckBoxOption<T> {

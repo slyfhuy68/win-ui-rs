@@ -1,7 +1,9 @@
+use capdows::positioning::FontPoint;
+use capdows::positioning::FontSize;
 use capdows::prelude::*;
 use capdows::ui::{control::*, image::*, style::*, *};
 use capdows::utilities::*;
-use capdows_resource::dialog::{ControlPreCompilePruduct, DialogTempleControl};
+use capdows_resource::dialog::DialogTempleControl;
 use std::ffi::c_void;
 use windows_sys::Win32::Foundation::{
     HINSTANCE,

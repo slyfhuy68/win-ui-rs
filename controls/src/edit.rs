@@ -99,7 +99,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String)> for EditStyle {
 }
 pub type EditTemple = EditOption<EditTempleType>;
 impl DialogTempleControl for EditTemple {
-    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+    fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (mut ms_style, ex, etype, ct) = self.p_into();
         use EditTempleType::*;
         match etype {
@@ -113,10 +113,10 @@ impl DialogTempleControl for EditTemple {
               //     todo!()
               // },
         };
-        ControlPreCompilePruduct::from(format!(
+        format!(
             "CONTROL \"{}\", {}, \"Edit\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
-        ))
+        )
     }
 }
 pub enum EditMsgType {

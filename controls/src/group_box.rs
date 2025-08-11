@@ -44,12 +44,12 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for GroupBoxStyle {
     }
 }
 impl DialogTempleControl for GroupBoxTemple {
-    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+    fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (ms_style, ex, ct) = self.into();
-        ControlPreCompilePruduct::from(format!(
+        format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
-        ))
+        )
     }
 }
 impl CommonControl for GroupBox {

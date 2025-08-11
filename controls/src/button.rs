@@ -80,8 +80,21 @@ impl ButtonStyle {
     }
 }
 pub type ButtonTemple = ButtonOption<ButtonTempleContent>;
+impl ButtonTemple {
+    pub fn new(btype: ButtonType, text: &str) -> Self {
+        ButtonOption {
+            style: ChildWindowStyles::default(),
+            btype,
+            contect: ButtonTempleContent::new(text),
+            pos: BottonContentPos::default(),
+            extra_msg: false,
+            flat: false,
+            focused: false,
+        }
+    }
+}
 impl DialogTempleControl for ButtonTemple {
-    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+    fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (mut ms_style, style_ex) = self.style.into();
         use ButtonType::*;
         ms_style |= match (self.btype, self.focused) {
@@ -96,7 +109,7 @@ impl DialogTempleControl for ButtonTemple {
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
         let (style2, ct) = self.contect.into();
         let poss: WINDOW_STYLE = self.pos.into();
-        ControlPreCompilePruduct::from(format!(
+        format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct,
             identifier,
@@ -106,7 +119,7 @@ impl DialogTempleControl for ButtonTemple {
             size.width,
             size.height,
             style_ex
-        ))
+        )
     }
 }
 pub struct ButtonTempleContent {

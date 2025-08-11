@@ -144,12 +144,12 @@ impl Into<(WINDOW_STYLE, (String, HANDLE, GDI_IMAGE_TYPE))> for ImageViewContent
 }
 pub type TextViewTemple = ViewOption<TextViewContent>;
 impl DialogTempleControl for TextViewTemple {
-    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+    fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (style, style_ex, ct) = self.into();
-        ControlPreCompilePruduct::from(format!(
+        format!(
             "CONTROL \"{}\", {}, \"Static\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, style, pos.x, pos.y, size.width, size.height, style_ex
-        ))
+        )
     }
 }
 pub type ImageViewTemple = ViewOption<ImageViewTempleContent>;
@@ -192,15 +192,14 @@ impl Into<(WINDOW_STYLE, ResourceID)> for ImageViewTempleContent {
 
                 (window_style, image)
             }
-
             ImageViewTempleContent::EnhMetaFile { enh_meta_file: enh } => (SS_ENHMETAFILE, enh),
         }
     }
 }
 impl DialogTempleControl for ImageViewTemple {
-    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+    fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (style, style_ex, ct) = self.into();
-        ControlPreCompilePruduct::from(format!(
+        format!(
             "CONTROL \"{}\", {}, \"Static\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             match ct {
                 StringId(y) => {
@@ -219,7 +218,7 @@ impl DialogTempleControl for ImageViewTemple {
             size.width,
             size.height,
             style_ex
-        ))
+        )
     }
 }
 pub struct ViewOption<T> {

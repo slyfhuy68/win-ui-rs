@@ -35,7 +35,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Radi
 }
 pub type RadioBoxTemple = RadioBoxOption<RadioBoxTempleContent>;
 impl DialogTempleControl for RadioBoxTemple {
-    fn pre_compile(self, pos: Point, size: Size, identifier: WindowID) -> ControlPreCompilePruduct {
+    fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (mut ms_style, ex) = self.style.into();
         let (style2, ct) = self.contect.into();
         let poss: WINDOW_STYLE = self.pos.into();
@@ -49,10 +49,10 @@ impl DialogTempleControl for RadioBoxTemple {
         } else {
             ms_style |= BS_RADIOBUTTON as WINDOW_STYLE;
         };
-        ControlPreCompilePruduct::from(format!(
+        format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
-        ))
+        )
     }
 }
 define_control! {

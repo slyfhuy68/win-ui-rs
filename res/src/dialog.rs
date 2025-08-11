@@ -1,8 +1,11 @@
 use super::*;
+pub use capdows::positioning::FontPoint;
+pub use capdows::positioning::FontSize;
+pub use capdows::ui::dialog::DialogTempleControl;
 pub use capdows::ui::font::FontCharSet;
-use capdows::ui::help::HelpId;
+pub use capdows::ui::help::HelpId;
 pub use capdows::ui::style::{ChildWindowStyles, NormalWindowStyles};
-use capdows::ui::window::WindowID;
+pub use capdows::ui::window::WindowID;
 use windows_sys::Win32::UI::WindowsAndMessaging::*;
 pub struct DialogTempleFont {
     /// 字体名称（最多 30 个字符）。
@@ -42,7 +45,6 @@ pub struct DialogTemple {
     pub help_id: Option<HelpId>,
     controls: String,
 }
-use crate::ui::font::FontCharSet;
 impl DialogTemple {
     pub fn new(pos: FontPoint, size: FontSize, dtype: DialogTempleType) -> Self {
         Self {
@@ -63,13 +65,16 @@ impl DialogTemple {
     #[inline]
     pub fn append_control<C: DialogTempleControl>(
         &mut self,
-        control: DialogTempleControl,
+        control: C,
         pos: FontPoint,
         size: FontSize,
         identifier: WindowID,
     ) {
-        self.controls
-            .push_str(&control.pre_compile(pos, size, identifier).get().push("\n"));
+        self.controls = format!(
+            "{}{}\n",
+            self.controls,
+            control.pre_compile(pos, size, identifier)
+        );
     }
     #[inline]
     pub unsafe fn get_controls_raw(&self) -> &str {
@@ -129,7 +134,7 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
             self.font.weight,
             self.font.italic as u8,
             self.font.char_set as u8,
-            self.controls.join("\n"),
+            self.controls,
         ))
     }
 }
