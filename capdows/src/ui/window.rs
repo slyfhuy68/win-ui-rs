@@ -339,7 +339,7 @@ impl Window {
                 .unwrap_or(0 as *mut c_void),
         ))
     }
-
+    #[inline]
     pub fn with_caption_menu<F, T>(&mut self, f: F) -> Result<T>
     where
         F: FnOnce(&mut Menu) -> T,
@@ -352,11 +352,13 @@ impl Window {
             Ok(f(Menu::from_mut_ref(&mut menu)))
         }
     }
+    #[inline]
     pub fn reset_caption_menu(&mut self) {
         unsafe {
             let _ = GetSystemMenu(self.handle, 1);
         }
     }
+    #[inline]
     pub fn with_class<F, T>(&self, f: F) -> Result<T>
     where
         F: FnOnce(&mut WindowClass) -> T,
@@ -403,48 +405,51 @@ impl Window {
     }
     ///移除id为0的默认项会返回ERROR_NOT_SUPPORTED
     ///不支持能操作其它线程创建的窗口的接收器，会返回Err
-    pub fn remove_msg_receiver<C: RawMessageHandler + Sync + 'static>(
+    #[inline]
+    pub fn remove_msg_receiver<
+        const PORC_ID: usize,
+        C: RawMessageHandler<SubPorc<PORC_ID>> + Sync + 'static,
+    >(
         &mut self,
-        id: usize,
         _msg_receiver: PhantomData<C>,
     ) -> Result<()> {
-        if id == 0 {
-            return Err(ERROR_CANNOT_REMOVE_DEFAULT);
-        };
         error_from_win32_bool!(RemoveWindowSubclass(
             self.handle,
-            Some(subclass_porc::<C>),
-            id,
+            Some(subclass_porc::<PORC_ID, C>),
+            PORC_ID,
         ))?;
         Ok(())
     }
-    pub fn add_msg_receiver<C: RawMessageHandler + Sync + 'static>(
+    #[inline]
+    pub fn add_msg_receiver<
+        const PORC_ID: usize,
+        C: RawMessageHandler<SubPorc<PORC_ID>> + Sync + 'static,
+    >(
         &mut self,
-        id: usize,
         _msg_receiver: PhantomData<C>,
     ) -> Result<()> {
-        if id == 0
-        /* || self.has_receiver_for(id, PhantomData::<C>) */
-        {
-            return Err(ERROR_OBJECT_ALREADY_EXISTS);
-        };
         error_from_win32_bool!(SetWindowSubclass(
             self.handle,
-            Some(subclass_porc::<C>),
-            id,
+            Some(subclass_porc::<PORC_ID, C>),
+            PORC_ID,
             0 as usize,
         ))
     }
-    pub fn has_receiver_for<C: RawMessageHandler + Sync + 'static>(
+    #[inline]
+    pub fn has_receiver_for<
+        const PORC_ID: usize,
+        C: RawMessageHandler<SubPorc<PORC_ID>> + Sync + 'static,
+    >(
         &mut self,
-        id: usize,
         _msg_receiver: PhantomData<C>,
     ) -> bool {
         unsafe {
-            if id == 0 {
-                return true;
-            }
-            GetWindowSubclass(self.handle, Some(subclass_porc::<C>), id, 0 as *mut usize) != 0
+            GetWindowSubclass(
+                self.handle,
+                Some(subclass_porc::<PORC_ID, C>),
+                PORC_ID,
+                0 as *mut usize,
+            ) != 0
         }
     }
     #[inline]

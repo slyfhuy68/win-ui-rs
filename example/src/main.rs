@@ -18,6 +18,8 @@ static MY_CONTROLS: OnceLock<MyControls> = OnceLock::new();
 use std::sync::OnceLock;
 #[derive(Default, Debug)]
 struct Mycb;
+#[derive(Default, Debug)]
+struct MyDlgcb;
 const BUTTON_01: WindowID = 1u16;
 const SPLIT_BUTTON_01: WindowID = 2u16;
 const LINK_BUTTON_01: WindowID = 3u16;
@@ -34,12 +36,10 @@ const RADIO_BOX_02_01: WindowID = 3u16;
 const RADIO_BOX_02_02: WindowID = 4u16;
 //------------------------
 const MENU_ITEM_1: MenuItemID = 1145u16;
+impl MessageReceiver<DialogPorc> for MyDlgcb {}
+impl DialogMessageReceiver for MyDlgcb {}
 impl MessageReceiver for Mycb {
-    fn menu_command(
-        _id: usize,
-        window: &mut Window,
-        item: MenuCommandMsgItemPos,
-    ) -> MessageReceiverResult<()> {
+    fn menu_command(window: &mut Window, item: MenuCommandMsgItemPos) -> MessageReceiverResult<()> {
         if let MenuCommandMsgItemPos::CostomId(id) = item {
             if id == MENU_ITEM_1 + 4 {
                 window
@@ -95,18 +95,13 @@ impl MessageReceiver for Mycb {
         };
         Ok(())
     }
-    // fn error_handler(err: MessageReceiverError) -> MessageReceiverResult<isize> {
-    //     println!("发生错误: {:?}", err);
-    //     Ok(err.code() as isize)
-    // }
     fn create(
-        _id: usize,
         window: &mut Window,
         _name: &str,
         _class: &mut WindowClass,
         _file: &ExecutableFile,
         _pos: Rect,
-        _itype: &mut WindowType,
+        _itype: &WindowType<'_>,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
         const FONT: ControlFont = ControlFont::CaptionFont;
@@ -222,7 +217,6 @@ impl MessageReceiver for Mycb {
         Ok(true)
     }
     fn control_message(
-        _id: usize,
         _window: &mut Window,
         msg: &mut RawMessage,
         id: WindowID,
@@ -259,7 +253,17 @@ impl MessageReceiver for Mycb {
                         Ok(0)
                     }
                     DropDown(rect) => {
-                        println!("分割按钮1边点了！按钮位置：{:?}", rect);
+                        println!(
+                            "分割按钮1边点了！按钮位置：{:?}, 对话框：{:?}",
+                            rect,
+                            Dialog::load(
+                                ExecutableFile::from_current_file()?,
+                                ResourceID::NumberId(6),
+                                PhantomData::<MyDlgcb>,
+                                None,
+                            )
+                        );
+
                         Ok(0)
                     }
                     _ => Err(NoProcessed),

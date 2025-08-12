@@ -448,23 +448,23 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for ChildWindowStyles {
     }
 }
 #[derive(Debug)]
-pub enum WindowType {
+pub enum WindowType<'a> {
     Overlapped {
         style: NormalWindowStyles,
         menu: Option<MenuBar>,
-        owner: Option<Window>,
+        owner: Option<&'a Window>,
         is_layered: bool, //WS_EX_LAYERED
     }, //重叠窗口
     Popup {
         style: NormalWindowStyles,
         menu: Option<MenuBar>,
-        owner: Option<Window>,
+        owner: Option<&'a Window>,
         is_layered: bool, //WS_EX_LAYERED
     },
     Child {
         style: ChildWindowStyles,
         identifier: WindowID,
-        parent: Window,
+        parent: &'a Window,
         is_layered: bool, //WS_EX_LAYERED
     },
     MessageOnly,
@@ -478,7 +478,7 @@ pub enum WindowType {
 //         };
 //     }
 // }
-impl Default for WindowType {
+impl Default for WindowType<'_> {
     fn default() -> Self {
         Self::Overlapped {
             style: Default::default(),
@@ -488,7 +488,7 @@ impl Default for WindowType {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND)> for WindowType {
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND)> for WindowType<'_> {
     fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND) {
         use WindowType::*;
         unsafe {
@@ -505,7 +505,10 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND)> for WindowType {
                         style,
                         style_ex,
                         menu.unwrap_or(MenuBar::null()).handle(),
-                        owner.unwrap_or_default().handle(),
+                        match owner {
+                            None => 0 as HWND,
+                            Some(x) => x.handle(),
+                        },
                     )
                 }
                 Popup {
@@ -520,7 +523,10 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND)> for WindowType {
                         style | WS_POPUP,
                         style_ex,
                         menu.unwrap_or(MenuBar::null()).handle(),
-                        owner.unwrap_or_default().handle(),
+                        match owner {
+                            None => 0 as HWND,
+                            Some(x) => x.handle(),
+                        },
                     )
                 }
                 Child {
@@ -538,24 +544,24 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND)> for WindowType {
         }
     }
 }
-impl WindowType {
+impl WindowType<'_> {
     ///确保wnd是Rust拥有的
-    pub unsafe fn from_data(
+    pub unsafe fn from_data<'a>(
         style: WINDOW_STYLE,
         style_ex: WINDOW_EX_STYLE,
         menu: HMENU,
-        wnd: HWND,
-    ) -> Self {
+        wnd: &'a HWND,
+    ) -> WindowType<'a> {
         use WindowType::*;
-        if wnd == HWND_MESSAGE {
+        if *wnd == HWND_MESSAGE {
             return MessageOnly;
         }
-        let w: Option<Window> = if wnd.is_null() {
+        let w: Option<&Window> = if wnd.is_null() {
             None
         } else {
-            unsafe { Some(Window::from_handle(wnd)) }
+            Some(Window::from_ref(wnd))
         };
-        let m: Option<MenuBar> = if wnd.is_null() {
+        let m: Option<MenuBar> = if menu.is_null() {
             None
         } else {
             unsafe { Some(MenuBar::from_handle(menu)) }
@@ -564,7 +570,7 @@ impl WindowType {
             return Child {
                 style: (style, style_ex).into(),
                 identifier: menu as u16,
-                parent: w.unwrap_or_default().into(),
+                parent: Window::from_ref(wnd),
                 is_layered: ucontain(style_ex, WS_EX_LAYERED),
             };
         };

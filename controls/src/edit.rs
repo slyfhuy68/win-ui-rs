@@ -98,6 +98,32 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String)> for EditStyle {
     }
 }
 pub type EditTemple = EditOption<EditTempleType>;
+impl EditTemple {
+    pub fn new(text: &str) -> Self {
+        Self {
+            text: text.to_string(),
+            style: ChildWindowStyles {
+                style: NormalWindowStyles {
+                    edge_type: WindowEdgeType::Sunken,
+                    border_type: WindowBorderType::NoBorder,
+                    visible: true,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            auto_hscroll: true, // ES_AUTOHSCROLL
+            auto_vscroll: true, // ES_AUTOVSCROLL
+            center: false,      // ES_CENTER
+            nohide_sel: false,  // ES_NOHIDESEL
+            oem_convert: false, // ES_OEMCONVERT
+            readonly: false,    // ES_READONLY
+            right: false,       // ES_RIGHT
+            want_return: true,  // ES_WANTRETURN
+            case_type: CaseType::Normal,
+            etype: EditTempleType::Normal,
+        }
+    }
+}
 impl DialogTempleControl for EditTemple {
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (mut ms_style, ex, etype, ct) = self.p_into();

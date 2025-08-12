@@ -72,7 +72,7 @@ impl WindowFinder {
             Some(ControlFont::CaptionFont),
         )?;
         view.get_window_mut()
-            .add_msg_receiver(10, PhantomData::<WindowsFinderMessageReceiver>)?;
+            .add_msg_receiver(PhantomData::<WindowsFinderMessageReceiver>)?;
         Ok(Self(view))
     }
     #[inline]
@@ -143,8 +143,8 @@ impl ControlMsgType for WindowFinderMsg {
 }
 #[derive(Default, Debug)]
 struct WindowsFinderMessageReceiver;
-impl MessageReceiver for WindowsFinderMessageReceiver {
-    fn mouse_msg(_id: usize, window: &mut Window, msg: MouseMsg) -> MessageReceiverResult<()> {
+impl MessageReceiver<SubPorc<1145>> for WindowsFinderMessageReceiver {
+    fn mouse_msg(window: &mut Window, msg: MouseMsg) -> MessageReceiverResult<()> {
         static mut CURRECT_WND: Option<Window> = None;
         match msg {
             MouseMsg::Move { mtype, is_nc } => {

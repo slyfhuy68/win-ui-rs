@@ -17,6 +17,7 @@ pub mod prelude {
             class::{WindowClass, WindowClassBuilder},
             control::{Control, ControlMsg, ControlMsgType, DefaultNMHDR, NotifyMessage},
             core::*,
+            dialog::Dialog,
             font::{ControlFont, Font},
             image::{Bitmap, Cursor, Icon},
             menu::{
@@ -25,8 +26,9 @@ pub mod prelude {
             },
             module::ExecutableFile,
             msg::{
-                MenuCommandMsgItemPos, MessageReceiver, MessageReceiverError,
-                MessageReceiverResult, RawMessage, msg_loop, stop_msg_loop,
+                DialogMessageReceiver, DialogPorc, MainPorc, MenuCommandMsgItemPos,
+                MessageReceiver, MessageReceiverError, MessageReceiverResult, RawMessage, SubPorc,
+                msg_loop, stop_msg_loop,
             },
             style::{
                 ChildWindowStyles, ClassBackgroundBrush, NormalWindowStyles, WindowBorderType,

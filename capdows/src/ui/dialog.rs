@@ -13,6 +13,7 @@ struct DLGTEMPLATEEX_HEADER {
     pub cx: i16,
     pub cy: i16,
 }
+use std::fmt;
 //menu: CWideStr
 //window_class:CWideStr
 //title: CWideStr
@@ -269,6 +270,11 @@ pub struct DialogTempleItemInfo<'a> {
 pub struct Dialog {
     wnd: Window,
 }
+impl fmt::Debug for Dialog {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        unsafe { f.debug_tuple("Dialog").field(&self.handle()).finish() }
+    }
+}
 unsafe impl WindowLike for Dialog {
     #[inline]
     fn from_hwnd_ref(handle: &HWND) -> &Self {
@@ -307,32 +313,75 @@ impl AsMut<Window> for Dialog {
     }
 }
 impl Dialog {
+    #[inline]
     pub unsafe fn from_raw(wnd: HWND) -> Self {
         Self { wnd: wnd.into() }
     }
-    pub unsafe fn handle(self) -> HWND {
+    #[inline]
+    pub unsafe fn handle(&self) -> HWND {
         unsafe { self.wnd.handle() }
     }
-    pub fn load<C: RawMessageHandler + Sync + 'static>(
-        _module: ExecutableFile,
-        _id: ResourceID,
+    #[inline]
+    pub fn load<C: RawMessageHandler<DialogPorc> + Sync + 'static>(
+        module: ExecutableFile,
+        id: ResourceID,
         _msg_receiver: PhantomData<C>,
-        _owner: Window,
-    ) -> Self {
-        todo!()
+        owner: Option<&Window>,
+    ) -> Result<Self> {
+        unsafe {
+            Ok(Self::from_raw(error_from_win32!(CreateDialogParamW(
+                module.into(),
+                id.to_pcwstr(),
+                match owner {
+                    None => 0 as HWND,
+                    Some(x) => x.handle(),
+                },
+                Some(dialog_porc::<C>),
+                0 as LPARAM
+            ))?))
+        }
     }
-    pub fn load_modal<C: RawMessageHandler + Sync + 'static>(
-        _module: ExecutableFile,
-        _id: ResourceID,
+    #[inline]
+    pub fn load_modal<C: RawMessageHandler<DialogPorc> + Sync + 'static>(
+        module: ExecutableFile,
+        id: ResourceID,
         _msg_receiver: PhantomData<C>,
-        _owner: Window,
-    ) {
-        todo!()
+        owner: Option<&Window>,
+    ) -> Result<usize> {
+        unsafe {
+            windows_sys::Win32::Foundation::SetLastError(0);
+            const INVALID_HANDLE_VALUE: usize = -1isize as usize;
+            Ok(
+                match DialogBoxParamW(
+                    module.into(),
+                    id.to_pcwstr(),
+                    match owner {
+                        None => 0 as HWND,
+                        Some(x) => x.handle(),
+                    },
+                    Some(dialog_porc::<C>),
+                    0 as LPARAM,
+                ) as usize
+                {
+                    0 | INVALID_HANDLE_VALUE => {
+                        let err = windows_sys::Win32::Foundation::GetLastError();
+                        if err == 0 {
+                            0
+                        } else {
+                            return Err(WinError::from_win32(err));
+                        }
+                    }
+                    n => n,
+                },
+            )
+        }
     }
-    pub fn end_modal_dialog(&mut self) -> Result<()> {
-        todo!()
+    #[inline]
+    pub fn end_modal_dialog(&mut self, result: usize) -> Result<()> {
+        error_from_win32_bool!(EndDialog(self.handle(), result as isize))
     }
     ///变成以对话框左上角为原点的屏幕单位坐标
+    #[inline]
     pub fn dialog_to_screen(self, _rect: FontRect) -> Result<Rect> {
         todo!()
     }

@@ -44,19 +44,51 @@ impl From<Error> for MessageReceiverError {
 //              panic!()
 //      }
 // }
-pub enum MessageKind {
-    MainProc,
-    SubProc(usize),
-    Dialog,
+pub trait MessageType: sealed::Sealed {
+    type WindowType: WindowLike;
+    #[inline]
+    fn default_destroy() -> MessageReceiverResult<()> {
+        Err(NoProcessed)
+    }
+    fn default_close(wnd: &mut Self::WindowType) -> MessageReceiverResult<()>;
 }
-pub unsafe trait RawMessageHandler<W: WindowLike = Window> {
-    unsafe fn handle_msg(
-        hwnd: HWND,
-        msg: u32,
-        wparam: WPARAM,
-        lparam: LPARAM,
-        msg_kind: MessageKind,
-    ) -> Option<isize>;
+pub struct MainPorc;
+impl MessageType for MainPorc {
+    type WindowType = Window;
+    #[inline]
+    fn default_destroy() -> MessageReceiverResult<()> {
+        stop_msg_loop(0);
+        Ok(())
+    }
+    #[inline]
+    fn default_close(wnd: &mut Self::WindowType) -> MessageReceiverResult<()> {
+        Ok(wnd.destroy()?)
+    }
+}
+pub struct SubPorc<const PORC_ID: usize>;
+impl<const PORC_ID: usize> MessageType for SubPorc<PORC_ID> {
+    type WindowType = Window;
+    #[inline]
+    fn default_close(wnd: &mut Self::WindowType) -> MessageReceiverResult<()> {
+        Ok(wnd.destroy()?)
+    }
+}
+pub struct DialogPorc;
+impl MessageType for DialogPorc {
+    type WindowType = Dialog;
+    #[inline]
+    fn default_close(wnd: &mut Self::WindowType) -> MessageReceiverResult<()> {
+        Ok(wnd.destroy()?)
+    }
+}
+mod sealed {
+    pub trait Sealed {}
+    impl Sealed for super::MainPorc {}
+    impl<const PORC_ID: usize> Sealed for super::SubPorc<PORC_ID> {}
+    impl Sealed for super::DialogPorc {}
+}
+pub unsafe trait RawMessageHandler<T: MessageType = MainPorc> {
+    unsafe fn handle_msg(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<isize>;
 }
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -84,15 +116,14 @@ macro_rules! do_nofity {
         }
     };
 }
-unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>(
+unsafe fn handle_msg_impl<M: MessageType, C: MessageReceiver<M> + Sync + 'static>(
     mut hwnd: HWND,
     msg: u32,
     param1: WPARAM,
     param2: LPARAM,
-    msg_kind: MessageKind,
 ) -> Option<isize> {
     unsafe {
-        let wnd = W::from_hwnd_mut(&mut *&raw mut hwnd);
+        let wnd = M::WindowType::from_hwnd_mut(&mut *&raw mut hwnd);
         use MessageReceiverError::*;
         let result = match msg {
             WM_CREATE => {
@@ -112,12 +143,11 @@ unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>
                     s.style as WINDOW_STYLE,
                     s.dwExStyle,
                     s.hMenu,
-                    s.hwndParent,
+                    &s.hwndParent,
                 );
 
                 let len = lstrlenW(s.lpszName) as usize;
                 let result = match C::create(
-                    msg_kind,
                     wnd,
                     &(String::from_utf16(std::slice::from_raw_parts(s.lpszName, len))
                         .unwrap_or(String::from(""))),
@@ -137,13 +167,13 @@ unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>
                 let _ = ManuallyDrop::new((wtype, wc));
                 result
             }
-            WM_DESTROY => do_nofity! { C::destroy(msg_kind, wnd) },
+            WM_DESTROY => do_nofity! { C::destroy(wnd) },
+            WM_CLOSE => do_nofity! { C::close(wnd) },
             WM_COMMAND => {
                 if param2 != 0 {
                     let param2e = param2;
                     let param1e = param1;
                     do_msg! { C::control_message(
-                        msg_kind,
                         wnd,
                         &mut RawMessage(WM_COMMAND, param1e, param2e),
                         (param1e & 0xffff) as WindowID,
@@ -154,7 +184,6 @@ unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>
                     match high {
                         0 => {
                             do_nofity! { C::menu_command(
-                                msg_kind,
                                 wnd,
                                 MenuCommandMsgItemPos::CostomId(low as MenuItemID),
                             ) }
@@ -168,7 +197,6 @@ unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>
             WM_MENUCOMMAND => {
                 let mut hmenu = param2 as HMENU;
                 do_nofity! { C::menu_command(
-                    msg_kind,
                     wnd,
                     MenuCommandMsgItemPos::Position(Menu::from_mut_ref(&mut hmenu), param1 as u16),
                 ) }
@@ -176,7 +204,6 @@ unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>
             WM_NOTIFY => {
                 let nmhdr_ptr = param2 as *mut NMHDR;
                 do_msg! { C::control_message(
-                    msg_kind,
                     wnd,
                     &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                     (*nmhdr_ptr).idFrom as WindowID,
@@ -193,16 +220,14 @@ unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>
                 };
                 let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
                 do_msg! { C::control_message(
-                    msg_kind,
                     wnd,
                     &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
                     nmhdr.nmhdr.idFrom as WindowID,
                 ) }
             }
-            WM_NULL => do_nofity! { C::alive_test(msg_kind, wnd) },
+            WM_NULL => do_nofity! { C::alive_test(wnd) },
             WM_LBUTTONDOWN => {
                 do_nofity! { C::mouse_msg(
-                    msg_kind,
                     wnd,
                     MouseMsg::Button {
                         button_type: MouseButton::Left,
@@ -217,7 +242,6 @@ unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>
             }
             WM_LBUTTONUP => {
                 do_nofity! { C::mouse_msg(
-                    msg_kind,
                     wnd,
                     MouseMsg::Button {
                         button_type: MouseButton::Left,
@@ -235,28 +259,24 @@ unsafe fn handle_msg_impl<W: WindowLike, C: MessageReceiver<W> + Sync + 'static>
         result
     }
 }
-unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
+unsafe impl<const PORC_ID: usize, C: MessageReceiver<SubPorc<PORC_ID>> + Sync + 'static>
+    RawMessageHandler<SubPorc<PORC_ID>> for C
+{
     #[inline]
-    unsafe fn handle_msg(
-        hwnd: HWND,
-        msg: u32,
-        param1: WPARAM,
-        param2: LPARAM,
-        msg_kind: MessageKind,
-    ) -> Option<isize> {
-        unsafe { handle_msg_impl::<Window, C>(hwnd, msg, param1, param2, msg_kind) }
+    unsafe fn handle_msg(hwnd: HWND, msg: u32, param1: WPARAM, param2: LPARAM) -> Option<isize> {
+        unsafe { handle_msg_impl::<SubPorc<PORC_ID>, C>(hwnd, msg, param1, param2) }
     }
 }
-unsafe impl<C: DialogMessageReceiver + Sync + 'static> RawMessageHandler<Dialog> for C {
-    unsafe fn handle_msg(
-        hwnd: HWND,
-        msg: u32,
-        param1: WPARAM,
-        param2: LPARAM,
-        msg_kind: MessageKind,
-    ) -> Option<isize> {
+unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
+    #[inline]
+    unsafe fn handle_msg(hwnd: HWND, msg: u32, param1: WPARAM, param2: LPARAM) -> Option<isize> {
+        unsafe { handle_msg_impl::<MainPorc, C>(hwnd, msg, param1, param2) }
+    }
+}
+unsafe impl<C: DialogMessageReceiver + Sync + 'static> RawMessageHandler<DialogPorc> for C {
+    unsafe fn handle_msg(hwnd: HWND, msg: u32, param1: WPARAM, param2: LPARAM) -> Option<isize> {
         match msg {
-            _ => unsafe { handle_msg_impl::<Dialog, C>(hwnd, msg, param1, param2, msg_kind) },
+            _ => unsafe { handle_msg_impl::<DialogPorc, C>(hwnd, msg, param1, param2) },
         }
     }
 }
@@ -337,38 +357,31 @@ pub unsafe trait WindowLike {
     fn from_hwnd_ref(hwnd: &HWND) -> &Self;
     fn from_hwnd_mut(hwnd: &mut HWND) -> &mut Self;
 }
-pub trait DialogMessageReceiver: MessageReceiver<Dialog> {}
-///每个回调的id表示一个窗口的接收器id，如果这是一个子类化接收器，NoProcessed表示调用子类链上一个接收器，id为子类化id，如果不是，那么id为0，NoProcessed表示进行默认处理
+pub trait DialogMessageReceiver: MessageReceiver<DialogPorc> {}
 #[allow(unused_variables)]
-pub trait MessageReceiver<W: WindowLike = Window>:
+pub trait MessageReceiver<P: MessageType = MainPorc>:
     std::fmt::Debug + Default + Send + Sync + Unpin
 {
     // fn activating()包含WM_MOUSEACTIVATE
     #[inline]
-    fn mouse_msg(
-        msg_kind: MessageKind,
-        window: &mut W,
-        msg: MouseMsg,
-    ) -> MessageReceiverResult<()> {
+    fn mouse_msg(window: &mut P::WindowType, msg: MouseMsg) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     #[inline]
     fn menu_command(
-        msg_kind: MessageKind,
-        window: &mut W,
+        window: &mut P::WindowType,
         item: MenuCommandMsgItemPos,
     ) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     ///WM_NULL, 用于系统测试程序是否响应，一般不处理
     #[inline]
-    fn alive_test(msg_kind: MessageKind, window: &mut W) -> MessageReceiverResult<()> {
+    fn alive_test(window: &mut P::WindowType) -> MessageReceiverResult<()> {
         Err(NoProcessed)
     }
     #[inline]
     fn control_message(
-        msg_kind: MessageKind,
-        window: &mut W,
+        window: &mut P::WindowType,
         msg: &mut RawMessage,
         wnd_id: WindowID,
     ) -> MessageReceiverResult<isize> {
@@ -377,26 +390,27 @@ pub trait MessageReceiver<W: WindowLike = Window>:
     ///itype参数：这只是[`crate::ui::class::WindowClass`]的crate_window方法的参数的一个副本，但是你可以调用所有者/父窗口和菜单上面的方法，因为它们本质是指针
     #[inline]
     fn create(
-        msg_kind: MessageKind,
-        window: &mut W,
+        window: &mut P::WindowType,
         name: &str,
         class: &mut WindowClass,
         file: &ExecutableFile,
         pos: Rect,
-        itype: &mut WindowType,
+        itype: &WindowType,
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
         Err(NoProcessed)
     } //true 0 false -1
     #[inline]
-    fn destroy(msg_kind: MessageKind, window: &mut W) -> MessageReceiverResult<()> {
-        stop_msg_loop(0);
-        Ok(())
+    fn destroy(window: &mut P::WindowType) -> MessageReceiverResult<()> {
+        P::default_destroy()
+    }
+    #[inline]
+    fn close(window: &mut P::WindowType) -> MessageReceiverResult<()> {
+        P::default_close(window)
     }
     #[inline]
     fn class_messages(
-        msg_kind: MessageKind,
-        window: &mut W,
+        window: &mut P::WindowType,
         code: u16,
         msg: RawMessage,
     ) -> MessageReceiverResult<usize> {
@@ -404,8 +418,7 @@ pub trait MessageReceiver<W: WindowLike = Window>:
     }
     #[inline]
     fn applications_messages(
-        msg_kind: MessageKind,
-        window: &mut W,
+        window: &mut P::WindowType,
         code: u16,
         msg: RawMessage,
     ) -> MessageReceiverResult<usize> {
@@ -413,8 +426,7 @@ pub trait MessageReceiver<W: WindowLike = Window>:
     }
     #[inline]
     fn share_messages(
-        msg_kind: MessageKind,
-        window: &mut W,
+        window: &mut P::WindowType,
         code: &str,
         msg: RawMessage,
     ) -> MessageReceiverResult<usize> {
@@ -422,8 +434,7 @@ pub trait MessageReceiver<W: WindowLike = Window>:
     }
     #[inline]
     fn system_reserved_messages(
-        msg_kind: MessageKind,
-        window: &mut W,
+        window: &mut P::WindowType,
         code: u32,
         msg: RawMessage,
     ) -> MessageReceiverResult<usize> {

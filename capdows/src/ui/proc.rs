@@ -6,35 +6,38 @@ pub unsafe extern "system" fn window_proc<C: RawMessageHandler + Sync + 'static>
     param2: LPARAM,
 ) -> LRESULT {
     unsafe {
-        match C::handle_msg(window_handle, msg, param1, param2, MessageKind::MainProc) {
+        match C::handle_msg(window_handle, msg, param1, param2) {
             Some(x) => x,
             None => DefWindowProcW(window_handle, msg, param1, param2),
         }
     }
 }
-pub unsafe extern "system" fn subclass_porc<C: RawMessageHandler + Sync + 'static>(
+pub unsafe extern "system" fn subclass_porc<
+    const PORC_ID: usize,
+    C: RawMessageHandler<SubPorc<PORC_ID>> + Sync + 'static,
+>(
     hwnd: HWND,
     msg: u32,
     wparam: WPARAM,
     lparam: LPARAM,
-    uidsubclass: usize,
-    _dwrefdata: usize,
+    _: usize, //uidsubclass
+    _: usize, //dwrefdata
 ) -> LRESULT {
     unsafe {
-        match C::handle_msg(hwnd, msg, wparam, lparam, MessageKind::SubProc(uidsubclass)) {
+        match C::handle_msg(hwnd, msg, wparam, lparam) {
             Some(x) => x,
             None => DefSubclassProc(hwnd, msg, wparam, lparam),
         }
     }
 }
-pub unsafe extern "system" fn dialog_porc<C: RawMessageHandler<Dialog> + Sync + 'static>(
+pub unsafe extern "system" fn dialog_porc<C: RawMessageHandler<DialogPorc> + Sync + 'static>(
     hwnd: HWND,
     msg: u32,
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
     unsafe {
-        match C::handle_msg(hwnd, msg, wparam, lparam, MessageKind::Dialog) {
+        match C::handle_msg(hwnd, msg, wparam, lparam) {
             Some(x) => x,
             None => DefDialogPorc(hwnd, msg, wparam, lparam),
         }

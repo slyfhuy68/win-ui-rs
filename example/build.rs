@@ -86,7 +86,10 @@ fn main() {
         point2(0, 0),
         size2(250, 100),
         DialogTempleType::Popup {
-            style: Default::default(),
+            style: NormalWindowStyles {
+                visible: true,
+                ..Default::default()
+            },
             is_layered: false,
         },
     );

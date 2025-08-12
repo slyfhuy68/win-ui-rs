@@ -205,7 +205,7 @@ pub struct DialogStyles {
 
     /// 是否**禁止**对话框创建时自动递归设置子窗口的字体。
     ///
-    /// 相当于[`capdows_controls::traits::CommonControl`]的new函数的最后一个参数
+    /// 相当于CommonControl的new函数的最后一个参数
     pub no_set_font: bool, // DS_SETFONT
 
     /// 允许对话框在鼠标光标位置居中。

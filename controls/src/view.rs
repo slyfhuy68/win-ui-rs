@@ -291,7 +291,29 @@ impl TextViewStyle {
         }
     }
 }
-
+impl ImageViewTemple {
+    pub fn new_icon(icon: ResourceID) -> Self {
+        Self {
+            style: ChildWindowStyles::default(),
+            content: ImageViewTempleContent::Icon {
+                icon,
+                reasize_control: false,
+                right_just: false,
+            },
+            black_frame: false,
+            black_rect: false,
+            etched_frame: false,
+            etched_horz: false,
+            etched_vert: false,
+            gray_frame: false,
+            gray_rect: false,
+            white_frame: false,
+            white_rect: false,
+            sunken: false,
+            extra_notify: false,
+        }
+    }
+}
 impl<D, T> Into<(WINDOW_STYLE, WINDOW_EX_STYLE, D)> for ViewOption<T>
 where
     T: Into<(WINDOW_STYLE, D)>,

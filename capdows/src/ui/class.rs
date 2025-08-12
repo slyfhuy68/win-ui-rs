@@ -190,7 +190,7 @@ impl WindowClass {
     pub fn create_window(
         &self,
         name: &str,
-        wtype: WindowType,
+        wtype: WindowType<'_>,
         pos: Option<Point>,
         size: Option<Size>,
     ) -> Result<Window> {
