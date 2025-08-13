@@ -7,9 +7,9 @@ mod windows_msvc;
 mod windows_not_msvc;
 
 #[cfg(all(target_os = "windows", target_env = "msvc"))]
-use windows_msvc::compile_resource;
+use windows_msvc::*;
 #[cfg(all(target_os = "windows", not(target_env = "msvc")))]
-use windows_not_msvc::compile_resource;
+use windows_not_msvc::*;
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum LinkFor<'r> {
@@ -21,22 +21,11 @@ pub enum LinkFor<'r> {
     Examples,
     Everything,
 }
-pub fn compile_win32_res<P: AsRef<Path>>(resource_file: P, link_for: LinkFor<'_>) {
-    let prefix = resource_file
+pub unsafe fn compile_win32_res<P: AsRef<Path>>(raw_resource_file: P, link_for: LinkFor<'_>) {
+    let out_file = raw_resource_file
         .as_ref()
-        .file_stem()
-        .expect("resource_file has no stem")
         .to_str()
-        .expect("resource_file's stem not UTF-8");
-    let out_dir = env::var("OUT_DIR").expect("No OUT_DIR env var");
-    let out_file = compile_resource(
-        &out_dir,
-        &prefix,
-        resource_file
-            .as_ref()
-            .to_str()
-            .expect("resource_file not UTF-8"),
-    );
+        .expect("raw_resource_file's path not UTF-8");
     match link_for {
         LinkFor::AllBinaries => {
             println!("cargo:rustc-link-arg-bins={}", out_file);
@@ -58,5 +47,26 @@ pub fn compile_win32_res<P: AsRef<Path>>(resource_file: P, link_for: LinkFor<'_>
         LinkFor::Everything => {
             println!("cargo:rustc-link-arg={}", out_file);
         }
+    }
+}
+pub unsafe fn compile_win32_rc<P: AsRef<Path>>(resource_file: P, link_for: LinkFor<'_>) {
+    let out_file = get_out_file_name(
+        &env::var("OUT_DIR").expect("No OUT_DIR env var"),
+        &resource_file
+            .as_ref()
+            .file_stem()
+            .expect("resource_file has no stem")
+            .to_str()
+            .expect("resource_file's stem not UTF-8"),
+    );
+    compile_resource(
+        &out_file,
+        resource_file
+            .as_ref()
+            .to_str()
+            .expect("resource_file not UTF-8"),
+    );
+    unsafe {
+        compile_win32_res(out_file, link_for);
     }
 }

@@ -12,10 +12,7 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use windows_sys::Win32::Storage::FileSystem::*;
 mod compile_resource;
-pub use compile_resource::LinkFor;
-use compile_resource::compile_win32_res;
-// extern crate embed_resource;
-// use embed_resource::*;
+pub use compile_resource::{LinkFor, compile_win32_rc, compile_win32_res};
 // use windows_sys::Win32::Foundation::SetLastError; //{
 // HMODULE, HWND, LPARAM, LRESULT, WPARAM,
 // POINT, POINTS, RECT, SIZE, WIN32_ERROR, HINSTANCE,
@@ -49,7 +46,7 @@ impl PreCompilePruduct {
         f.write_all(b"\xEF\xBB\xBF").expect("无法写入文件头");
         f.write_all((self.0).as_bytes()).expect("无法写入文件");
 
-        compile_win32_res(dest_path.to_str().unwrap(), link_for);
+        unsafe { compile_win32_rc(dest_path.to_str().unwrap(), link_for) };
     }
 }
 impl Add for PreCompilePruduct {

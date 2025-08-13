@@ -3,9 +3,11 @@ use std::env;
 use std::ffi::OsStr;
 use std::path::MAIN_SEPARATOR;
 use std::process::Command;
-pub fn compile_resource(out_dir: &str, prefix: &str, resource: &str) -> String {
-    let out_file = format!("{}{}lib{}.a", out_dir, MAIN_SEPARATOR, prefix);
-
+#[inline]
+pub fn get_out_file_name(out_dir: &str, prefix: &str) -> String {
+    format!("{}{}lib{}.a", out_dir, MAIN_SEPARATOR, prefix)
+}
+pub fn compile_resource(out_file: &str, resource: &str) {
     // Under some msys2 environments, $MINGW_CHOST has the correct target for
     // GNU windres or llvm-windres (clang32, clang64, or clangarm64)
     let target = env::var_os("MINGW_CHOST")
@@ -26,10 +28,10 @@ pub fn compile_resource(out_dir: &str, prefix: &str, resource: &str) -> String {
     match Command::new("windres")
         .args(&["--input", resource, "--output-format=coff", "--target"])
         .arg(target)
-        .args(&["--output", &out_file, "--include-dir", out_dir])
+        .args(&["--output", out_file])
         .status()
     {
-        Ok(stat) if stat.success() => out_file,
+        Ok(stat) if stat.success() => {}
         Ok(stat) => panic!(
             "windres failed to compile \"{}\" into \"{}\" with {}",
             resource, out_file, stat
