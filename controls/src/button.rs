@@ -258,8 +258,7 @@ define_control! {
             }
             NM_CUSTOMDRAW => Draw(ptr),
             BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？
-            x => {
-                println!("wdt: {x}");
+            _ => {
                 return Err(ERROR_MSG_CODE_NOT_SUPPORT);
             }
         }

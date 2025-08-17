@@ -266,7 +266,7 @@ pub mod traits {
             error_from_win32_bool!(SendMessageW(
                 self.as_ref().handle(),
                 WM_GETTEXT,
-                length as WPARAM,
+                (length + 1) as WPARAM,
                 buffer.as_mut_ptr() as LPARAM,
             ))?;
             Ok(String::from_utf16_lossy(&buffer[..length]))
