@@ -2,24 +2,17 @@ use super::*;
 pub enum EditType {
     Normal,
     MultiLine,
-    ///None对应`●`(新版系统)或`*`(旧版系统)
-    Password(Option<char>),
-    //Rich,
-}
-pub enum EditTempleType {
-    Normal,
-    MultiLine,
-    ///如需指定自定义字符，需要在运行时手动调用set_passwrd_char指定
+    ///默认`●`(新版系统)或`*`(旧版系统)
     Password,
     //Rich,
 }
 pub enum CaseType {
-    Normal,
+    DefaultCase,
     Number, // ES_NUMBER
     Lower,  // ES_LOWERCASE
     Upper,  // ES_UPPERCASE
 }
-pub struct EditOption<T> {
+pub struct EditStyle {
     //AI
     pub text: String,
     pub style: ChildWindowStyles,
@@ -32,11 +25,10 @@ pub struct EditOption<T> {
     pub right: bool,        // ES_RIGHT
     pub want_return: bool,  // ES_WANTRETURN
     pub case_type: CaseType,
-    pub etype: T,
+    pub etype: EditType,
 }
-pub type EditStyle = EditOption<EditType>;
-impl<T> EditOption<T> {
-    fn p_into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, T, String) {
+impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for EditStyle {
+    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
         let (mut edit_style, ex) = self.style.into();
         set_style(
             &mut edit_style,
@@ -68,77 +60,33 @@ impl<T> EditOption<T> {
         );
         use CaseType::*;
         match self.case_type {
-            Normal => (),
+            DefaultCase => (),
             Number => edit_style |= ES_NUMBER as WINDOW_STYLE,
             Lower => edit_style |= ES_LOWERCASE as WINDOW_STYLE,
             Upper => edit_style |= ES_UPPERCASE as WINDOW_STYLE,
         }
-        (edit_style, ex, self.etype, self.text)
-    }
-}
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String)> for EditStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<char>, String) {
-        let mut pass: Option<char> = None;
-        let (mut edit_style, ex, etype, text) = self.p_into();
+
         use EditType::*;
-        match etype {
+        match self.etype {
             Normal => (),
             MultiLine => {
                 edit_style |= ES_MULTILINE as WINDOW_STYLE;
             }
-            Password(c) => {
+            Password => {
                 edit_style |= ES_PASSWORD as WINDOW_STYLE;
-                pass = c
             } // Rich => {
               //     todo!()
               // },
         }
 
-        (edit_style, ex, pass, text)
+        (edit_style, ex, self.text)
     }
 }
-pub type EditTemple = EditOption<EditTempleType>;
-impl EditTemple {
-    pub fn new(text: &str) -> Self {
-        Self {
-            text: text.to_string(),
-            style: ChildWindowStyles {
-                style: NormalWindowStyles {
-                    edge_type: WindowEdgeType::Sunken,
-                    border_type: WindowBorderType::NoBorder,
-                    visible: true,
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            auto_hscroll: true, // ES_AUTOHSCROLL
-            auto_vscroll: true, // ES_AUTOVSCROLL
-            center: false,      // ES_CENTER
-            nohide_sel: false,  // ES_NOHIDESEL
-            oem_convert: false, // ES_OEMCONVERT
-            readonly: false,    // ES_READONLY
-            right: false,       // ES_RIGHT
-            want_return: true,  // ES_WANTRETURN
-            case_type: CaseType::Normal,
-            etype: EditTempleType::Normal,
-        }
-    }
-}
+pub type EditTemple = EditStyle;
 impl DialogTempleControl for EditTemple {
+    #[inline]
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
-        let (mut ms_style, ex, etype, ct) = self.p_into();
-        use EditTempleType::*;
-        match etype {
-            Normal => (),
-            MultiLine => {
-                ms_style |= ES_MULTILINE as WINDOW_STYLE;
-            }
-            Password => {
-                ms_style |= ES_PASSWORD as WINDOW_STYLE;
-            } // Rich => {
-              //     todo!()
-              // },
-        };
+        let (ms_style, ex, ct) = self.into();
         format!(
             "CONTROL \"{}\", {}, \"Edit\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
@@ -166,6 +114,8 @@ pub enum EditMsgType {
     NoEnoughMemory,
     ///当`Edit`即将重新绘制自身时，在显示文本之前，将会收到此消息。 这样就可以根据需要调整编辑`Edit`控件的大小。
     Update,
+    ///WM_CTLCOLOREDIT消息
+    Colour(usize),
 }
 define_control! {
     Edit,
@@ -182,6 +132,10 @@ define_control! {
                 EN_SETFOCUS => GetKeyboardFocus,
                 EN_MAXTEXT => MaxText,
                 EN_UPDATE => Update,
+                WM_CTLCOLOREDIT => {
+                    let nmhdr = (*(ptr as *mut NMHDRCOLOR)).DC;
+                    Colour(nmhdr as usize)
+                }
                 _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
             }
     },
@@ -213,36 +167,23 @@ impl EditStyle {
             readonly: false,    // ES_READONLY
             right: false,       // ES_RIGHT
             want_return: true,  // ES_WANTRETURN
-            case_type: CaseType::Normal,
+            case_type: CaseType::DefaultCase,
             etype: EditType::Normal,
         }
     }
 }
 impl CommonControl for Edit {
     type Style = EditStyle;
-    fn new(
+    #[inline]
+    fn new_raw(
         wnd: &mut Window,
         pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,
-    ) -> Result<Self> {
-        let (a, b, pass, text) = control_style.into();
-        let mut result = Self(new_control(
-            wnd,
-            w!("Edit"),
-            text,
-            pos,
-            identifier,
-            a,
-            b,
-            font,
-        )?);
-        match pass {
-            None => (), //不要直接传给set_passwrd_char，表达的含义不一样
-            Some(s) => result.set_passwrd_char(Some(s))?,
-        };
-        Ok(result)
+    ) -> Result<HWND> {
+        let (a, b, text) = control_style.into();
+        new_control(wnd, w!("Edit"), text, pos, identifier, a, b, font)
     }
 }
 

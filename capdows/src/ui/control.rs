@@ -21,7 +21,7 @@ unsafe impl NotifyMessage for NMHDR {
     }
 }
 ///Windows控件
-pub trait Control {
+pub trait Control: AsMut<Window> + AsRef<Window> {
     type MsgType: UnsafeControlMsg;
     const CLASS_NAME: &'static str;
     const CLASS_NAME_WIDE: &'static widestr;
@@ -42,11 +42,12 @@ pub trait Control {
     where
         Self: Sized;
     fn to_window(self) -> Window;
-    fn get_window(&self) -> &Window;
-    fn get_window_mut(&mut self) -> &mut Window;
+    // fn get_window(&self) -> &Window;
+    // fn get_window_mut(&mut self) -> &mut Window;
     fn is_self(wnd: &Window) -> Result<bool>;
     fn get_id(&self) -> WindowID {
-        match unsafe {GetDlgCtrlID(self.get_window().handle())}{
+        let wnd: &Window = self.as_ref();
+        match unsafe {GetDlgCtrlID(wnd.handle())}{
             0 => 0,
             a => a.try_into().expect("The control ID exceeds the WindowID::MAX, the GetDlgCtrlID returned an invalid value."),
         }
@@ -60,7 +61,6 @@ impl<T: Control> From<T> for Window {
         ctl.to_window()
     }
 }
-
 pub trait ControlMsgType: Send + Sync {
     type ControlType: Control;
     fn get_control(&self) -> &Self::ControlType;
@@ -79,10 +79,13 @@ pub unsafe trait UnsafeControlMsg: /*UnsafeMessage + */ControlMsgType {
     unsafe fn from_msg(ptr: usize, command: bool) -> Result<Self>
     where
         Self: Sized;
+    #[inline]
     unsafe fn is_self(ptr: usize) -> Result<bool> {
-        unsafe { Self::ControlType::is_self(&(
-            Window::from_handle((*(ptr as *mut NMHDR)).hwndFrom)
-            )) }
+        unsafe {
+            Self::ControlType::is_self(&(
+                Window::from_handle((*(ptr as *mut NMHDR)).hwndFrom)
+            ))
+        }
     }
 }
 pub trait ControlMsg: /*UnsafeControlMsg + */ ControlMsgType{
@@ -114,7 +117,8 @@ where
 {
     type NotifyType = DefaultNMHDR<T::ControlMsgDataType>;
     unsafe fn into_raw(self) -> Result<Either<u16, Self::NotifyType>> {
-        let handle = unsafe { self.get_control().get_window().handle() };
+        let wnd: &Window = self.get_control().as_ref();
+        let handle = unsafe { wnd.handle() };
         let id = self.get_control().get_id() as usize;
         let (code, data) = self.into_raw_control_msg()?;
         let mdata = match data {
@@ -159,4 +163,28 @@ where
             }
         }
     }
+}
+pub unsafe trait RawHwndControl: Control + Sized {
+    #[inline]
+    fn from_hwnd_ref(wnd: &HWND) -> Result<&Self> {
+        unsafe {
+            if Self::is_self(Window::from_ref(wnd))? {
+                Ok(Self::from_hwnd_ref_unchecked(wnd))
+            } else {
+                Err(ERROR_INVALID_WINDOW_HANDLE)
+            }
+        }
+    }
+    #[inline]
+    fn from_hwnd_ref_mut(wnd: &mut HWND) -> Result<&mut Self> {
+        unsafe {
+            if Self::is_self(Window::from_ref(wnd))? {
+                Ok(Self::from_hwnd_ref_mut_unchecked(wnd))
+            } else {
+                Err(ERROR_INVALID_WINDOW_HANDLE)
+            }
+        }
+    }
+    unsafe fn from_hwnd_ref_unchecked(wnd: &HWND) -> &Self;
+    unsafe fn from_hwnd_ref_mut_unchecked(wnd: &mut HWND) -> &mut Self;
 }

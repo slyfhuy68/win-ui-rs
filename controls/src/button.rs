@@ -218,7 +218,9 @@ pub enum ButtonMsgType {
     DoubleClicked,
     LoseKeyboardFocus,
     GetKeyboardFocus,
+    ///屏幕坐标系
     DropDown(Rect),
+    Colour(usize),
     Draw(usize),
     #[doc(hidden)]
     Fffffb21Msg, //4294966049这是什么？
@@ -250,9 +252,14 @@ define_control! {
                     Point::new(data.right, data.bottom),
                 ).to_rect())
             }
+            WM_CTLCOLORBTN => {
+                let nmhdr = (*(ptr as *mut NMHDRCOLOR)).DC;
+                Colour(nmhdr as usize)
+            }
             NM_CUSTOMDRAW => Draw(ptr),
             BCN_FFFFFB21_MSG => Fffffb21Msg, //这是什么？
-            _ => {
+            x => {
+                println!("wdt: {x}");
                 return Err(ERROR_MSG_CODE_NOT_SUPPORT);
             }
         }
@@ -272,17 +279,16 @@ define_control! {
 impl TextControl for Button {}
 impl CommonControl for Button {
     type Style = ButtonStyle;
-    fn new(
+    #[inline]
+    fn new_raw(
         wnd: &mut Window,
         pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,
-    ) -> Result<Self> {
+    ) -> Result<HWND> {
         let (style, ex, draw, name) = control_style.into();
-        Ok(Self(new_button(
-            wnd, name, pos, identifier, style, ex, font, draw,
-        )?))
+        new_button(wnd, name, pos, identifier, style, ex, font, draw)
     }
 }
 impl Button {

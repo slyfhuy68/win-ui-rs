@@ -144,6 +144,7 @@ impl Into<(WINDOW_STYLE, (String, HANDLE, GDI_IMAGE_TYPE))> for ImageViewContent
 }
 pub type TextViewTemple = ViewOption<TextViewContent>;
 impl DialogTempleControl for TextViewTemple {
+    #[inline]
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (style, style_ex, ct) = self.into();
         format!(
@@ -197,6 +198,7 @@ impl Into<(WINDOW_STYLE, ResourceID)> for ImageViewTempleContent {
     }
 }
 impl DialogTempleControl for ImageViewTemple {
+    #[inline]
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
         let (style, style_ex, ct) = self.into();
         format!(
@@ -204,9 +206,7 @@ impl DialogTempleControl for ImageViewTemple {
             match ct {
                 StringId(y) => {
                     let result = y.to_string();
-                    if result.parse::<f32>().is_ok() {
-                        panic!("无效的资源ID，StringId不能由纯数字组成（包括小数）")
-                    };
+                    check_res_id(&result);
                     format!("\"{}\"", result)
                 }
                 NumberId(x) => x.to_string(),
@@ -335,14 +335,6 @@ where
         (style | style2, style_ex, data)
     }
 }
-#[repr(C)]
-#[allow(non_snake_case)]
-struct NMHDRSTATIC {
-    #[allow(non_snake_case)]
-    nmhdr: NMHDR,
-    #[allow(non_snake_case)]
-    DC: HANDLE,
-}
 
 pub enum ViewMsgType {
     Clicked,       //WM_COMMAND
@@ -363,7 +355,7 @@ define_control! {
             STN_DISABLE => Disable,
             STN_ENABLE => Enable,
             WM_CTLCOLORSTATIC => {
-                let nmhdr = (*(ptr as *mut NMHDRSTATIC)).DC;
+                let nmhdr = (*(ptr as *mut NMHDRCOLOR)).DC;
                 Colour(nmhdr as usize)
             }
             _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
@@ -386,7 +378,7 @@ define_control! {
             STN_DISABLE => Disable,
             STN_ENABLE => Enable,
             WM_CTLCOLORSTATIC => {
-                let nmhdr = (*(ptr as *mut NMHDRSTATIC)).DC;
+                let nmhdr = (*(ptr as *mut NMHDRCOLOR)).DC;
                 Colour(nmhdr as usize)
             }
             _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),
@@ -402,13 +394,14 @@ define_control! {
 impl TextControl for TextView {}
 impl CommonControl for ImageView {
     type Style = ImageViewStyle;
-    fn new(
+    #[inline]
+    fn new_raw(
         wnd: &mut Window,
         pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,
-    ) -> Result<Self> {
+    ) -> Result<HWND> {
         let (style, style_ex, (name, data, flag)) = control_style.into();
         let hwnd = new_control(
             wnd,
@@ -421,22 +414,23 @@ impl CommonControl for ImageView {
             font,
         )?;
         unsafe {
-            let _ = SendMessageW(hwnd.handle(), STM_SETIMAGE, flag as WPARAM, data as LPARAM);
+            let _ = SendMessageW(hwnd, STM_SETIMAGE, flag as WPARAM, data as LPARAM);
         }
-        Ok(ImageView(hwnd))
+        Ok(hwnd)
     }
 }
 impl CommonControl for TextView {
     type Style = TextViewStyle;
-    fn new(
+    #[inline]
+    fn new_raw(
         wnd: &mut Window,
         pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,
-    ) -> Result<Self> {
+    ) -> Result<HWND> {
         let (style, style_ex, name) = control_style.into();
-        Ok(TextView(new_control(
+        new_control(
             wnd,
             w!("Static"),
             name,
@@ -445,6 +439,6 @@ impl CommonControl for TextView {
             style,
             style_ex,
             font,
-        )?))
+        )
     }
 }

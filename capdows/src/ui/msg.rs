@@ -90,14 +90,16 @@ mod sealed {
 pub unsafe trait RawMessageHandler<T: MessageType = MainPorc> {
     unsafe fn handle_msg(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> Option<isize>;
 }
+
 #[repr(C)]
 #[allow(non_snake_case)]
-struct NMHDRSTATIC {
+struct NMHDRCOLOR {
     #[allow(non_snake_case)]
     nmhdr: NMHDR,
     #[allow(non_snake_case)]
     DC: HANDLE,
 }
+
 macro_rules! do_msg {
     ($cb:expr) => {
         match $cb {
@@ -209,16 +211,17 @@ unsafe fn handle_msg_impl<M: MessageType, C: MessageReceiver<M> + Sync + 'static
                     (*nmhdr_ptr).idFrom as WindowID,
                 ) }
             }
-            WM_CTLCOLORSTATIC => {
-                let mut nmhdr = NMHDRSTATIC {
+            WM_CTLCOLORBTN | WM_CTLCOLORDLG | WM_CTLCOLOREDIT | WM_CTLCOLORLISTBOX
+            | WM_CTLCOLORSCROLLBAR | WM_CTLCOLORSTATIC => {
+                let mut nmhdr = NMHDRCOLOR {
                     nmhdr: NMHDR {
                         hwndFrom: param2 as HWND,
                         idFrom: GetWindowLongW(param2 as HWND, GWL_ID) as usize,
-                        code: WM_CTLCOLORSTATIC,
+                        code: msg,
                     },
                     DC: param1 as HANDLE,
                 };
-                let nmhdr_ptr: *mut NMHDRSTATIC = &mut nmhdr;
+                let nmhdr_ptr: *mut NMHDRCOLOR = &mut nmhdr;
                 do_msg! { C::control_message(
                     wnd,
                     &mut RawMessage(WM_NOTIFY, 0, nmhdr_ptr as isize),
@@ -357,7 +360,9 @@ pub unsafe trait WindowLike {
     fn from_hwnd_ref(hwnd: &HWND) -> &Self;
     fn from_hwnd_mut(hwnd: &mut HWND) -> &mut Self;
 }
-pub trait DialogMessageReceiver: MessageReceiver<DialogPorc> {}
+pub trait DialogMessageReceiver: MessageReceiver<DialogPorc> {
+    //这里是一些对话框专属消息
+}
 #[allow(unused_variables)]
 pub trait MessageReceiver<P: MessageType = MainPorc>:
     std::fmt::Debug + Default + Send + Sync + Unpin
@@ -493,17 +498,33 @@ pub struct RawMessage(
     ///lparam
     pub LPARAM,
 );
+#[derive(Debug)]
+#[repr(transparent)]
+pub struct MessageView<'a, T> {
+    pub(crate) msg: T,
+    pub(crate) _lifetime: PhantomData<&'a mut Window>,
+}
+
+impl<'a, T> std::ops::Deref for MessageView<'a, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.msg
+    }
+}
 impl RawMessage {
-    pub fn get_msg<T: UnsafeMessage>(&mut self) -> Result<T> {
+    pub fn get_msg<'a, T: UnsafeMessage>(&'a mut self) -> Result<MessageView<'a, T>> {
         unsafe {
             match T::is_self_msg(&self)? {
                 false => panic!("The type provided does not match the actual message!"),
                 _ => (),
             };
-            T::from_raw_msg(*self)
+            Ok(MessageView {
+                msg: T::from_raw_msg(*self)?,
+                _lifetime: PhantomData,
+            })
         }
     }
-    pub fn get_control_msg<T: Control>(&mut self) -> Result<T::MsgType> {
+    pub fn get_control_msg<'a, T: Control>(&'a mut self) -> Result<MessageView<'a, T::MsgType>> {
         self.get_msg::<T::MsgType>()
     }
 }
@@ -596,11 +617,12 @@ impl<D: NotifyMessage> AsMsg for UnsafeControlMsgDefaultOwnerType<D> {
         }
     }
 }
+
 unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
     type OwnerType = UnsafeControlMsgDefaultOwnerType<T::NotifyType>;
     unsafe fn into_raw_msg(self) -> Result<Self::OwnerType> {
         unsafe {
-            let handle = self.get_control().get_window().handle();
+            let handle = self.get_control().as_ref().handle();
             let ptr = self.into_raw()?;
             Ok(match ptr {
                 Left(l) => UnsafeControlMsgDefaultOwnerType {

@@ -128,24 +128,16 @@ impl ComboBoxStyle {
 }
 impl CommonControl for ComboBox {
     type Style = ComboBoxStyle;
-    fn new(
+    #[inline]
+    fn new_raw(
         wnd: &mut Window,
         pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,
-    ) -> Result<Self> {
+    ) -> Result<HWND> {
         let (a, b, c) = control_style.into();
-        Ok(Self(new_control(
-            wnd,
-            w!("ComboBox"),
-            c,
-            pos,
-            identifier,
-            a,
-            b,
-            font,
-        )?))
+        new_control(wnd, w!("ComboBox"), c, pos, identifier, a, b, font)
     }
 }
 define_control! {
@@ -166,7 +158,7 @@ define_control! {
             CBN_SELENDCANCEL => SelEnDok,
             CBN_SELENDOK => SelEnCancel,
             CBN_SETFOCUS=> GetKeyboardFocus,
-            WM_COMPAREITEM => Compareing (ptr),
+            WM_COMPAREITEM => Compareing(ptr),
             WM_DRAWITEM => Draw(ptr),
             WM_MEASUREITEM => Measure(ptr),
             _ => return Err(ERROR_MSG_CODE_NOT_SUPPORT),

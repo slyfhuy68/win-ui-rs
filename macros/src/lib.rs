@@ -1,4 +1,3 @@
-//AI辅助编写
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
@@ -25,6 +24,7 @@ impl Parse for DefineControlArgs {
         let is_self_block = input.parse()?;
         input.parse::<Token![,]>()?;
         let into_raw_block = input.parse()?;
+        // input.parse::<Token![,]>()?;
         Ok(DefineControlArgs {
             control_name,
             class_name,
@@ -52,6 +52,7 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #[derive(Debug)]
+        #[repr(transparent)]
         pub struct #control_name(Window);
         unsafe impl Send for #control_name {}
         unsafe impl Sync for #control_name {}
@@ -76,39 +77,42 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                 unsafe {self.0.move_out()}
             }
             #[inline]
-            fn get_window(&self) -> &Window {
-                &self.0
-            }
-            #[inline]
-            fn get_window_mut(&mut self) -> &mut Window {
-                &mut self.0
-            }
-            #[inline]
             fn is_self(wnd: &Window) -> Result<bool> {
                 #[allow(unused_unsafe)]
                 unsafe #is_self_block
             }
         }
 
-        impl RawHwndControl for #control_name{
-            unsafe fn from_window_ref_unchecked(wnd:&Window)->&Self{
+        impl AsRef<Window> for #control_name {
+            #[inline]
+            fn as_ref(&self) -> &Window {
+                &self.0
+            }
+        }
+        impl AsMut<Window> for #control_name {
+            #[inline]
+            fn as_mut(&mut self) -> &mut Window {
+                &mut self.0
+            }
+        }
+        unsafe impl RawHwndControl for #control_name{
+            unsafe fn from_hwnd_ref_unchecked(wnd:&HWND)->&Self{
                 unsafe { std::mem::transmute(wnd) }
             }
-            unsafe fn from_window_ref_mut_unchecked(wnd:&mut Window)->&mut Self{
+            unsafe fn from_hwnd_ref_mut_unchecked(wnd:&mut HWND)->&mut Self{
                 unsafe { std::mem::transmute(wnd) }
             }
         }
 
         pub struct #msg_name_ident {
-            control: #control_name,
+            control: HWND,
             msg_type: #msg_type_name_ident,
         }
 
+        unsafe impl Send for #msg_name_ident {}
+        unsafe impl Sync for #msg_name_ident {}
+
         impl #msg_name_ident {
-            #[inline]
-            pub fn new(control: #control_name, msg_type: #msg_type_name_ident) -> Self {
-                Self { control, msg_type }
-            }
             #[inline]
             pub fn get_type(&self) -> & #msg_type_name_ident {
                 &self.msg_type
@@ -123,11 +127,11 @@ pub fn define_control(input: TokenStream) -> TokenStream {
             type ControlType = #control_name;
             #[inline]
             fn get_control(&self) -> &Self::ControlType{
-                &self.control
+                unsafe { std::mem::transmute(&self.control) }
             }
             #[inline]
             fn get_control_mut(&mut self) -> &mut Self::ControlType{
-                &mut self.control
+                unsafe { std::mem::transmute(&mut self.control) }
             }
         }
 
@@ -148,23 +152,17 @@ pub fn define_control(input: TokenStream) -> TokenStream {
                 #[allow(unused_unsafe)]
                 let result = unsafe #from_msg_block;
                 Ok(Self {
-                    control: #control_name(Window::from_handle(w)),
+                    control: w,
                     msg_type: result,
                 })
             }
         }
-        impl Drop for #msg_name_ident {
-            fn drop(&mut self) {
-                unsafe {
-                    self.control.get_window_mut().nullify()
-                }
-            }
-        }
+
         impl Drop for #control_name {
             fn drop(&mut self) {
                 unsafe {
                     let hwnd = self.0.handle();
-                    if hwnd as usize !=  0 {
+                    if hwnd as usize != 0 {
                         let hfont = SendMessageW(hwnd, WM_GETFONT, 0 as WPARAM, 0 as LPARAM);
                         let _ = DestroyWindow(hwnd);
                         if hfont != 0 {

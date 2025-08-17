@@ -1,5 +1,6 @@
 use super::*;
 #[derive(Clone, PartialEq, Copy, Debug)]
+#[repr(transparent)]
 pub struct Brush {
     pub(crate) handle: HBRUSH,
 }

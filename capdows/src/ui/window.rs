@@ -17,6 +17,18 @@ unsafe impl WindowLike for Window {
         unsafe { std::mem::transmute(handle) }
     }
 }
+impl AsRef<Window> for Window {
+    #[inline]
+    fn as_ref(&self) -> &Window {
+        self
+    }
+}
+impl AsMut<Window> for Window {
+    #[inline]
+    fn as_mut(&mut self) -> &mut Window {
+        self
+    }
+}
 impl Default for Window {
     fn default() -> Self {
         Window { handle: 0 as HWND }
@@ -265,6 +277,7 @@ impl Window {
     pub unsafe fn from_handle(handle: HWND) -> Self {
         Window { handle }
     }
+    #[inline]
     pub fn parent(&self) -> Option<Self> {
         unsafe {
             let hwnd = GetAncestor(self.handle, GA_PARENT);
@@ -275,9 +288,11 @@ impl Window {
             }
         }
     }
+    #[inline]
     pub fn is_child(&self) -> bool {
         unsafe { GetWindowLongPtrW(self.handle, GWL_STYLE) & WS_CHILD as isize != 0 }
     }
+    #[inline]
     pub fn with_menu<F, T>(&mut self, f: F) -> Result<T>
     where
         F: FnOnce(&mut Menu) -> T,
@@ -293,6 +308,31 @@ impl Window {
             Ok(f(Menu::from_mut_ref(&mut menu)))
         }
     }
+    #[inline]
+    pub fn with_child<F, T>(&self, id: WindowID, f: F) -> Result<T>
+    where
+        F: FnOnce(&Window) -> T,
+    {
+        let hwnd = error_from_win32!(GetDlgItem(self.handle, id as i32))?;
+        Ok(f(Self::from_ref(&hwnd)))
+    }
+    #[inline]
+    pub fn as_ctl_mut<C: RawHwndControl>(&mut self) -> Result<&mut C> {
+        C::from_hwnd_ref_mut(&mut self.handle)
+    }
+    #[inline]
+    pub fn as_ctl<C: RawHwndControl>(&self) -> Result<&C> {
+        C::from_hwnd_ref(&self.handle)
+    }
+    #[inline]
+    pub fn with_child_mut<F, T>(&mut self, id: WindowID, f: F) -> Result<T>
+    where
+        F: FnOnce(&mut Window) -> T,
+    {
+        let mut hwnd = error_from_win32!(GetDlgItem(self.handle, id as i32))?;
+        Ok(f(Self::from_mut_ref(&mut hwnd)))
+    }
+    #[inline]
     pub fn root_parent(&self) -> Option<Self> {
         unsafe {
             let hwnd = GetAncestor(self.handle, GA_ROOT);

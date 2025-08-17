@@ -129,17 +129,16 @@ impl RadioBoxTemple {
 }
 impl CommonControl for RadioBox {
     type Style = RadioBoxStyle;
-    fn new(
+    #[inline]
+    fn new_raw(
         wnd: &mut Window,
         pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,
-    ) -> Result<Self> {
+    ) -> Result<HWND> {
         let (style, ex, draw, name) = control_style.into();
-        Ok(Self(new_button(
-            wnd, name, pos, identifier, style, ex, font, draw,
-        )?))
+        new_button(wnd, name, pos, identifier, style, ex, font, draw)
     }
 }
 impl RadioBox {

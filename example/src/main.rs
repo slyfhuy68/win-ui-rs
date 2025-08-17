@@ -1,21 +1,9 @@
 use capdows::prelude::*;
 use capdows::ui::msg::NoProcessed;
 use capdows_controls::prelude::*;
-use capdows_example::*;
+use capdows_example::*; //从lib.rs导入
 use euclid::rect;
-use std::marker::PhantomData; //从lib.rs导入
-#[derive(Debug)]
-struct MyControls {
-    a1: RadioBox,
-    a2: RadioBox,
-    b1: RadioBox,
-    b2: RadioBox,
-    boxed1: CheckBox,
-    boxed2: CheckBox,
-    edit: Edit,
-}
-static MY_CONTROLS: OnceLock<MyControls> = OnceLock::new();
-use std::sync::OnceLock;
+use std::marker::PhantomData;
 #[derive(Default, Debug)]
 struct Mycb;
 #[derive(Default, Debug)]
@@ -28,12 +16,12 @@ const CHECK_BOX_01: WindowID = 5u16;
 const CHECK_BOX_02: WindowID = 6u16;
 const EDIT_01: WindowID = 7u16;
 const VIEW_01: WindowID = 8u16;
-const FINDER_01: WindowID = 9u16;
+// const FINDER_01: WindowID = 9u16;
 
-const RADIO_BOX_01_01: WindowID = 1u16;
-const RADIO_BOX_01_02: WindowID = 2u16;
-const RADIO_BOX_02_01: WindowID = 3u16;
-const RADIO_BOX_02_02: WindowID = 4u16;
+const RADIO_BOX_01_01: WindowID = 501u16;
+const RADIO_BOX_01_02: WindowID = 502u16;
+const RADIO_BOX_02_01: WindowID = 503u16;
+const RADIO_BOX_02_02: WindowID = 504u16;
 //------------------------
 const MENU_ITEM_1: MenuItemID = 1145u16;
 impl MessageReceiver<DialogPorc> for MyDlgcb {}
@@ -105,16 +93,19 @@ impl MessageReceiver for Mycb {
         //ex_data: usize,
     ) -> MessageReceiverResult<bool> {
         const FONT: ControlFont = ControlFont::CaptionFont;
-        let mut link_button_1 = Button::new(
+
+        Button::new_then(
             window,
             Some(rect(400, 0, 150, 50)),
             LINK_BUTTON_01,
             ButtonStyle::new(ButtonType::Link, "链接按钮01"),
             Some(FONT),
+            |btn: &mut Button| {
+                btn.set_note("114514abc中文").unwrap();
+            },
         )
         .unwrap();
-        link_button_1.set_note("114514abc中文").unwrap();
-        link_button_1.neednot();
+
         Button::new(
             window,
             Some(rect(0, 0, 150, 50)),
@@ -122,8 +113,8 @@ impl MessageReceiver for Mycb {
             ButtonStyle::new(ButtonType::Normal, "按钮01"),
             Some(FONT),
         )
-        .unwrap()
-        .neednot();
+        .unwrap();
+
         Button::new(
             window,
             Some(rect(200, 0, 150, 50)),
@@ -131,8 +122,8 @@ impl MessageReceiver for Mycb {
             ButtonStyle::new(ButtonType::Split, "分割按钮01"),
             Some(FONT),
         )
-        .unwrap()
-        .neednot();
+        .unwrap();
+
         TextView::new(
             window,
             Some(rect(400, 100, 130, 50)),
@@ -140,12 +131,9 @@ impl MessageReceiver for Mycb {
             TextViewStyle::new("文字"),
             Some(FONT),
         )
-        .unwrap()
-        .neednot();
-        WindowFinder::new(window, Some(rect(200, 100, 130, 50)), FINDER_01)
-            .unwrap()
-            .neednot();
-        let mut g_b = GroupBox::new(
+        .unwrap();
+
+        GroupBox::new(
             window,
             Some(rect(575, 0, 300, 100)),
             GROUP_BOX_01,
@@ -153,87 +141,104 @@ impl MessageReceiver for Mycb {
             Some(FONT),
         )
         .unwrap();
-        let useful_controls = MyControls {
-            a1: RadioBox::new(
-                g_b.get_window_mut(),
-                Some(rect(20, 20, 100, 20)),
-                RADIO_BOX_01_01,
-                RadioBoxStyle::new_text("单选按钮a01").group_leader(),
-                Some(FONT),
-            )
-            .unwrap(),
-            a2: RadioBox::new(
-                g_b.get_window_mut(),
-                Some(rect(150, 20, 100, 20)),
-                RADIO_BOX_01_02,
-                RadioBoxStyle::new_text("单选按钮a02"),
-                Some(FONT),
-            )
-            .unwrap(),
-            b1: RadioBox::new(
-                g_b.get_window_mut(),
-                Some(rect(20, 70, 100, 20)),
-                RADIO_BOX_02_01,
-                RadioBoxStyle::new_text("单选按钮b01").group_leader(),
-                Some(FONT),
-            )
-            .unwrap(),
-            b2: RadioBox::new(
-                g_b.get_window_mut(),
-                Some(rect(150, 70, 100, 20)),
-                RADIO_BOX_02_02,
-                RadioBoxStyle::new_text("单选按钮b02"),
-                Some(FONT),
-            )
-            .unwrap(),
-            boxed1: CheckBox::new(
-                window,
-                Some(rect(900, 0, 150, 50)),
-                CHECK_BOX_01,
-                CheckBoxStyle::new_text("选择框01"),
-                Some(FONT),
-            )
-            .unwrap(),
-            boxed2: CheckBox::new(
-                window,
-                Some(rect(900, 50, 150, 50)),
-                CHECK_BOX_02,
-                CheckBoxStyle::new_text("选择框02").three_state(),
-                Some(FONT),
-            )
-            .unwrap(),
-            edit: Edit::new(
-                window,
-                Some(rect(15, 75, 130, 50)),
-                EDIT_01,
-                EditStyle::new("编辑框01"),
-                Some(FONT),
-            )
-            .unwrap(),
-        };
-        g_b.neednot();
-        MY_CONTROLS.set(useful_controls).unwrap();
+
+        RadioBox::new(
+            window,
+            Some(rect(20 + 575, 20, 100, 20)),
+            RADIO_BOX_01_01,
+            RadioBoxStyle::new_text("单选按钮a01").group_leader(),
+            Some(FONT),
+        )
+        .unwrap();
+
+        RadioBox::new(
+            window,
+            Some(rect(150 + 575, 20, 100, 20)),
+            RADIO_BOX_01_02,
+            RadioBoxStyle::new_text("单选按钮a02"),
+            Some(FONT),
+        )
+        .unwrap();
+
+        RadioBox::new(
+            window,
+            Some(rect(20 + 575, 70, 100, 20)),
+            RADIO_BOX_02_01,
+            RadioBoxStyle::new_text("单选按钮b01").group_leader(),
+            Some(FONT),
+        )
+        .unwrap();
+
+        RadioBox::new(
+            window,
+            Some(rect(150 + 575, 70, 100, 20)),
+            RADIO_BOX_02_02,
+            RadioBoxStyle::new_text("单选按钮b02"),
+            Some(FONT),
+        )
+        .unwrap();
+
+        CheckBox::new(
+            window,
+            Some(rect(900, 0, 150, 50)),
+            CHECK_BOX_01,
+            CheckBoxStyle::new_text("选择框01"),
+            Some(FONT),
+        )
+        .unwrap();
+
+        CheckBox::new(
+            window,
+            Some(rect(900, 50, 150, 50)),
+            CHECK_BOX_02,
+            CheckBoxStyle::new_text("选择框02").three_state(),
+            Some(FONT),
+        )
+        .unwrap();
+        Edit::new(
+            window,
+            Some(rect(15, 75, 130, 50)),
+            EDIT_01,
+            EditStyle::new("编辑框01"),
+            Some(FONT),
+        )
+        .unwrap();
+
         println!("hello from example");
         Ok(true)
     }
     fn control_message(
-        _window: &mut Window,
+        window: &mut Window,
         msg: &mut RawMessage,
         id: WindowID,
     ) -> MessageReceiverResult<isize> {
-        let controls = MY_CONTROLS.get().ok_or(NoProcessed)?;
+        // let controls = MY_CONTROLS.get().ok_or(NoProcessed)?;
         match id {
             BUTTON_01 => {
                 use ButtonMsgType::*;
                 let msg = msg.get_control_msg::<Button>().unwrap();
+                let mut iter = [
+                    RADIO_BOX_01_01,
+                    RADIO_BOX_01_02,
+                    RADIO_BOX_02_01,
+                    RADIO_BOX_02_02,
+                ]
+                .into_iter()
+                .map(|id| {
+                    window
+                        .with_child(id, |ctl| {
+                            ctl.as_ctl::<RadioBox>().unwrap().is_checked().unwrap()
+                        })
+                        .unwrap()
+                });
                 match msg.get_type() {
                     Clicked => {
                         println!(
                             "按钮1点了a1:{} a2:{} b1:{} b2:{}",
-                            controls.a1.is_checked().unwrap(),
-                            controls.a2.is_checked().unwrap(),
-                            controls.b1.is_checked().unwrap(),
-                            controls.b2.is_checked().unwrap()
+                            iter.next().unwrap(),
+                            iter.next().unwrap(),
+                            iter.next().unwrap(),
+                            iter.next().unwrap()
                         );
                         Ok(0)
                     }
@@ -243,12 +248,20 @@ impl MessageReceiver for Mycb {
             SPLIT_BUTTON_01 => {
                 use ButtonMsgType::*;
                 let msg = msg.get_control_msg::<Button>().unwrap();
+
                 match msg.get_type() {
                     Clicked => {
+                        let mut iter = [CHECK_BOX_01, CHECK_BOX_02].into_iter().map(|id| {
+                            window
+                                .with_child(id, |ctl| {
+                                    ctl.as_ctl::<CheckBox>().unwrap().is_checked().unwrap()
+                                })
+                                .unwrap()
+                        });
                         println!(
                             "分割按钮1点了box1:{} box2:{}",
-                            controls.boxed1.is_checked().unwrap(),
-                            controls.boxed2.is_checked().unwrap(),
+                            iter.next().unwrap(),
+                            iter.next().unwrap(),
                         );
                         Ok(0)
                     }
@@ -272,9 +285,17 @@ impl MessageReceiver for Mycb {
             LINK_BUTTON_01 => {
                 use ButtonMsgType::*;
                 let msg = msg.get_control_msg::<Button>().unwrap();
+
                 match msg.get_type() {
                     Clicked => {
-                        println!("链接按钮1点了，文本：{}", controls.edit.get_text().unwrap());
+                        println!(
+                            "链接按钮1点了，文本：{}",
+                            window
+                                .with_child(EDIT_01, |ctl| {
+                                    ctl.as_ctl::<Edit>().unwrap().get_text().unwrap()
+                                })
+                                .unwrap()
+                        );
                         Ok(0)
                     }
                     _ => Err(NoProcessed),

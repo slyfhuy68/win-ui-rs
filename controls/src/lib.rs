@@ -3,12 +3,12 @@ use capdows::positioning::FontSize;
 use capdows::prelude::*;
 use capdows::ui::{control::*, image::*, style::*, *};
 use capdows::utilities::*;
-use capdows_resource::dialog::DialogTempleControl;
+use capdows_resource::{check_res_id, dialog::DialogTempleControl};
 use std::ffi::c_void;
 use windows_sys::Win32::Foundation::{
     HINSTANCE,
     // HMODULE,
-    // HWND,
+    HWND,
     LPARAM,
     // LRESULT,
     WPARAM,
@@ -62,7 +62,7 @@ pub mod prelude_build {
             CaseType as ComboBoxCaseType, ComboBoxShow, ComboBoxTemple,
             OwnerDrawType as ComboBoxOwnerDrawType,
         },
-        edit::{CaseType as EditCaseType, EditTemple, EditTempleType},
+        edit::{CaseType as EditCaseType, EditTemple},
         group_box::GroupBoxTemple,
         radio_box::{RadioBoxContentPos, RadioBoxTemple, RadioBoxTempleContent},
         view::{
@@ -121,6 +121,14 @@ pub mod build {
 }
 pub type ButtonImage = Either<Bitmap, Icon>;
 use either::*;
+#[repr(C)]
+#[allow(non_snake_case)]
+struct NMHDRCOLOR {
+    #[allow(non_snake_case)]
+    nmhdr: NMHDR,
+    #[allow(non_snake_case)]
+    DC: HANDLE,
+}
 fn style_of_raw(wnd: &Window) -> i32 {
     unsafe { GetWindowLongW(wnd.handle(), GWL_STYLE) as i32 }
 }
@@ -133,7 +141,7 @@ fn new_control(
     style: WINDOW_STYLE,
     style_ex: WINDOW_EX_STYLE,
     font: Option<ControlFont>,
-) -> Result<Window> {
+) -> Result<HWND> {
     unsafe {
         let id = id as HMENU;
         let parent = wnd.handle();
@@ -168,7 +176,7 @@ fn new_control(
                 1 as LPARAM
             ))?;
         };
-        Ok(Window::from_handle(hwnd))
+        Ok(hwnd)
     }
 }
 #[inline]
@@ -181,23 +189,17 @@ fn new_button(
     style_ex: WINDOW_EX_STYLE,
     font: Option<ControlFont>,
     draw: Option<ButtonImage>,
-) -> Result<Window> {
+) -> Result<HWND> {
     let wnd = new_control(wnd, w!("Button"), name, pos, id, style, style_ex, font)?;
     match draw {
         Some(x) => unsafe {
             let _ = match x {
-                Left(b) => PostMessageW(
-                    wnd.handle(),
-                    BM_SETIMAGE,
-                    IMAGE_BITMAP as WPARAM,
-                    b.handle as LPARAM,
-                ),
-                Right(c) => PostMessageW(
-                    wnd.handle(),
-                    BM_SETIMAGE,
-                    IMAGE_ICON as WPARAM,
-                    c.handle as LPARAM,
-                ),
+                Left(b) => {
+                    PostMessageW(wnd, BM_SETIMAGE, IMAGE_BITMAP as WPARAM, b.handle as LPARAM)
+                }
+                Right(c) => {
+                    PostMessageW(wnd, BM_SETIMAGE, IMAGE_ICON as WPARAM, c.handle as LPARAM)
+                }
             };
         },
         None => {}
@@ -213,38 +215,45 @@ fn is_some_window(wnd: &Window, class: &'static widestr) -> Result<bool> {
 use capdows_macros::define_control;
 pub mod traits {
     use super::*;
-    pub trait CommonControl: Control + Sized {
+    pub trait CommonControl: RawHwndControl {
         type Style: Send + Sync;
-        fn new(
+        fn new_raw(
             wnd: &mut Window,
             pos: Option<Rect>,
             identifier: WindowID,
             control_style: Self::Style,
             font: Option<ControlFont>,
-        ) -> Result<Self>;
-    }
-    pub trait RawHwndControl: Control + Sized {
-        fn from_window_ref(wnd: &Window) -> Result<&Self> {
+        ) -> Result<HWND>;
+        #[inline]
+        fn new(
+            wnd: &mut impl AsMut<Window>,
+            pos: Option<Rect>,
+            id: WindowID,
+            control_style: Self::Style,
+            font: Option<ControlFont>,
+        ) -> Result<()> {
+            let _ = Self::new_raw(wnd.as_mut(), pos, id, control_style, font)?;
+            Ok(())
+        }
+        #[inline]
+        fn new_then<F, T>(
+            wnd: &mut impl AsMut<Window>,
+            pos: Option<Rect>,
+            id: WindowID,
+            control_style: Self::Style,
+            font: Option<ControlFont>,
+            and_then: F,
+        ) -> Result<T>
+        where
+            F: FnOnce(&mut Self) -> T,
+        {
             unsafe {
-                if Self::is_self(wnd)? {
-                    Ok(Self::from_window_ref_unchecked(wnd))
-                } else {
-                    Err(ERROR_INVALID_WINDOW_HANDLE)
-                }
+                let mut hwnd = Self::new_raw(wnd.as_mut(), pos, id, control_style, font)?;
+                Ok(and_then(Self::from_hwnd_ref_mut_unchecked(&mut hwnd)))
             }
         }
-        fn from_window_ref_mut(wnd: &mut Window) -> Result<&mut Self> {
-            unsafe {
-                if Self::is_self(wnd)? {
-                    Ok(Self::from_window_ref_mut_unchecked(wnd))
-                } else {
-                    Err(ERROR_INVALID_WINDOW_HANDLE)
-                }
-            }
-        }
-        unsafe fn from_window_ref_unchecked(wnd: &Window) -> &Self;
-        unsafe fn from_window_ref_mut_unchecked(wnd: &mut Window) -> &mut Self;
     }
+
     pub trait TextControl: Control + Sized {
         const INSUFFICIENT_SPACE_RESULT: u32 = 0;
         const NOT_SUPPORT_RESULT: u32 = CB_ERR as u32;
@@ -255,7 +264,7 @@ pub mod traits {
             };
             let mut buffer: Vec<u16> = vec![0; length + 1];
             error_from_win32_bool!(SendMessageW(
-                self.get_window().handle(),
+                self.as_ref().handle(),
                 WM_GETTEXT,
                 length as WPARAM,
                 buffer.as_mut_ptr() as LPARAM,
@@ -264,7 +273,7 @@ pub mod traits {
         }
         fn get_text_length(&self) -> Result<usize> {
             Ok(error_from_win32_zero_num!(SendMessageW(
-                self.get_window().handle(),
+                self.as_ref().handle(),
                 WM_GETTEXTLENGTH,
                 0 as WPARAM,
                 0 as LPARAM,
@@ -273,7 +282,7 @@ pub mod traits {
         fn set_text(&mut self, text: &str) -> Result<()> {
             let (text_ptr, _buffer) = str_to_pcwstr(text);
             let result = error_from_win32_zero_num!(SendMessageW(
-                self.get_window().handle(),
+                self.as_ref().handle(),
                 WM_SETTEXT,
                 0 as WPARAM,
                 text_ptr as LPARAM,

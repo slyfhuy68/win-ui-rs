@@ -54,16 +54,15 @@ impl DialogTempleControl for GroupBoxTemple {
 }
 impl CommonControl for GroupBox {
     type Style = GroupBoxStyle;
-    fn new(
+    #[inline]
+    fn new_raw(
         wnd: &mut Window,
         pos: Option<Rect>,
         identifier: WindowID,
         control_style: Self::Style,
         font: Option<ControlFont>,
-    ) -> Result<Self> {
+    ) -> Result<HWND> {
         let (style, ex, name) = control_style.into();
-        Ok(Self(new_button(
-            wnd, name, pos, identifier, style, ex, font, None,
-        )?))
+        new_button(wnd, name, pos, identifier, style, ex, font, None)
     }
 }
