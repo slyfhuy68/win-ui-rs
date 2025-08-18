@@ -299,14 +299,14 @@ impl Button {
             return Ok(String::new());
         };
         let mut buffer: Vec<u16> = vec![0; length + 1];
-        unsafe {
-            SendMessageW(
-                self.0.handle(),
-                BCM_GETNOTE,
-                length as WPARAM,
-                buffer.as_mut_ptr() as LPARAM,
-            );
-        }
+
+        error_from_win32_bool!(SendMessageW(
+            self.0.handle(),
+            BCM_GETNOTE,
+            length as WPARAM,
+            buffer.as_mut_ptr() as LPARAM,
+        ))?;
+
         Ok(String::from_utf16_lossy(&buffer[..length]))
     }
     pub fn set_note(&mut self, note: &str) -> Result<()> {

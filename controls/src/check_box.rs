@@ -188,3 +188,4 @@ impl CheckBox {
         }
     }
 }
+impl TextControl for CheckBox {}

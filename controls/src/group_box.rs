@@ -66,3 +66,4 @@ impl CommonControl for GroupBox {
         new_button(wnd, name, pos, identifier, style, ex, font, None)
     }
 }
+impl TextControl for GroupBox {}

@@ -22,6 +22,7 @@ pub mod check_box;
 pub mod combo_box;
 pub mod edit;
 pub mod group_box;
+pub mod list_box;
 pub mod radio_box;
 pub mod view;
 pub mod prelude {

@@ -156,3 +156,4 @@ impl RadioBox {
         }
     }
 }
+impl TextControl for RadioBox {}
