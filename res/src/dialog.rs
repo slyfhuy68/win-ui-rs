@@ -124,7 +124,7 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
                     check_res_id(&result);
                     format!("\nMENU \"{}\"", do_escapes(&result))
                 }
-                Some(NumberId(x)) => format!("\nMENU {}", x),
+                Some(NumberId(x)) => format!("\nMENU {x}"),
                 None => "".to_string(),
             },
             match self.class_name {
@@ -163,10 +163,10 @@ impl Default for DialogTempleType {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for DialogTempleType {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
+impl From<DialogTempleType> for (WINDOW_STYLE, WINDOW_EX_STYLE) {
+    fn from(val: DialogTempleType) -> Self {
         use DialogTempleType::*;
-        match self {
+        match val {
             Overlapped { style, is_layered } => {
                 let (style, mut style_ex) = style.into();
                 if is_layered {
@@ -238,18 +238,18 @@ impl DialogStyles {
         self
     }
 }
-impl Into<WINDOW_STYLE> for DialogStyles {
+impl From<DialogStyles> for WINDOW_STYLE {
     #[allow(deprecated)]
     #[inline]
-    fn into(self) -> WINDOW_STYLE {
-        ((self.center as i32) * DS_CENTER
-            + (self.set_foreground as i32) * DS_SETFOREGROUND
-            + ((!self.no_set_font) as i32) * DS_SETFONT
-            + (self.center_mouse as i32) * DS_CENTERMOUSE
-            + (self.control_like as i32) * DS_CONTROL
-            + (self.no_idle_msg as i32) * DS_NOIDLEMSG
-            + (self.no_fail_create as i32) * DS_NOFAILCREATE
-            + (self.modalfame as i32) * DS_MODALFRAME
-            + (self.abs_align as i32) * DS_ABSALIGN) as WINDOW_STYLE
+    fn from(val: DialogStyles) -> Self {
+        ((val.center as i32) * DS_CENTER
+            + (val.set_foreground as i32) * DS_SETFOREGROUND
+            + ((!val.no_set_font) as i32) * DS_SETFONT
+            + (val.center_mouse as i32) * DS_CENTERMOUSE
+            + (val.control_like as i32) * DS_CONTROL
+            + (val.no_idle_msg as i32) * DS_NOIDLEMSG
+            + (val.no_fail_create as i32) * DS_NOFAILCREATE
+            + (val.modalfame as i32) * DS_MODALFRAME
+            + (val.abs_align as i32) * DS_ABSALIGN) as WINDOW_STYLE
     }
 }

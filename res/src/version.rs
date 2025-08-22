@@ -54,15 +54,15 @@ impl StringInfo {
         let variant = match self.special_info {
             None => match variants {
                 Standard => "".to_string(),
-                Variant(s) => format!("VALUE \"SpecialBuild\", \"{}\"", s),
-                Private(s) => format!("VALUE \"PrivateBuild\", \"{}\"", s),
+                Variant(s) => format!("VALUE \"SpecialBuild\", \"{s}\""),
+                Private(s) => format!("VALUE \"PrivateBuild\", \"{s}\""),
             },
             Some(x) => match variants {
                 Standard => panic!(
                     "当StringInfo::special_info为Some变体时, StringInfo::variants不能为Standard变体"
                 ),
-                Variant(_) => format!("VALUE \"SpecialBuild\", \"{}\"", x),
-                Private(_) => format!("VALUE \"PrivateBuild\", \"{}\"", x),
+                Variant(_) => format!("VALUE \"SpecialBuild\", \"{x}\""),
+                Private(_) => format!("VALUE \"PrivateBuild\", \"{x}\""),
             },
         };
         let product_name = self
@@ -180,9 +180,9 @@ pub enum FileType {
     StaticLib,
 }
 
-impl Into<(VS_FIXEDFILEINFO_FILE_TYPE, VS_FIXEDFILEINFO_FILE_SUBTYPE)> for FileType {
-    fn into(self) -> (VS_FIXEDFILEINFO_FILE_TYPE, VS_FIXEDFILEINFO_FILE_SUBTYPE) {
-        match self {
+impl From<FileType> for (VS_FIXEDFILEINFO_FILE_TYPE, VS_FIXEDFILEINFO_FILE_SUBTYPE) {
+    fn from(val: FileType) -> Self {
+        match val {
             FileType::Unknown => (VFT_UNKNOWN, VFT2_UNKNOWN),
             FileType::App => (VFT_APP, 0 as VS_FIXEDFILEINFO_FILE_SUBTYPE),
             FileType::Dll => (VFT_DLL, 0 as VS_FIXEDFILEINFO_FILE_SUBTYPE),
@@ -216,7 +216,7 @@ impl Version {
             self.product_internal_version.3
         );
         let fiv = match self.file_internal_version {
-            Some((a, b, c, d)) => format!("PRODUCTVERSION {},{},{},{}", a, b, c, d),
+            Some((a, b, c, d)) => format!("PRODUCTVERSION {a},{b},{c},{d}"),
             None => format!(
                 "PRODUCTVERSION {},{},{},{}",
                 self.product_internal_version.0,
@@ -249,14 +249,14 @@ impl Version {
             (String::from(""), String::from(""))
         } else {
             (
-                format!("FILEFLAGS 0x{:X}", flag),
+                format!("FILEFLAGS 0x{flag:X}"),
                 String::from("FILEFLAGSMASK 0x3F"),
             )
         };
         let os = format!("FILEOS 0x{:X}", self.os as u32);
         let (ftype, sftype) = self.ftype.into();
-        let ft = format!("FILETYPE 0x{:X}", ftype);
-        let sft = format!("FILESUBTYPE 0x{:X}", sftype);
+        let ft = format!("FILETYPE 0x{ftype:X}");
+        let sft = format!("FILESUBTYPE 0x{sftype:X}");
         //e_str后续处理
         let mut sif = String::from("");
         let mut vif = String::from("");
@@ -268,25 +268,24 @@ impl Version {
         let result = format!(
             "
 1 VERSIONINFO
-{}
-{}
-{}
-{}
-{}
-{}
-{}
+{piv}
+{fiv}
+{flags}
+{marker}
+{os}
+{ft}
+{sft}
 {{
 BLOCK \"StringFileInfo\"
 {{
-{}
+{sif}
 }}
 BLOCK \"VarFileInfo\" 
 {{
-{}
+{vif}
 }}
 }}
-",
-            piv, fiv, flags, marker, os, ft, sft, sif, vif
+"
         );
         PreCompilePruduct::from(result)
     }

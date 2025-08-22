@@ -44,10 +44,10 @@ pub fn define_control(input: TokenStream) -> TokenStream {
     let is_self_block = &args.is_self_block;
     let into_raw_block = &args.into_raw_block;
 
-    let msg_name = format!("{}Msg", control_name);
+    let msg_name = format!("{control_name}Msg");
     let msg_name_ident = Ident::new(&msg_name, control_name.span());
 
-    let msg_type_name = format!("{}MsgType", control_name);
+    let msg_type_name = format!("{control_name}MsgType");
     let msg_type_name_ident = Ident::new(&msg_type_name, control_name.span());
 
     let expanded = quote! {

@@ -35,7 +35,7 @@ impl PreCompilePruduct {
         let out_dir = env::var("OUT_DIR").expect("No OUT_DIR env var");
         let dest_path = Path::new(&out_dir).join(format!(
             "resource_{}_{}.rc",
-            (self.0).as_bytes().len(),
+            (self.0).len(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("Time went backwards")
@@ -88,7 +88,7 @@ pub fn pre_compile_lang_id(id: Option<LangID>) -> PreCompilePruduct {
         None => String::from("\nLANGUAGE 0x000, 0x00\n"), //LANG_NEUTRAL, SUBLANG_NEUTRAL
         Some(id) => {
             let (lang_id, sub_lang_id) = id.split();
-            format!("\nLANGUAGE 0x{:03x}, 0x{:02x}\n", lang_id, sub_lang_id)
+            format!("\nLANGUAGE 0x{lang_id:03x}, 0x{sub_lang_id:02x}\n")
         }
     })
 }

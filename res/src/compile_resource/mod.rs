@@ -28,31 +28,31 @@ pub unsafe fn compile_win32_res<P: AsRef<Path>>(raw_resource_file: P, link_for: 
         .expect("raw_resource_file's path not UTF-8");
     match link_for {
         LinkFor::AllBinaries => {
-            println!("cargo:rustc-link-arg-bins={}", out_file);
+            println!("cargo:rustc-link-arg-bins={out_file}");
         }
         LinkFor::CustomBins(for_bins) => {
             for bin in for_bins {
-                println!("cargo:rustc-link-arg-bin={}={}", bin, out_file);
+                println!("cargo:rustc-link-arg-bin={bin}={out_file}");
             }
         }
         LinkFor::Tests => {
-            println!("cargo:rustc-link-arg-tests={}", out_file);
+            println!("cargo:rustc-link-arg-tests={out_file}");
         }
         LinkFor::Benchmarks => {
-            println!("cargo:rustc-link-arg-benches={}", out_file);
+            println!("cargo:rustc-link-arg-benches={out_file}");
         }
         LinkFor::Examples => {
-            println!("cargo:rustc-link-arg-examples={}", out_file);
+            println!("cargo:rustc-link-arg-examples={out_file}");
         }
         LinkFor::Everything => {
-            println!("cargo:rustc-link-arg={}", out_file);
+            println!("cargo:rustc-link-arg={out_file}");
         }
     }
 }
 pub unsafe fn compile_win32_rc<P: AsRef<Path>>(resource_file: P, link_for: LinkFor<'_>) {
     let out_file = get_out_file_name(
         &env::var("OUT_DIR").expect("No OUT_DIR env var"),
-        &resource_file
+        resource_file
             .as_ref()
             .file_stem()
             .expect("resource_file has no stem")

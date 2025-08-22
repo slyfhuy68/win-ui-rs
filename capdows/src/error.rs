@@ -151,6 +151,7 @@ macro_rules! def_windows_error {
 macro_rules! def_local_error {
     ($($name:ident => $num:expr),* $(,)?) => {
         $(
+            #[allow(clippy::zero_prefixed_literal)]
             pub const $name: WinError = WinError::from_local($num);
         )*
     };
