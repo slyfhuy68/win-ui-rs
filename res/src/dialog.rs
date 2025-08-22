@@ -33,7 +33,7 @@ impl Default for DialogTempleFont {
     }
 }
 pub struct DialogTemple {
-    pub pos: FontPoint,
+    pub pos: Option<FontPoint>,
     pub size: FontSize,
     pub style: DialogStyles,
     pub dtype: DialogTempleType,
@@ -46,9 +46,9 @@ pub struct DialogTemple {
     controls: String,
 }
 impl DialogTemple {
-    pub fn new(pos: FontPoint, size: FontSize, dtype: DialogTempleType) -> Self {
+    pub fn new(size: FontSize, dtype: DialogTempleType) -> Self {
         Self {
-            pos,
+            pos: None,
             size,
             style: DialogStyles::default(),
             dtype,
@@ -94,6 +94,9 @@ impl DialogTemple {
                 "MS Shell Dlg".to_string()
             }
         };
+        let pos = self
+            .pos
+            .unwrap_or(FontPoint::new(CW_USEDEFAULT, CW_USEDEFAULT));
         PreCompilePruduct::from(format!(
             "
 {} DIALOGEX {}, {}, {}, {}, {}
@@ -104,8 +107,8 @@ CAPTION \"{}\"{}{}{}FONT {}, \"{}\", {}, {}, {:04X}
 {}
 }}",
             pre_compile_resource_id(id).get(),
-            self.pos.x,
-            self.pos.y,
+            pos.x,
+            pos.y,
             self.size.width,
             self.size.height,
             match self.help_id {

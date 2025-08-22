@@ -27,8 +27,8 @@ pub mod prelude {
             module::ExecutableFile,
             msg::{
                 DialogMessageReceiver, DialogPorc, MainPorc, MenuCommandMsgItemPos,
-                MessageReceiver, MessageReceiverError, MessageReceiverResult, RawMessage, SubPorc,
-                msg_loop, stop_msg_loop,
+                MessageReceiver, MessageReceiverError, MessageReceiverResult, RawMessage,
+                StaticMsg, SubPorc, msg_loop, stop_msg_loop,
             },
             style::{
                 ChildWindowStyles, ClassBackgroundBrush, NormalWindowStyles, WindowBorderType,

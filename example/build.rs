@@ -83,7 +83,6 @@ fn main() {
     use dialog::*;
     use euclid::*;
     let mut my_dialog = DialogTemple::new(
-        point2(0, 0),
         size2(250, 100),
         DialogTempleType::Popup {
             style: NormalWindowStyles {

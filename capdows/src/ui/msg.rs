@@ -463,9 +463,17 @@ pub fn msg_loop() -> Result<i32> {
         }
     }
 }
+impl Window {
+    #[inline]
+    pub fn get_dialog_action_handle(&self) -> DialogActionHandle {
+        unsafe { DialogActionHandle(self.handle()) }
+    }
+}
+#[repr(transparent)]
+pub struct DialogActionHandle(HWND);
 #[inline(always)]
 ///dialogs参数表示把哪些窗口当作对话框对待，使窗口能拥有与对话框相同的自动键盘选择行为和其他对话框功能。
-pub fn msg_loop_dialog(dialogs: &[Dialog]) -> Result<i32> {
+pub fn msg_loop_dialog(dialogs: &[DialogActionHandle]) -> Result<i32> {
     let mut msg = MSG::default();
     unsafe {
         let dialogs: &[HWND] = std::mem::transmute(dialogs);
@@ -511,6 +519,13 @@ impl<'a, T> std::ops::Deref for MessageView<'a, T> {
         &self.msg
     }
 }
+
+impl<'a, T> std::ops::DerefMut for MessageView<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.msg
+    }
+}
+
 impl RawMessage {
     pub fn get_msg<'a, T: UnsafeMessage>(&'a mut self) -> Result<MessageView<'a, T>> {
         unsafe {
@@ -543,7 +558,7 @@ pub unsafe trait UnsafeMessage: Send + Sync {
     ///转换成RawMessage,self如果存在则RawMessage里的指针（如有）指向的内容一定存在，self被Drop时，应释放指针内容避免内存泄漏
     unsafe fn into_raw_msg(self) -> Result<Self::OwnerType>;
 }
-pub trait CustomMessage: /*UnsafeMessage*/Send + Sync {
+pub trait CustomMessage: /*UnsafeMessage*/Send + Sync{
     type DataType;
     fn into_raw_parts(self) -> Result<(u32, Self::DataType)>;
     fn from_raw_parts(code: u32, data: Self::DataType) -> Result<Self>
@@ -590,6 +605,11 @@ pub trait CustomMessage: /*UnsafeMessage*/Send + Sync {
 //         })
 //     }
 // }
+
+// unsafe impl<T: CustomMessage> StaticMsg for T
+//  where T::DataType: 'static
+// {}
+
 // 注释掉了，原因见https://internals.rust-lang.org/t/priorities-for-trait-implementations
 // 和https://github.com/rust-lang/rust/issues/37653#issuecomment-749178040
 pub trait ShareMessage: CustomMessage {
@@ -600,6 +620,7 @@ pub trait ShareMessage: CustomMessage {
 pub trait ClassMessage: CustomMessage {
     fn get_class(&self) -> WindowClass;
 }
+pub unsafe trait StaticMsg: UnsafeControlMsg {}
 #[derive(Eq, PartialEq, Debug)]
 pub struct UnsafeControlMsgDefaultOwnerType<D: NotifyMessage> {
     pub msg: RawMessage,

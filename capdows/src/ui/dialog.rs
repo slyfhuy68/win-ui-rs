@@ -325,21 +325,48 @@ impl Dialog {
     pub fn load<C: RawMessageHandler<DialogPorc> + Sync + 'static>(
         module: ExecutableFile,
         id: ResourceID,
+        msg_receiver: PhantomData<C>,
+        owner: Option<&Window>,
+    ) -> Result<()> {
+        let _ = Self::load_impl(module, id, msg_receiver, owner)?;
+        Ok(())
+    }
+    #[inline]
+    pub fn load_then<
+        C: RawMessageHandler<DialogPorc> + Sync + 'static,
+        T,
+        F: FnOnce(&mut Window) -> T,
+    >(
+        module: ExecutableFile,
+        id: ResourceID,
+        msg_receiver: PhantomData<C>,
+        owner: Option<&Window>,
+        f: F,
+    ) -> Result<T> {
+        Ok(f(Self::from_hwnd_mut(&mut Self::load_impl(
+            module,
+            id,
+            msg_receiver,
+            owner,
+        )?)))
+    }
+    #[inline]
+    fn load_impl<C: RawMessageHandler<DialogPorc> + Sync + 'static>(
+        module: ExecutableFile,
+        id: ResourceID,
         _msg_receiver: PhantomData<C>,
         owner: Option<&Window>,
-    ) -> Result<Self> {
-        unsafe {
-            Ok(Self::from_raw(error_from_win32!(CreateDialogParamW(
-                module.into(),
-                id.to_pcwstr(),
-                match owner {
-                    None => 0 as HWND,
-                    Some(x) => x.handle(),
-                },
-                Some(dialog_porc::<C>),
-                0 as LPARAM
-            ))?))
-        }
+    ) -> Result<HWND> {
+        Ok(error_from_win32!(CreateDialogParamW(
+            module.into(),
+            id.to_pcwstr(),
+            match owner {
+                None => 0 as HWND,
+                Some(x) => x.handle(),
+            },
+            Some(dialog_porc::<C>),
+            0 as LPARAM
+        ))?)
     }
     #[inline]
     pub fn load_modal<C: RawMessageHandler<DialogPorc> + Sync + 'static>(

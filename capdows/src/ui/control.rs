@@ -95,6 +95,9 @@ pub trait ControlMsg: /*UnsafeControlMsg + */ ControlMsgType{
     where
         Self: Sized;
 }
+
+unsafe impl<T: ControlMsg> StaticMsg for T where T::ControlMsgDataType: 'static {}
+
 #[repr(C)]
 pub struct DefaultNMHDR<T> {
     pub nmhdr: NMHDR,

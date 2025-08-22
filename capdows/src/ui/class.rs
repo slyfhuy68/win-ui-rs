@@ -187,40 +187,62 @@ impl WindowClass {
     fn get_raw(&self) -> PCWSTR {
         self.name
     }
+    #[inline]
+    pub fn create_window_then<T, F: FnOnce(&mut Window) -> T>(
+        &self,
+        name: &str,
+        wtype: WindowType<'_>,
+        pos: Option<Point>,
+        size: Option<Size>,
+        f: F,
+    ) -> Result<T> {
+        Ok(f(Window::from_mut_ref(
+            &mut self.create_window_impl(name, wtype, pos, size)?,
+        )))
+    }
+    #[inline]
     pub fn create_window(
         &self,
         name: &str,
         wtype: WindowType<'_>,
         pos: Option<Point>,
         size: Option<Size>,
-    ) -> Result<Window> {
-        unsafe {
-            let (style, ex_style, menu, parent) = wtype.into();
-            let (wname, _wnameptr) = str_to_pcwstr(name);
-            let cname = self.get_raw();
-            let (x, y) = pos
-                .unwrap_or(Point::new(CW_USEDEFAULT, CW_USEDEFAULT))
-                .to_tuple();
-            let (width, height) = size
-                .unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT))
-                .to_tuple();
-            let hinstance = error_from_win32!(GetModuleHandleW(0 as *const u16))?;
-            let result = Window::from_handle(error_from_win32!(CreateWindowExW(
-                ex_style,
-                cname,
-                wname,
-                style,
-                x,
-                y,
-                width,
-                height,
-                parent,
-                menu,
-                hinstance,
-                0 as *const c_void,
-            ))?);
+    ) -> Result<()> {
+        let _ = self.create_window_impl(name, wtype, pos, size)?;
+        Ok(())
+    }
+    fn create_window_impl(
+        &self,
+        name: &str,
+        wtype: WindowType<'_>,
+        pos: Option<Point>,
+        size: Option<Size>,
+    ) -> Result<HWND> {
+        let (style, ex_style, menu, parent) = wtype.into();
+        let (wname, _wnameptr) = str_to_pcwstr(name);
+        let cname = self.get_raw();
+        let (x, y) = pos
+            .unwrap_or(Point::new(CW_USEDEFAULT, CW_USEDEFAULT))
+            .to_tuple();
+        let (width, height) = size
+            .unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT))
+            .to_tuple();
+        let hinstance = error_from_win32!(GetModuleHandleW(0 as *const u16))?;
+        let result = error_from_win32!(CreateWindowExW(
+            ex_style,
+            cname,
+            wname,
+            style,
+            x,
+            y,
+            width,
+            height,
+            parent,
+            menu,
+            hinstance,
+            0 as *const c_void,
+        ))?;
 
-            Ok(result)
-        }
+        Ok(result)
     }
 }

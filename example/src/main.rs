@@ -1,7 +1,7 @@
 use capdows::prelude::*;
 use capdows::ui::msg::NoProcessed;
 use capdows_controls::prelude::*;
-use capdows_example::*; //从lib.rs导入
+// use capdows_example::*; //从lib.rs导入
 use euclid::rect;
 use std::marker::PhantomData;
 #[derive(Default, Debug)]
@@ -16,7 +16,8 @@ const CHECK_BOX_01: WindowID = 5u16;
 const CHECK_BOX_02: WindowID = 6u16;
 const EDIT_01: WindowID = 7u16;
 const VIEW_01: WindowID = 8u16;
-// const FINDER_01: WindowID = 9u16;
+const COMBO_BOX_01: WindowID = 9u16;
+// const FINDER_01: WindowID = 10u16;
 
 const RADIO_BOX_01_01: WindowID = 501u16;
 const RADIO_BOX_01_02: WindowID = 502u16;
@@ -195,11 +196,30 @@ impl MessageReceiver for Mycb {
             Some(FONT),
         )
         .unwrap();
+
         Edit::new(
             window,
             Some(rect(15, 75, 130, 50)),
             EDIT_01,
             EditStyle::new("编辑框01"),
+            Some(FONT),
+        )
+        .unwrap();
+
+        Edit::new(
+            window,
+            Some(rect(15, 75, 130, 50)),
+            EDIT_01,
+            EditStyle::new("编辑框01"),
+            Some(FONT),
+        )
+        .unwrap();
+
+        ComboBox::new(
+            window,
+            Some(rect(155, 85, 200, 100)),
+            COMBO_BOX_01,
+            ComboBoxStyle::new("组合框01"),
             Some(FONT),
         )
         .unwrap();
@@ -266,16 +286,14 @@ impl MessageReceiver for Mycb {
                         Ok(0)
                     }
                     DropDown(rect) => {
-                        println!(
-                            "分割按钮1边点了！按钮位置：{:?}, 对话框：{:?}",
-                            rect,
-                            Dialog::load(
-                                ExecutableFile::from_current_file()?,
-                                ResourceID::NumberId(6),
-                                PhantomData::<MyDlgcb>,
-                                None,
-                            )
-                        );
+                        Dialog::load(
+                            ExecutableFile::from_current_file()?,
+                            ResourceID::NumberId(6),
+                            PhantomData::<MyDlgcb>,
+                            None,
+                        )
+                        .unwrap();
+                        println!("分割按钮1边点了！按钮位置：{:?}, 已创建对话框", rect,);
 
                         Ok(0)
                     }
@@ -342,8 +360,8 @@ fn main() -> Result<()> {
             ),
         )
         .unwrap();
-    let mut window = class
-        .create_window(
+    class
+        .create_window_then(
             "中文😝öé English",
             WindowType::Overlapped {
                 style: Default::default(),
@@ -353,10 +371,12 @@ fn main() -> Result<()> {
             },
             None,
             None,
+            |window| {
+                window.show(ShowWindowType::Normal);
+                // window.redraw_menu_bar().unwrap();
+            },
         )
         .unwrap();
-    let _ = window.show(ShowWindowType::Normal);
-    // window.redraw_menu_bar().unwrap();
     println!("ok");
     capdows::ui::msg::msg_loop()?;
     Ok(())

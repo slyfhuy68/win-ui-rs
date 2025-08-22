@@ -433,13 +433,13 @@ impl Window {
         Ok(())
     }
     #[inline]
-    pub fn from_screen_point(point: Point) -> Option<Window> {
+    pub fn with_screen_point<T, F: FnOnce(&mut Window) -> T>(point: Point, f: F) -> Option<T> {
         unsafe {
-            let hwnd = WindowFromPoint(point.to_win32_point());
+            let mut hwnd = WindowFromPoint(point.to_win32_point());
             if hwnd as usize == 0 {
                 None
             } else {
-                Some(Window::from_handle(hwnd))
+                Some(f(Window::from_mut_ref(&mut hwnd)))
             }
         }
     }
@@ -551,13 +551,14 @@ impl Window {
         todo!() //CascadeWindows
     }
     #[inline]
-    pub fn get_child_from_point(
+    pub fn with_child_from_point<T, F: FnOnce(&mut Window) -> T>(
         &mut self,
         _pos: Point,
+        _f: F,
         _skip_disabled: bool,
         _skip_visible: bool,
         _skip_transparent: bool,
-    ) -> Option<Window> {
+    ) -> Option<T> {
         todo!() //ChildWindowFromPointEx
     }
     #[inline]
@@ -573,7 +574,7 @@ impl Window {
     pub fn cascade_window(
         _skip_mdi_disabled: bool,
         _area: Option<Rect>,
-        _wnd: Option<&[Window]>,
+        _wnd: Option<&[&Window]>,
     ) -> Result<u16> {
         todo!() //CascadeWindows
     }

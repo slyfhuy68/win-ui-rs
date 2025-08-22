@@ -111,6 +111,7 @@ pub fn define_control(input: TokenStream) -> TokenStream {
 
         unsafe impl Send for #msg_name_ident {}
         unsafe impl Sync for #msg_name_ident {}
+        unsafe impl StaticMsg for #msg_name_ident {}
 
         impl #msg_name_ident {
             #[inline]
