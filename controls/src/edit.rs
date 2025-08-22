@@ -27,39 +27,39 @@ pub struct EditStyle {
     pub case_type: CaseType,
     pub etype: EditType,
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for EditStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
-        let (mut edit_style, ex) = self.style.into();
+impl From<EditStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+    fn from(val: EditStyle) -> Self {
+        let (mut edit_style, ex) = val.style.into();
         set_style(
             &mut edit_style,
             ES_AUTOHSCROLL as WINDOW_STYLE,
-            self.auto_hscroll,
+            val.auto_hscroll,
         );
         set_style(
             &mut edit_style,
             ES_AUTOVSCROLL as WINDOW_STYLE,
-            self.auto_vscroll,
+            val.auto_vscroll,
         );
-        set_style(&mut edit_style, ES_CENTER as WINDOW_STYLE, self.center);
+        set_style(&mut edit_style, ES_CENTER as WINDOW_STYLE, val.center);
         set_style(
             &mut edit_style,
             ES_NOHIDESEL as WINDOW_STYLE,
-            self.nohide_sel,
+            val.nohide_sel,
         );
         set_style(
             &mut edit_style,
             ES_OEMCONVERT as WINDOW_STYLE,
-            self.oem_convert,
+            val.oem_convert,
         );
-        set_style(&mut edit_style, ES_READONLY as WINDOW_STYLE, self.readonly);
-        set_style(&mut edit_style, ES_RIGHT as WINDOW_STYLE, self.right);
+        set_style(&mut edit_style, ES_READONLY as WINDOW_STYLE, val.readonly);
+        set_style(&mut edit_style, ES_RIGHT as WINDOW_STYLE, val.right);
         set_style(
             &mut edit_style,
             ES_WANTRETURN as WINDOW_STYLE,
-            self.want_return,
+            val.want_return,
         );
         use CaseType::*;
-        match self.case_type {
+        match val.case_type {
             DefaultCase => (),
             Number => edit_style |= ES_NUMBER as WINDOW_STYLE,
             Lower => edit_style |= ES_LOWERCASE as WINDOW_STYLE,
@@ -67,7 +67,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for EditStyle {
         }
 
         use EditType::*;
-        match self.etype {
+        match val.etype {
             Normal => (),
             MultiLine => {
                 edit_style |= ES_MULTILINE as WINDOW_STYLE;
@@ -79,7 +79,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for EditStyle {
               // },
         }
 
-        (edit_style, ex, self.text)
+        (edit_style, ex, val.text)
     }
 }
 pub type EditTemple = EditStyle;

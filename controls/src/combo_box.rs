@@ -52,13 +52,13 @@ impl ComboBoxStyle {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+impl From<ComboBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+    fn from(val: ComboBoxStyle) -> Self {
         use CaseType::*;
         use ComboBoxShow::*;
         let mut style: i32 = 0;
-        let (style1, ex) = self.style.into();
-        match self.show_type {
+        let (style1, ex) = val.style.into();
+        match val.show_type {
             ViewLike => style |= CBS_DROPDOWNLIST,
             EditLike {
                 auto_scroll,
@@ -72,15 +72,15 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
                 };
             }
         }
-        set_istyle(&mut style, CBS_DISABLENOSCROLL, !self.auto_hide_scroll);
-        set_istyle(&mut style, CBS_NOINTEGRALHEIGHT, !self.auto_size);
-        set_istyle(&mut style, CBS_SORT, self.auto_sort);
-        match self.case_type {
+        set_istyle(&mut style, CBS_DISABLENOSCROLL, !val.auto_hide_scroll);
+        set_istyle(&mut style, CBS_NOINTEGRALHEIGHT, !val.auto_size);
+        set_istyle(&mut style, CBS_SORT, val.auto_sort);
+        match val.case_type {
             Normal => {}
             Lower => style |= CBS_LOWERCASE,
             Upper => style |= CBS_UPPERCASE,
         }
-        if let Some(owner_draw) = self.owner_draw {
+        if let Some(owner_draw) = val.owner_draw {
             set_istyle(&mut style, CBS_HASSTRINGS, owner_draw.owner_save_list);
             if owner_draw.variable_height {
                 style |= CBS_OWNERDRAWVARIABLE;
@@ -88,7 +88,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ComboBoxStyle {
                 style |= CBS_OWNERDRAWFIXED;
             }
         }
-        ((style as WINDOW_STYLE) | style1, ex, self.contect)
+        ((style as WINDOW_STYLE) | style1, ex, val.contect)
     }
 }
 impl ComboBoxStyle {
@@ -144,7 +144,7 @@ define_control! {
     ComboBox,
     "ComboBox",
     {
-        const CBN_CLOSEUP_FIX: u32 = CBN_CLOSEUP as u32;
+        const CBN_CLOSEUP_FIX: u32 = CBN_CLOSEUP;
         const CBN_ERRSPACE_FIX: u32 = CBN_ERRSPACE as u32;
         match code {
             CBN_CLOSEUP_FIX => ListClose,

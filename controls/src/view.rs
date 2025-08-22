@@ -23,10 +23,10 @@ pub struct TextViewContent {
     pub ellipsis: EllipsisType,
     pub no_prefix: bool,
 }
-impl Into<(WINDOW_STYLE, String)> for TextViewContent {
-    fn into(self) -> (WINDOW_STYLE, String) {
-        let mut window_style = (self.no_prefix as WINDOW_STYLE) * SS_NOPREFIX;
-        match self.align {
+impl From<TextViewContent> for (WINDOW_STYLE, String) {
+    fn from(val: TextViewContent) -> Self {
+        let mut window_style = (val.no_prefix as WINDOW_STYLE) * SS_NOPREFIX;
+        match val.align {
             Alignment::Center => window_style |= SS_CENTER,
             Alignment::Left => window_style |= SS_LEFT,
             Alignment::Right => window_style |= SS_RIGHT,
@@ -34,13 +34,13 @@ impl Into<(WINDOW_STYLE, String)> for TextViewContent {
             Alignment::Simple => window_style |= SS_SIMPLE,
         };
 
-        match self.ellipsis {
+        match val.ellipsis {
             EllipsisType::None => (),
             EllipsisType::End => window_style |= SS_ENDELLIPSIS,
             EllipsisType::Path => window_style |= SS_PATHELLIPSIS,
             EllipsisType::Word => window_style |= SS_WORDELLIPSIS,
         };
-        (window_style, self.text)
+        (window_style, val.text)
     }
 }
 pub enum ImageViewContent {
@@ -92,9 +92,9 @@ pub enum ImageViewTempleContent {
 }
 pub type TextViewStyle = ViewOption<TextViewContent>;
 pub type ImageViewStyle = ViewOption<ImageViewContent>;
-impl Into<(WINDOW_STYLE, (String, HANDLE, GDI_IMAGE_TYPE))> for ImageViewContent {
-    fn into(self) -> (WINDOW_STYLE, (String, HANDLE, GDI_IMAGE_TYPE)) {
-        match self {
+impl From<ImageViewContent> for (WINDOW_STYLE, (String, HANDLE, GDI_IMAGE_TYPE)) {
+    fn from(val: ImageViewContent) -> Self {
+        match val {
             ImageViewContent::Icon {
                 icon,
                 name,
@@ -154,9 +154,9 @@ impl DialogTempleControl for TextViewTemple {
     }
 }
 pub type ImageViewTemple = ViewOption<ImageViewTempleContent>;
-impl Into<(WINDOW_STYLE, ResourceID)> for ImageViewTempleContent {
-    fn into(self) -> (WINDOW_STYLE, ResourceID) {
-        match self {
+impl From<ImageViewTempleContent> for (WINDOW_STYLE, ResourceID) {
+    fn from(val: ImageViewTempleContent) -> Self {
+        match val {
             ImageViewTempleContent::Icon {
                 icon,
                 reasize_control,
@@ -207,7 +207,7 @@ impl DialogTempleControl for ImageViewTemple {
                 StringId(y) => {
                     let result = y.to_string();
                     check_res_id(&result);
-                    format!("\"{}\"", result)
+                    format!("\"{result}\"")
                 }
                 NumberId(x) => x.to_string(),
             },
@@ -314,24 +314,24 @@ impl ImageViewTemple {
         }
     }
 }
-impl<D, T> Into<(WINDOW_STYLE, WINDOW_EX_STYLE, D)> for ViewOption<T>
+impl<D, T> From<ViewOption<T>> for (WINDOW_STYLE, WINDOW_EX_STYLE, D)
 where
     T: Into<(WINDOW_STYLE, D)>,
 {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, D) {
-        let (mut style, style_ex) = self.style.into();
-        style |= (self.black_frame as WINDOW_STYLE) * SS_BLACKFRAME
-            + (self.black_rect as WINDOW_STYLE) * SS_BLACKRECT
-            + (self.etched_frame as WINDOW_STYLE) * SS_ETCHEDFRAME
-            + (self.etched_horz as WINDOW_STYLE) * SS_ETCHEDHORZ
-            + (self.etched_vert as WINDOW_STYLE) * SS_ETCHEDVERT
-            + (self.gray_frame as WINDOW_STYLE) * SS_GRAYFRAME
-            + (self.gray_rect as WINDOW_STYLE) * SS_GRAYRECT
-            + (self.white_frame as WINDOW_STYLE) * SS_WHITEFRAME
-            + (self.white_rect as WINDOW_STYLE) * SS_WHITERECT
-            + (self.sunken as WINDOW_STYLE) * SS_SUNKEN
-            + (self.extra_notify as WINDOW_STYLE) * SS_NOTIFY;
-        let (style2, data) = self.content.into();
+    fn from(val: ViewOption<T>) -> Self {
+        let (mut style, style_ex) = val.style.into();
+        style |= (val.black_frame as WINDOW_STYLE) * SS_BLACKFRAME
+            + (val.black_rect as WINDOW_STYLE) * SS_BLACKRECT
+            + (val.etched_frame as WINDOW_STYLE) * SS_ETCHEDFRAME
+            + (val.etched_horz as WINDOW_STYLE) * SS_ETCHEDHORZ
+            + (val.etched_vert as WINDOW_STYLE) * SS_ETCHEDVERT
+            + (val.gray_frame as WINDOW_STYLE) * SS_GRAYFRAME
+            + (val.gray_rect as WINDOW_STYLE) * SS_GRAYRECT
+            + (val.white_frame as WINDOW_STYLE) * SS_WHITEFRAME
+            + (val.white_rect as WINDOW_STYLE) * SS_WHITERECT
+            + (val.sunken as WINDOW_STYLE) * SS_SUNKEN
+            + (val.extra_notify as WINDOW_STYLE) * SS_NOTIFY;
+        let (style2, data) = val.content.into();
         (style | style2, style_ex, data)
     }
 }

@@ -293,7 +293,7 @@ impl MessageReceiver for Mycb {
                             None,
                         )
                         .unwrap();
-                        println!("分割按钮1边点了！按钮位置：{:?}, 已创建对话框", rect,);
+                        println!("分割按钮1边点了！按钮位置：{rect:?}, 已创建对话框",);
 
                         Ok(0)
                     }

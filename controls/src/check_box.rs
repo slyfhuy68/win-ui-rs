@@ -78,29 +78,27 @@ impl CheckBoxTemple {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for CheckBoxStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
-        let (mut ms_style, ex) = self.style.into();
-        let pos: WINDOW_STYLE = self.pos.into();
-        let (style2, ditype, text) = self.contect.into();
+impl From<CheckBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
+    fn from(val: CheckBoxStyle) -> Self {
+        let (mut ms_style, ex) = val.style.into();
+        let pos: WINDOW_STYLE = val.pos.into();
+        let (style2, ditype, text) = val.contect.into();
         ms_style |= style2 | pos;
-        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
-        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
-        if self.three_state {
-            if self.auto {
+        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, val.extra_msg);
+        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, val.flat);
+        if val.three_state {
+            if val.auto {
                 ms_style |= BS_AUTO3STATE as WINDOW_STYLE;
             } else {
                 ms_style |= BS_3STATE as WINDOW_STYLE;
             };
+        } else if val.auto {
+            ms_style |= BS_AUTOCHECKBOX as WINDOW_STYLE;
         } else {
-            if self.auto {
-                ms_style |= BS_AUTOCHECKBOX as WINDOW_STYLE;
-            } else {
-                ms_style |= BS_CHECKBOX as WINDOW_STYLE;
-            };
+            ms_style |= BS_CHECKBOX as WINDOW_STYLE;
         };
-        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
-        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
+        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, val.like_button);
+        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, val.left_text);
 
         (ms_style, ex, ditype, text)
     }
@@ -184,7 +182,7 @@ impl CheckBox {
             BST_CHECKED => Ok(Checked),
             BST_UNCHECKED => Ok(UnChecked),
             BST_INDETERMINATE => Ok(Indeterminate),
-            _ => return Err(ERROR_NOT_SUPPORTED),
+            _ => Err(ERROR_NOT_SUPPORTED),
         }
     }
 }

@@ -37,10 +37,10 @@ impl GroupBoxStyle {
     }
 }
 pub type GroupBoxTemple = GroupBoxStyle;
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for GroupBoxStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
-        let (a, b) = self.style.into();
-        (a | (BS_GROUPBOX as u32), b, self.text)
+impl From<GroupBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+    fn from(val: GroupBoxStyle) -> Self {
+        let (a, b) = val.style.into();
+        (a | (BS_GROUPBOX as u32), b, val.text)
     }
 }
 impl DialogTempleControl for GroupBoxTemple {

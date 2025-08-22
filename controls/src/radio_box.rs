@@ -15,17 +15,17 @@ pub struct RadioBoxOption<T> {
     pub left_text: bool,   //BS_LEFTTEXT
 }
 pub type RadioBoxStyle = RadioBoxOption<RadioBoxContent>;
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for RadioBoxStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
-        let (mut ms_style, ex) = self.style.into();
-        let (style2, ditype, text) = self.contect.into();
-        let pos: WINDOW_STYLE = self.pos.into();
+impl From<RadioBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
+    fn from(val: RadioBoxStyle) -> Self {
+        let (mut ms_style, ex) = val.style.into();
+        let (style2, ditype, text) = val.contect.into();
+        let pos: WINDOW_STYLE = val.pos.into();
         ms_style |= style2 | pos;
-        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
-        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
-        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, self.like_button);
-        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, self.left_text);
-        if self.auto {
+        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, val.extra_msg);
+        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, val.flat);
+        set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, val.like_button);
+        set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, val.left_text);
+        if val.auto {
             ms_style |= BS_AUTORADIOBUTTON as WINDOW_STYLE;
         } else {
             ms_style |= BS_RADIOBUTTON as WINDOW_STYLE;

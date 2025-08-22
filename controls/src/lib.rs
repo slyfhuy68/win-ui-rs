@@ -167,7 +167,7 @@ fn new_control(
             parent,
             id,
             hinstance,
-            0 as *const c_void,
+            std::ptr::null::<c_void>(),
         ))?;
         if let Some(font) = font {
             error_from_win32_num!(PostMessageW(
@@ -192,19 +192,16 @@ fn new_button(
     draw: Option<ButtonImage>,
 ) -> Result<HWND> {
     let wnd = new_control(wnd, w!("Button"), name, pos, id, style, style_ex, font)?;
-    match draw {
-        Some(x) => unsafe {
-            let _ = match x {
-                Left(b) => {
-                    PostMessageW(wnd, BM_SETIMAGE, IMAGE_BITMAP as WPARAM, b.handle as LPARAM)
-                }
-                Right(c) => {
-                    PostMessageW(wnd, BM_SETIMAGE, IMAGE_ICON as WPARAM, c.handle as LPARAM)
-                }
-            };
-        },
-        None => {}
-    };
+    if let Some(x) = draw { unsafe {
+        let _ = match x {
+            Left(b) => {
+                PostMessageW(wnd, BM_SETIMAGE, IMAGE_BITMAP as WPARAM, b.handle as LPARAM)
+            }
+            Right(c) => {
+                PostMessageW(wnd, BM_SETIMAGE, IMAGE_ICON as WPARAM, c.handle as LPARAM)
+            }
+        };
+    } };
     Ok(wnd)
 }
 fn is_some_window(wnd: &Window, class: &'static widestr) -> Result<bool> {

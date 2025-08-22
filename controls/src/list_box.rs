@@ -46,15 +46,15 @@ impl Default for OwnerSaveDataType {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ListBoxStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
-        let (mut style, ex) = self.style.into();
-        style |= (((!self.auto_hide_scroll) as i32) * LBS_DISABLENOSCROLL
-            + (self.delayed_rendering as i32) * LBS_NOREDRAW
-            + (self.extra_nofity as i32) * LBS_NOTIFY
-            + (self.extra_keyboard_nofity as i32) * LBS_WANTKEYBOARDINPUT)
+impl From<ListBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+    fn from(val: ListBoxStyle) -> Self {
+        let (mut style, ex) = val.style.into();
+        style |= (((!val.auto_hide_scroll) as i32) * LBS_DISABLENOSCROLL
+            + (val.delayed_rendering as i32) * LBS_NOREDRAW
+            + (val.extra_nofity as i32) * LBS_NOTIFY
+            + (val.extra_keyboard_nofity as i32) * LBS_WANTKEYBOARDINPUT)
             as WINDOW_STYLE;
-        match self.draw_type {
+        match val.draw_type {
             DrawType::AutoDraw {
                 auto_size,
                 auto_sort,
@@ -84,7 +84,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ListBoxStyle {
             },
         };
 
-        match self.sel_type {
+        match val.sel_type {
             SelType::Allow {
                 multiple_selection,
                 ext_selection,
@@ -95,7 +95,7 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, String)> for ListBoxStyle {
             }
             SelType::Forbid => style |= LBS_NOSEL as WINDOW_STYLE,
         }
-        (style, ex, self.name)
+        (style, ex, val.name)
     }
 }
 type ListBoxTemple = ListBoxStyle;

@@ -13,10 +13,10 @@ pub enum BottonContentPos {
     BottomLeft,  //BS_BOTTOM | BS_LEFT
     BottomRight, //BS_BOTTOM | BS_RIGHT
 }
-impl Into<WINDOW_STYLE> for BottonContentPos {
-    fn into(self) -> WINDOW_STYLE {
+impl From<BottonContentPos> for WINDOW_STYLE {
+    fn from(val: BottonContentPos) -> Self {
         use BottonContentPos::*;
-        (match self {
+        (match val {
             DefaultPos => 0,
             Center => BS_CENTER | BS_VCENTER,
             Left => BS_LEFT | BS_VCENTER,
@@ -47,11 +47,11 @@ pub struct ButtonOption<T> {
     pub focused: bool,
 }
 pub type ButtonStyle = ButtonOption<ButtonContent>;
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for ButtonStyle {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
-        let (mut ms_style, ex) = self.style.into();
+impl From<ButtonStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
+    fn from(val: ButtonStyle) -> Self {
+        let (mut ms_style, ex) = val.style.into();
         use ButtonType::*;
-        ms_style |= match (self.btype, self.focused) {
+        ms_style |= match (val.btype, val.focused) {
             (Normal, false) => BS_PUSHBUTTON,
             (Normal, true) => BS_DEFPUSHBUTTON,
             (Split, false) => BS_SPLITBUTTON,
@@ -59,10 +59,10 @@ impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String)> for Butt
             (Link, false) => BS_COMMANDLINK,
             (Link, true) => BS_DEFCOMMANDLINK,
         } as WINDOW_STYLE;
-        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, self.extra_msg);
-        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, self.flat);
-        let (style2, ditype, text) = self.contect.into();
-        let pos: WINDOW_STYLE = self.pos.into();
+        set_style(&mut ms_style, BS_NOTIFY as WINDOW_STYLE, val.extra_msg);
+        set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, val.flat);
+        let (style2, ditype, text) = val.contect.into();
+        let pos: WINDOW_STYLE = val.pos.into();
         (ms_style | style2 | pos, ex, ditype, text)
     }
 }
@@ -135,15 +135,15 @@ impl ButtonTempleContent {
         }
     }
 }
-impl Into<(WINDOW_STYLE, String)> for ButtonTempleContent {
-    fn into(self) -> (WINDOW_STYLE, String) {
+impl From<ButtonTempleContent> for (WINDOW_STYLE, String) {
+    fn from(val: ButtonTempleContent) -> Self {
         (
-            if self.multiple_lines {
+            if val.multiple_lines {
                 (BS_MULTILINE | BS_TEXT) as WINDOW_STYLE
             } else {
                 BS_TEXT as WINDOW_STYLE
             },
-            self.text,
+            val.text,
         )
     }
 }
@@ -174,9 +174,9 @@ impl ButtonContent {
         }
     }
 }
-impl Into<(WINDOW_STYLE, Option<ButtonImage>, String)> for ButtonContent {
-    fn into(self) -> (WINDOW_STYLE, Option<ButtonImage>, String) {
-        match self {
+impl From<ButtonContent> for (WINDOW_STYLE, Option<ButtonImage>, String) {
+    fn from(val: ButtonContent) -> Self {
+        match val {
             ButtonContent::TextOnly {
                 text,
                 multiple_lines,
