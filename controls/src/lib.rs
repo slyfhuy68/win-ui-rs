@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 use capdows::positioning::FontPoint;
 use capdows::positioning::FontSize;
 use capdows::prelude::*;
@@ -124,6 +126,7 @@ pub type ButtonImage = Either<Bitmap, Icon>;
 use either::*;
 #[repr(C)]
 #[allow(non_snake_case)]
+#[allow(clippy::upper_case_acronyms)]
 struct NMHDRCOLOR {
     #[allow(non_snake_case)]
     nmhdr: NMHDR,
@@ -139,8 +142,7 @@ fn new_control(
     name: String,
     pos: Option<Rect>,
     id: u16,
-    style: WINDOW_STYLE,
-    style_ex: WINDOW_EX_STYLE,
+    (style, style_ex): (WINDOW_STYLE, WINDOW_EX_STYLE),
     font: Option<ControlFont>,
 ) -> Result<HWND> {
     unsafe {
@@ -186,22 +188,23 @@ fn new_button(
     name: String,
     pos: Option<Rect>,
     id: u16,
-    style: WINDOW_STYLE,
-    style_ex: WINDOW_EX_STYLE,
+    style: (WINDOW_STYLE, WINDOW_EX_STYLE),
     font: Option<ControlFont>,
     draw: Option<ButtonImage>,
 ) -> Result<HWND> {
-    let wnd = new_control(wnd, w!("Button"), name, pos, id, style, style_ex, font)?;
-    if let Some(x) = draw { unsafe {
-        let _ = match x {
-            Left(b) => {
-                PostMessageW(wnd, BM_SETIMAGE, IMAGE_BITMAP as WPARAM, b.handle as LPARAM)
-            }
-            Right(c) => {
-                PostMessageW(wnd, BM_SETIMAGE, IMAGE_ICON as WPARAM, c.handle as LPARAM)
-            }
-        };
-    } };
+    let wnd = new_control(wnd, w!("Button"), name, pos, id, style, font)?;
+    if let Some(x) = draw {
+        unsafe {
+            let _ = match x {
+                Left(b) => {
+                    PostMessageW(wnd, BM_SETIMAGE, IMAGE_BITMAP as WPARAM, b.handle as LPARAM)
+                }
+                Right(c) => {
+                    PostMessageW(wnd, BM_SETIMAGE, IMAGE_ICON as WPARAM, c.handle as LPARAM)
+                }
+            };
+        }
+    };
     Ok(wnd)
 }
 fn is_some_window(wnd: &Window, class: &'static widestr) -> Result<bool> {
@@ -223,6 +226,7 @@ pub mod traits {
             font: Option<ControlFont>,
         ) -> Result<HWND>;
         #[inline]
+        #[allow(clippy::new_ret_no_self)]
         fn new(
             wnd: &mut impl AsMut<Window>,
             pos: Option<Rect>,

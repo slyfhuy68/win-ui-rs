@@ -93,6 +93,7 @@ pub unsafe trait RawMessageHandler<T: MessageType = MainPorc> {
 
 #[repr(C)]
 #[allow(non_snake_case)]
+#[allow(clippy::upper_case_acronyms)]
 struct NMHDRCOLOR {
     #[allow(non_snake_case)]
     nmhdr: NMHDR,
@@ -125,9 +126,11 @@ unsafe fn handle_msg_impl<M: MessageType, C: MessageReceiver<M> + Sync + 'static
     param2: LPARAM,
 ) -> Option<isize> {
     unsafe {
+        #[allow(clippy::deref_addrof)] //这里的作用是解绑生命周期
         let wnd = M::WindowType::from_hwnd_mut(&mut *&raw mut hwnd);
         use MessageReceiverError::*;
-        let result = match msg {
+
+        match msg {
             WM_CREATE => {
                 let s = *(param2 as *mut CREATESTRUCTW);
                 let (mut wc, _buffer) = {
@@ -141,7 +144,7 @@ unsafe fn handle_msg_impl<M: MessageType, C: MessageReceiver<M> + Sync + 'static
                         (WindowClass::from_raw(vec.as_ptr() as PCWSTR), Some(vec))
                     }
                 };
-                let mut wtype = WindowType::from_data(
+                let wtype = WindowType::from_data(
                     s.style as WINDOW_STYLE,
                     s.dwExStyle,
                     s.hMenu,
@@ -156,7 +159,7 @@ unsafe fn handle_msg_impl<M: MessageType, C: MessageReceiver<M> + Sync + 'static
                     &mut wc,
                     &s.hInstance.into(),
                     rect(s.x, s.y, s.cx, s.cy),
-                    &mut wtype,
+                    &wtype,
                 ) {
                     Ok(x) => Some(match x {
                         true => 0isize,
@@ -258,8 +261,7 @@ unsafe fn handle_msg_impl<M: MessageType, C: MessageReceiver<M> + Sync + 'static
                 ) }
             }
             _ => None,
-        };
-        result
+        }
     }
 }
 unsafe impl<const PORC_ID: usize, C: MessageReceiver<SubPorc<PORC_ID>> + Sync + 'static>
@@ -278,9 +280,7 @@ unsafe impl<C: MessageReceiver + Sync + 'static> RawMessageHandler for C {
 }
 unsafe impl<C: DialogMessageReceiver + Sync + 'static> RawMessageHandler<DialogPorc> for C {
     unsafe fn handle_msg(hwnd: HWND, msg: u32, param1: WPARAM, param2: LPARAM) -> Option<isize> {
-        match msg {
-            _ => unsafe { handle_msg_impl::<DialogPorc, C>(hwnd, msg, param1, param2) },
-        }
+        unsafe { handle_msg_impl::<DialogPorc, C>(hwnd, msg, param1, param2) }
     }
 }
 pub use MessageReceiverError::*;
@@ -529,9 +529,8 @@ impl<'a, T> std::ops::DerefMut for MessageView<'a, T> {
 impl RawMessage {
     pub fn get_msg<'a, T: UnsafeMessage>(&'a mut self) -> Result<MessageView<'a, T>> {
         unsafe {
-            match T::is_self_msg(&self)? {
-                false => panic!("The type provided does not match the actual message!"),
-                _ => (),
+            if !(T::is_self_msg(self)?) {
+                panic!("The type provided does not match the actual message!")
             };
             Ok(MessageView {
                 msg: T::from_raw_msg(*self)?,
@@ -631,10 +630,7 @@ impl<D: NotifyMessage> AsMsg for UnsafeControlMsgDefaultOwnerType<D> {
         use std::ptr::addr_of;
         match &self.data {
             None => self.msg,
-            Some(d) => {
-                let result = RawMessage(self.msg.0, self.msg.1, addr_of!(d) as isize);
-                result
-            }
+            Some(d) => RawMessage(self.msg.0, self.msg.1, addr_of!(d) as isize),
         }
     }
 }
@@ -696,7 +692,7 @@ unsafe impl<T: UnsafeControlMsg> UnsafeMessage for T {
                 WM_COMMAND => {
                     let mut nmhdr = NMHDR {
                         hwndFrom: lparam as HWND,
-                        idFrom: (wparam & 0xffff) as usize,
+                        idFrom: (wparam & 0xffff),
                         code: ((wparam >> 16) & 0xffff) as u32,
                     };
                     Self::from_msg(&mut nmhdr as *mut _ as usize, true)

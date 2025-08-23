@@ -47,7 +47,7 @@ pub struct ButtonOption<T> {
     pub focused: bool,
 }
 pub type ButtonStyle = ButtonOption<ButtonContent>;
-impl From<ButtonStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
+impl From<ButtonStyle> for ((WINDOW_STYLE, WINDOW_EX_STYLE), Option<ButtonImage>, String) {
     fn from(val: ButtonStyle) -> Self {
         let (mut ms_style, ex) = val.style.into();
         use ButtonType::*;
@@ -63,7 +63,7 @@ impl From<ButtonStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, 
         set_style(&mut ms_style, BS_FLAT as WINDOW_STYLE, val.flat);
         let (style2, ditype, text) = val.contect.into();
         let pos: WINDOW_STYLE = val.pos.into();
-        (ms_style | style2 | pos, ex, ditype, text)
+        ((ms_style | style2 | pos, ex), ditype, text)
     }
 }
 impl ButtonStyle {
@@ -286,8 +286,8 @@ impl CommonControl for Button {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (style, ex, draw, name) = control_style.into();
-        new_button(wnd, name, pos, identifier, style, ex, font, draw)
+        let (style, draw, name) = control_style.into();
+        new_button(wnd, name, pos, identifier, style, font, draw)
     }
 }
 impl Button {

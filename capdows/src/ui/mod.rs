@@ -92,12 +92,12 @@ use windows_sys::core::*;
 pub fn str_to_pcwstr(s: &str) -> (PCWSTR, Vec<u16>) {
     let wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
     let wide_str_ptr = wide_str.as_ptr();
-    return (wide_str_ptr as PCWSTR, wide_str);
+    (wide_str_ptr as PCWSTR, wide_str)
 }
 pub fn str_to_pwstr(s: &str) -> (PWSTR, Vec<u16>) {
     let mut wide_str: Vec<u16> = s.encode_utf16().chain(std::iter::once(0)).collect();
     let wide_str_ptr = wide_str.as_mut_ptr();
-    return (wide_str_ptr as PWSTR, wide_str);
+    (wide_str_ptr as PWSTR, wide_str)
 }
 use std::hash::DefaultHasher;
 use std::hash::Hash;
@@ -108,8 +108,5 @@ pub fn hash<T: Hash>(t: &T) -> u64 {
 }
 #[inline]
 pub fn option_copy_handle(wnd: &Option<Window>) -> Option<Window> {
-    match wnd {
-        None => None,
-        Some(wnd) => Some(wnd.copy_handle()),
-    }
+    wnd.as_ref().map(|wnd| wnd.copy_handle())
 }

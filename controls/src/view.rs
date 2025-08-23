@@ -146,7 +146,7 @@ pub type TextViewTemple = ViewOption<TextViewContent>;
 impl DialogTempleControl for TextViewTemple {
     #[inline]
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
-        let (style, style_ex, ct) = self.into();
+        let ((style, style_ex), ct) = self.into();
         format!(
             "CONTROL \"{}\", {}, \"Static\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, style, pos.x, pos.y, size.width, size.height, style_ex
@@ -200,7 +200,7 @@ impl From<ImageViewTempleContent> for (WINDOW_STYLE, ResourceID) {
 impl DialogTempleControl for ImageViewTemple {
     #[inline]
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
-        let (style, style_ex, ct) = self.into();
+        let ((style, style_ex), ct) = self.into();
         format!(
             "CONTROL \"{}\", {}, \"Static\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             match ct {
@@ -314,7 +314,7 @@ impl ImageViewTemple {
         }
     }
 }
-impl<D, T> From<ViewOption<T>> for (WINDOW_STYLE, WINDOW_EX_STYLE, D)
+impl<D, T> From<ViewOption<T>> for ((WINDOW_STYLE, WINDOW_EX_STYLE), D)
 where
     T: Into<(WINDOW_STYLE, D)>,
 {
@@ -332,7 +332,7 @@ where
             + (val.sunken as WINDOW_STYLE) * SS_SUNKEN
             + (val.extra_notify as WINDOW_STYLE) * SS_NOTIFY;
         let (style2, data) = val.content.into();
-        (style | style2, style_ex, data)
+        ((style | style2, style_ex), data)
     }
 }
 
@@ -402,17 +402,8 @@ impl CommonControl for ImageView {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (style, style_ex, (name, data, flag)) = control_style.into();
-        let hwnd = new_control(
-            wnd,
-            w!("Static"),
-            name,
-            pos,
-            identifier,
-            style,
-            style_ex,
-            font,
-        )?;
+        let (style, (name, data, flag)) = control_style.into();
+        let hwnd = new_control(wnd, w!("Static"), name, pos, identifier, style, font)?;
         unsafe {
             let _ = SendMessageW(hwnd, STM_SETIMAGE, flag as WPARAM, data as LPARAM);
         }
@@ -429,16 +420,7 @@ impl CommonControl for TextView {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (style, style_ex, name) = control_style.into();
-        new_control(
-            wnd,
-            w!("Static"),
-            name,
-            pos,
-            identifier,
-            style,
-            style_ex,
-            font,
-        )
+        let (style, name) = control_style.into();
+        new_control(wnd, w!("Static"), name, pos, identifier, style, font)
     }
 }

@@ -46,7 +46,7 @@ impl Default for OwnerSaveDataType {
         }
     }
 }
-impl From<ListBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+impl From<ListBoxStyle> for ((WINDOW_STYLE, WINDOW_EX_STYLE), String) {
     fn from(val: ListBoxStyle) -> Self {
         let (mut style, ex) = val.style.into();
         style |= (((!val.auto_hide_scroll) as i32) * LBS_DISABLENOSCROLL
@@ -95,14 +95,14 @@ impl From<ListBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
             }
             SelType::Forbid => style |= LBS_NOSEL as WINDOW_STYLE,
         }
-        (style, ex, val.name)
+        ((style, ex), val.name)
     }
 }
 type ListBoxTemple = ListBoxStyle;
 impl DialogTempleControl for ListBoxTemple {
     #[inline]
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
-        let (ms_style, style_ex, ct) = self.into();
+        let ((ms_style, style_ex), ct) = self.into();
         format!(
             "CONTROL \"{}\", {}, \"ListBox\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, style_ex
@@ -196,7 +196,7 @@ impl CommonControl for ListBox {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (a, b, name) = control_style.into();
-        new_control(wnd, w!("Edit"), name, pos, identifier, a, b, font)
+        let (a, name) = control_style.into();
+        new_control(wnd, w!("Edit"), name, pos, identifier, a, font)
     }
 }

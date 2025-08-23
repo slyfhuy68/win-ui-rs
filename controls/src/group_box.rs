@@ -37,15 +37,15 @@ impl GroupBoxStyle {
     }
 }
 pub type GroupBoxTemple = GroupBoxStyle;
-impl From<GroupBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+impl From<GroupBoxStyle> for ((WINDOW_STYLE, WINDOW_EX_STYLE), String) {
     fn from(val: GroupBoxStyle) -> Self {
         let (a, b) = val.style.into();
-        (a | (BS_GROUPBOX as u32), b, val.text)
+        ((a | (BS_GROUPBOX as u32), b), val.text)
     }
 }
 impl DialogTempleControl for GroupBoxTemple {
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
-        let (ms_style, ex, ct) = self.into();
+        let ((ms_style, ex), ct) = self.into();
         format!(
             "CONTROL \"{}\", {}, \"Button\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
@@ -62,8 +62,8 @@ impl CommonControl for GroupBox {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (style, ex, name) = control_style.into();
-        new_button(wnd, name, pos, identifier, style, ex, font, None)
+        let (style, name) = control_style.into();
+        new_button(wnd, name, pos, identifier, style, font, None)
     }
 }
 impl TextControl for GroupBox {}

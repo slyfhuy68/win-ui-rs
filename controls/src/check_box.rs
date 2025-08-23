@@ -78,7 +78,7 @@ impl CheckBoxTemple {
         }
     }
 }
-impl From<CheckBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
+impl From<CheckBoxStyle> for ((WINDOW_STYLE, WINDOW_EX_STYLE), Option<ButtonImage>, String) {
     fn from(val: CheckBoxStyle) -> Self {
         let (mut ms_style, ex) = val.style.into();
         let pos: WINDOW_STYLE = val.pos.into();
@@ -100,7 +100,7 @@ impl From<CheckBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>
         set_style(&mut ms_style, BS_PUSHLIKE as WINDOW_STYLE, val.like_button);
         set_style(&mut ms_style, BS_LEFTTEXT as WINDOW_STYLE, val.left_text);
 
-        (ms_style, ex, ditype, text)
+        ((ms_style, ex), ditype, text)
     }
 }
 define_control! {
@@ -169,8 +169,8 @@ impl CommonControl for CheckBox {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (style, ex, draw, name) = control_style.into();
-        new_button(wnd, name, pos, identifier, style, ex, font, draw)
+        let (style, draw, name) = control_style.into();
+        new_button(wnd, name, pos, identifier, style, font, draw)
     }
 }
 impl CheckBox {

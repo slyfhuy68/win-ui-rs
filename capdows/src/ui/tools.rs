@@ -9,7 +9,7 @@ pub fn msg_box(
 ) -> Result<MessageBoxResult> {
     let (text, _buffer1) = str_to_pcwstr(text);
     let (caption, _buffer2) = match caption {
-        None => (0 as *const u16, Vec::new()),
+        None => (std::ptr::null::<u16>(), Vec::new()),
         Some(s) => str_to_pcwstr(s),
     };
     let (style1, lang_id) = options.into();
@@ -32,7 +32,7 @@ pub fn msg_box_timeout(
     windows_link::link!("user32.dll" "system" fn MessageBoxTimeoutW(hwnd : HWND, lptext : PCWSTR, lpcaption : PCWSTR, utype : MESSAGEBOX_STYLE, wlanguageid : u16, dwMilliseconds: u32) -> MESSAGEBOX_RESULT);
     let (text, _buffer1) = str_to_pcwstr(text);
     let (caption, _buffer2) = match caption {
-        None => (0 as *const u16, Vec::new()),
+        None => (std::ptr::null::<u16>(), Vec::new()),
         Some(s) => str_to_pcwstr(s),
     };
     let (style1, lang_id) = options.into();
@@ -84,16 +84,16 @@ pub mod msg_box_style {
             }
         }
     }
-    impl Into<MESSAGEBOX_STYLE> for MessageBoxButton {
-        fn into(self) -> MESSAGEBOX_STYLE {
-            match self {
-                Self::OkOnly => MB_OK,
-                Self::OkCancel => MB_OKCANCEL,
-                Self::RetryCancel => MB_RETRYCANCEL,
-                Self::YesNo => MB_YESNO,
-                Self::YesNoCancel => MB_YESNOCANCEL,
-                Self::AbortRetryIgnore => MB_ABORTRETRYIGNORE,
-                Self::CancelTryContinue => MB_CANCELTRYCONTINUE,
+    impl From<MessageBoxButton> for MESSAGEBOX_STYLE {
+        fn from(val: MessageBoxButton) -> Self {
+            match val {
+                MessageBoxButton::OkOnly => MB_OK,
+                MessageBoxButton::OkCancel => MB_OKCANCEL,
+                MessageBoxButton::RetryCancel => MB_RETRYCANCEL,
+                MessageBoxButton::YesNo => MB_YESNO,
+                MessageBoxButton::YesNoCancel => MB_YESNOCANCEL,
+                MessageBoxButton::AbortRetryIgnore => MB_ABORTRETRYIGNORE,
+                MessageBoxButton::CancelTryContinue => MB_CANCELTRYCONTINUE,
             }
         }
     }
@@ -107,14 +107,14 @@ pub mod msg_box_style {
         Error,
     }
 
-    impl Into<MESSAGEBOX_STYLE> for MessageBoxIcon {
-        fn into(self) -> MESSAGEBOX_STYLE {
-            match self {
-                Self::None => 0,
-                Self::Information => MB_ICONINFORMATION,
-                Self::Question => MB_ICONQUESTION,
-                Self::Warning => MB_ICONEXCLAMATION,
-                Self::Error => MB_ICONSTOP,
+    impl From<MessageBoxIcon> for MESSAGEBOX_STYLE {
+        fn from(val: MessageBoxIcon) -> Self {
+            match val {
+                MessageBoxIcon::None => 0,
+                MessageBoxIcon::Information => MB_ICONINFORMATION,
+                MessageBoxIcon::Question => MB_ICONQUESTION,
+                MessageBoxIcon::Warning => MB_ICONEXCLAMATION,
+                MessageBoxIcon::Error => MB_ICONSTOP,
             }
         }
     }
@@ -142,13 +142,13 @@ pub mod msg_box_style {
         Button3,
         Button4,
     }
-    impl Into<MESSAGEBOX_STYLE> for MessageBoxDefaultButton {
-        fn into(self) -> MESSAGEBOX_STYLE {
-            match self {
-                Self::Button1 => MB_DEFBUTTON1,
-                Self::Button2 => MB_DEFBUTTON2,
-                Self::Button3 => MB_DEFBUTTON3,
-                Self::Button4 => MB_DEFBUTTON4,
+    impl From<MessageBoxDefaultButton> for MESSAGEBOX_STYLE {
+        fn from(val: MessageBoxDefaultButton) -> Self {
+            match val {
+                MessageBoxDefaultButton::Button1 => MB_DEFBUTTON1,
+                MessageBoxDefaultButton::Button2 => MB_DEFBUTTON2,
+                MessageBoxDefaultButton::Button3 => MB_DEFBUTTON3,
+                MessageBoxDefaultButton::Button4 => MB_DEFBUTTON4,
             }
         }
     }
@@ -192,21 +192,21 @@ pub mod msg_box_style {
             }
         }
     }
-    impl Into<(MESSAGEBOX_STYLE, u16)> for MessageBoxOptions {
-        fn into(self) -> (MESSAGEBOX_STYLE, u16) {
-            let mut style: MESSAGEBOX_STYLE = self.button.into();
-            style |= <MessageBoxIcon as Into<MESSAGEBOX_STYLE>>::into(self.icon);
-            style |= <MessageBoxDefaultButton as Into<MESSAGEBOX_STYLE>>::into(self.default_button);
+    impl From<MessageBoxOptions> for (MESSAGEBOX_STYLE, u16) {
+        fn from(val: MessageBoxOptions) -> Self {
+            let mut style: MESSAGEBOX_STYLE = val.button.into();
+            style |= <MessageBoxIcon as Into<MESSAGEBOX_STYLE>>::into(val.icon);
+            style |= <MessageBoxDefaultButton as Into<MESSAGEBOX_STYLE>>::into(val.default_button);
             set_style(
                 &mut style,
                 MB_DEFAULT_DESKTOP_ONLY,
-                self.default_desktop_only,
+                val.default_desktop_only,
             );
-            set_style(&mut style, MB_HELP, self.help_button);
-            set_style(&mut style, MB_RIGHT, self.right_justified);
-            set_style(&mut style, MB_RTLREADING, self.right_to_left_reading);
-            set_style(&mut style, MB_TOPMOST, self.top_most);
-            (style, self.lang_id.map(LangID::id).unwrap_or(0))
+            set_style(&mut style, MB_HELP, val.help_button);
+            set_style(&mut style, MB_RIGHT, val.right_justified);
+            set_style(&mut style, MB_RTLREADING, val.right_to_left_reading);
+            set_style(&mut style, MB_TOPMOST, val.top_most);
+            (style, val.lang_id.map(LangID::id).unwrap_or(0))
         }
     }
     #[derive(Debug, Default)]
@@ -218,9 +218,9 @@ pub mod msg_box_style {
         TaskModal(&'a Window),
         ServiceNotification,
     }
-    impl<'a> Into<(MESSAGEBOX_STYLE, HWND)> for MessageBoxOwnerWindow<'a> {
-        fn into(self) -> (MESSAGEBOX_STYLE, HWND) {
-            match self {
+    impl<'a> From<MessageBoxOwnerWindow<'a>> for (MESSAGEBOX_STYLE, HWND) {
+        fn from(val: MessageBoxOwnerWindow<'a>) -> Self {
+            match val {
                 MessageBoxOwnerWindow::None => (MB_APPLMODAL, 0 as HWND),
 
                 MessageBoxOwnerWindow::AppModal(window) => {
@@ -258,9 +258,9 @@ pub enum MessageBoxResult {
     #[cfg(feature = "timeout_msg_box")]
     TimeOut,
 }
-impl Into<MESSAGEBOX_RESULT> for MessageBoxResult {
-    fn into(self) -> MESSAGEBOX_RESULT {
-        match self {
+impl From<MessageBoxResult> for MESSAGEBOX_RESULT {
+    fn from(val: MessageBoxResult) -> Self {
+        match val {
             MessageBoxResult::Ok => IDOK,
             MessageBoxResult::Cancel => IDCANCEL,
             MessageBoxResult::Yes => IDYES,

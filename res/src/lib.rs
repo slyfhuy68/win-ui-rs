@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 //! 警告：由于此crate为build.rs在编译期嵌入资源使用, 遇到任何错误都会直接panic（也就是编译期错误）
 // use capdows::prelude::*;
 use capdows::utilities::do_escapes;

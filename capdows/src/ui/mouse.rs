@@ -10,7 +10,7 @@ impl Window {
     {
         unsafe {
             let result = GetCapture();
-            if result == NULL_PTR() {
+            if result.is_null() {
                 None
             } else {
                 let mut result = Window::from_handle(result);

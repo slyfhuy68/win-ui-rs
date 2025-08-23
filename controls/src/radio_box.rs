@@ -15,7 +15,7 @@ pub struct RadioBoxOption<T> {
     pub left_text: bool,   //BS_LEFTTEXT
 }
 pub type RadioBoxStyle = RadioBoxOption<RadioBoxContent>;
-impl From<RadioBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>, String) {
+impl From<RadioBoxStyle> for ((WINDOW_STYLE, WINDOW_EX_STYLE), Option<ButtonImage>, String) {
     fn from(val: RadioBoxStyle) -> Self {
         let (mut ms_style, ex) = val.style.into();
         let (style2, ditype, text) = val.contect.into();
@@ -30,7 +30,7 @@ impl From<RadioBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, Option<ButtonImage>
         } else {
             ms_style |= BS_RADIOBUTTON as WINDOW_STYLE;
         };
-        (ms_style, ex, ditype, text)
+        ((ms_style, ex), ditype, text)
     }
 }
 pub type RadioBoxTemple = RadioBoxOption<RadioBoxTempleContent>;
@@ -137,8 +137,8 @@ impl CommonControl for RadioBox {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (style, ex, draw, name) = control_style.into();
-        new_button(wnd, name, pos, identifier, style, ex, font, draw)
+        let (style, draw, name) = control_style.into();
+        new_button(wnd, name, pos, identifier, style, font, draw)
     }
 }
 impl RadioBox {

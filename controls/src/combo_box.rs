@@ -28,7 +28,7 @@ pub struct OwnerDrawType {
 pub type ComboBoxTemple = ComboBoxStyle;
 impl DialogTempleControl for ComboBoxTemple {
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
-        let (ms_style, ex, ct) = self.into();
+        let ((ms_style, ex), ct) = self.into();
         format!(
             "CONTROL \"{}\", {}, \"ComboBox\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
@@ -52,7 +52,7 @@ impl ComboBoxStyle {
         }
     }
 }
-impl From<ComboBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+impl From<ComboBoxStyle> for ((WINDOW_STYLE, WINDOW_EX_STYLE), String) {
     fn from(val: ComboBoxStyle) -> Self {
         use CaseType::*;
         use ComboBoxShow::*;
@@ -88,7 +88,7 @@ impl From<ComboBoxStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
                 style |= CBS_OWNERDRAWFIXED;
             }
         }
-        ((style as WINDOW_STYLE) | style1, ex, val.contect)
+        (((style as WINDOW_STYLE) | style1, ex), val.contect)
     }
 }
 impl ComboBoxStyle {
@@ -136,8 +136,8 @@ impl CommonControl for ComboBox {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (a, b, c) = control_style.into();
-        new_control(wnd, w!("ComboBox"), c, pos, identifier, a, b, font)
+        let (a, b) = control_style.into();
+        new_control(wnd, w!("ComboBox"), b, pos, identifier, a, font)
     }
 }
 define_control! {

@@ -27,7 +27,7 @@ pub struct EditStyle {
     pub case_type: CaseType,
     pub etype: EditType,
 }
-impl From<EditStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
+impl From<EditStyle> for ((WINDOW_STYLE, WINDOW_EX_STYLE), String) {
     fn from(val: EditStyle) -> Self {
         let (mut edit_style, ex) = val.style.into();
         set_style(
@@ -79,14 +79,14 @@ impl From<EditStyle> for (WINDOW_STYLE, WINDOW_EX_STYLE, String) {
               // },
         }
 
-        (edit_style, ex, val.text)
+        ((edit_style, ex), val.text)
     }
 }
 pub type EditTemple = EditStyle;
 impl DialogTempleControl for EditTemple {
     #[inline]
     fn pre_compile(self, pos: FontPoint, size: FontSize, identifier: WindowID) -> String {
-        let (ms_style, ex, ct) = self.into();
+        let ((ms_style, ex), ct) = self.into();
         format!(
             "CONTROL \"{}\", {}, \"Edit\", 0x{:04X}, {}, {}, {}, {}, 0x{:04X}",
             ct, identifier, ms_style, pos.x, pos.y, size.width, size.height, ex
@@ -182,8 +182,8 @@ impl CommonControl for Edit {
         control_style: Self::Style,
         font: Option<ControlFont>,
     ) -> Result<HWND> {
-        let (a, b, text) = control_style.into();
-        new_control(wnd, w!("Edit"), text, pos, identifier, a, b, font)
+        let (a, text) = control_style.into();
+        new_control(wnd, w!("Edit"), text, pos, identifier, a, font)
     }
 }
 

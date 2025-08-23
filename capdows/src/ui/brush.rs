@@ -9,7 +9,7 @@ impl Brush {
         self.handle
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle == NULL_PTR()
+        self.handle.is_null()
     }
 }
 impl Default for Brush {
@@ -17,9 +17,9 @@ impl Default for Brush {
         Self { handle: NULL_PTR() }
     }
 }
-impl Into<HBRUSH> for Brush {
-    fn into(self) -> HBRUSH {
-        self.handle
+impl From<Brush> for HBRUSH {
+    fn from(val: Brush) -> Self {
+        val.handle
     }
 }
 impl From<HBRUSH> for Brush {

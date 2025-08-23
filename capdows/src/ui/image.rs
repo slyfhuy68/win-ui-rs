@@ -15,7 +15,7 @@ impl Icon {
         Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle == NULL_PTR()
+        self.handle.is_null()
     }
     pub fn load_from_module(
         module: ExecutableFile,
@@ -46,9 +46,9 @@ impl From<HICON> for Icon {
         Self { handle: hi }
     }
 }
-impl Into<HICON> for Icon {
-    fn into(self) -> HICON {
-        self.handle
+impl From<Icon> for HICON {
+    fn from(val: Icon) -> Self {
+        val.handle
     }
 }
 
@@ -86,9 +86,9 @@ pub enum SystemCursor {
     ScrollSW = 32661,
     CdArrowCursor = 32663,
 }
-impl Into<u16> for SystemCursor {
-    fn into(self) -> u16 {
-        self as u16
+impl From<SystemCursor> for u16 {
+    fn from(val: SystemCursor) -> Self {
+        val as u16
     }
 }
 //AI开始--------------
@@ -147,7 +147,7 @@ impl Cursor {
         Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle == NULL_PTR()
+        self.handle.is_null()
     }
     pub fn load_from_module(
         module: ExecutableFile,
@@ -200,7 +200,7 @@ impl Bitmap {
         Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle == NULL_PTR()
+        self.handle.is_null()
     }
 }
 impl From<HCURSOR> for Cursor {
@@ -208,9 +208,9 @@ impl From<HCURSOR> for Cursor {
         Self { handle: hi }
     }
 }
-impl Into<HCURSOR> for Cursor {
-    fn into(self) -> HCURSOR {
-        self.handle
+impl From<Cursor> for HCURSOR {
+    fn from(val: Cursor) -> Self {
+        val.handle
     }
 }
 impl From<HBITMAP> for Bitmap {
@@ -218,9 +218,9 @@ impl From<HBITMAP> for Bitmap {
         Self { handle: hi }
     }
 }
-impl Into<HBITMAP> for Bitmap {
-    fn into(self) -> HBITMAP {
-        self.handle
+impl From<Bitmap> for HBITMAP {
+    fn from(val: Bitmap) -> Self {
+        val.handle
     }
 }
 #[derive(Clone, PartialEq)]
@@ -239,7 +239,7 @@ impl EnhMetaFile {
         Self { handle: NULL_PTR() }
     }
     pub fn is_invalid(&self) -> bool {
-        self.handle == NULL_PTR()
+        self.handle.is_null()
     }
     pub fn load_from_module(// module: ExecutableFile,
         // id: Either<&str, usize>,
@@ -259,9 +259,9 @@ impl From<HENHMETAFILE> for EnhMetaFile {
         Self { handle: hi }
     }
 }
-impl Into<HENHMETAFILE> for EnhMetaFile {
-    fn into(self) -> HENHMETAFILE {
-        self.handle
+impl From<EnhMetaFile> for HENHMETAFILE {
+    fn from(val: EnhMetaFile) -> Self {
+        val.handle
     }
 }
 pub enum Image {

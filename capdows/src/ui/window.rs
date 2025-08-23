@@ -53,10 +53,10 @@ impl fmt::Debug for Window {
         f.debug_tuple("Window").field(&self.handle).finish()
     }
 }
-impl Into<HWND> for Window {
+impl From<Window> for HWND {
     #[inline]
-    fn into(self) -> HWND {
-        self.handle
+    fn from(val: Window) -> Self {
+        val.handle
     }
 }
 impl From<HWND> for Window {
@@ -84,21 +84,17 @@ pub struct WindowPosType {
     //pub no_sizing:bool,
     pub show_window: bool, //SWP_SHOWWINDOW
 }
-impl Into<SET_WINDOW_POS_FLAGS> for WindowPosType {
-    fn into(self) -> SET_WINDOW_POS_FLAGS {
+impl From<WindowPosType> for SET_WINDOW_POS_FLAGS {
+    fn from(val: WindowPosType) -> Self {
         let mut flags = 0u32;
-        set_style(&mut flags, SWP_DRAWFRAME, self.draw_frame);
-        set_style(&mut flags, SWP_FRAMECHANGED, self.frame_changed);
-        set_style(&mut flags, SWP_HIDEWINDOW, self.hide);
-        set_style(&mut flags, SWP_NOACTIVATE, self.no_active);
-        set_style(&mut flags, SWP_NOCOPYBITS, self.no_copy_bytes);
-        set_style(&mut flags, SWP_NOREDRAW, self.no_redraw);
-        set_style(
-            &mut flags,
-            SWP_NOSENDCHANGING,
-            self.no_send_changing_message,
-        );
-        set_style(&mut flags, SWP_SHOWWINDOW, self.show_window);
+        set_style(&mut flags, SWP_DRAWFRAME, val.draw_frame);
+        set_style(&mut flags, SWP_FRAMECHANGED, val.frame_changed);
+        set_style(&mut flags, SWP_HIDEWINDOW, val.hide);
+        set_style(&mut flags, SWP_NOACTIVATE, val.no_active);
+        set_style(&mut flags, SWP_NOCOPYBITS, val.no_copy_bytes);
+        set_style(&mut flags, SWP_NOREDRAW, val.no_redraw);
+        set_style(&mut flags, SWP_NOSENDCHANGING, val.no_send_changing_message);
+        set_style(&mut flags, SWP_SHOWWINDOW, val.show_window);
         flags
     }
 }
@@ -161,12 +157,12 @@ impl ShowWindowType {
         unsafe {
             GetStartupInfoW(&mut info);
         }
-        Ok((info.wShowWindow as SHOW_WINDOW_CMD).try_into()?)
+        (info.wShowWindow as SHOW_WINDOW_CMD).try_into()
     }
 }
-impl Into<SHOW_WINDOW_CMD> for ShowWindowType {
-    fn into(self) -> SHOW_WINDOW_CMD {
-        self as SHOW_WINDOW_CMD
+impl From<ShowWindowType> for SHOW_WINDOW_CMD {
+    fn from(val: ShowWindowType) -> Self {
+        val as SHOW_WINDOW_CMD
     }
 }
 impl TryFrom<SHOW_WINDOW_CMD> for ShowWindowType {
@@ -376,7 +372,7 @@ impl Window {
         error_from_win32_bool!(SetMenu(
             self.handle,
             menu.map(|menu: MenuBar| menu.handle())
-                .unwrap_or(0 as *mut c_void),
+                .unwrap_or(std::ptr::null_mut::<c_void>()),
         ))
     }
     #[inline]
@@ -472,7 +468,7 @@ impl Window {
             self.handle,
             Some(subclass_porc::<PORC_ID, C>),
             PORC_ID,
-            0 as usize,
+            0_usize,
         ))
     }
     #[inline]
@@ -488,7 +484,7 @@ impl Window {
                 self.handle,
                 Some(subclass_porc::<PORC_ID, C>),
                 PORC_ID,
-                0 as *mut usize,
+                std::ptr::null_mut::<usize>(),
             ) != 0
         }
     }

@@ -26,6 +26,6 @@ impl LangID {
         }
     }
     pub const fn split(self) -> (u8, u16) {
-        ((self.id.get() >> 10) as u8, (self.id.get() & 0x3FF) as u16)
+        ((self.id.get() >> 10) as u8, (self.id.get() & 0x3FF))
     }
 }

@@ -50,10 +50,10 @@ impl From<HBRUSH> for ClassBackgroundBrush {
         }
     }
 }
-impl Into<HBRUSH> for ClassBackgroundBrush {
-    fn into(self) -> HBRUSH {
+impl From<ClassBackgroundBrush> for HBRUSH {
+    fn from(val: ClassBackgroundBrush) -> Self {
         use ClassBackgroundBrush::*;
-        ((match self {
+        ((match val {
             Brush(ush) => return ush.into(),
             ActiveBorder => COLOR_ACTIVEBORDER,
             ActiveCaption => COLOR_ACTIVECAPTION,
@@ -80,7 +80,7 @@ impl Into<HBRUSH> for ClassBackgroundBrush {
 }
 
 #[derive(Clone, PartialEq, Copy, Default, Debug)]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct WindowClassStyle {
     pub globa: bool,             //CS_GLOBALCLASS
     pub no_close_button: bool,   //CS_NOCLOSE
@@ -111,20 +111,20 @@ impl From<WNDCLASS_STYLES> for WindowClassStyle {
         }
     }
 }
-impl Into<WNDCLASS_STYLES> for WindowClassStyle {
-    fn into(self) -> WNDCLASS_STYLES {
+impl From<WindowClassStyle> for WNDCLASS_STYLES {
+    fn from(val: WindowClassStyle) -> Self {
         let mut ms_style = 0u32;
-        set_style(&mut ms_style, CS_GLOBALCLASS, self.globa);
-        set_style(&mut ms_style, CS_NOCLOSE, self.no_close_button);
-        set_style(&mut ms_style, CS_VREDRAW, self.ver_draw);
-        set_style(&mut ms_style, CS_HREDRAW, self.her_draw);
-        set_style(&mut ms_style, CS_DBLCLKS, self.dbl_clk_msg);
-        set_style(&mut ms_style, CS_PARENTDC, self.parent_clipping);
-        set_style(&mut ms_style, CS_SAVEBITS, self.save_bits);
-        set_style(&mut ms_style, CS_BYTEALIGNCLIENT, self.byte_ailgn_client);
-        set_style(&mut ms_style, CS_BYTEALIGNWINDOW, self.byte_ailgn_window);
-        set_style(&mut ms_style, CS_DROPSHADOW, self.drop_shadrow);
-        ms_style | <DCtype as Into<WNDCLASS_STYLES>>::into(self.dc_type)
+        set_style(&mut ms_style, CS_GLOBALCLASS, val.globa);
+        set_style(&mut ms_style, CS_NOCLOSE, val.no_close_button);
+        set_style(&mut ms_style, CS_VREDRAW, val.ver_draw);
+        set_style(&mut ms_style, CS_HREDRAW, val.her_draw);
+        set_style(&mut ms_style, CS_DBLCLKS, val.dbl_clk_msg);
+        set_style(&mut ms_style, CS_PARENTDC, val.parent_clipping);
+        set_style(&mut ms_style, CS_SAVEBITS, val.save_bits);
+        set_style(&mut ms_style, CS_BYTEALIGNCLIENT, val.byte_ailgn_client);
+        set_style(&mut ms_style, CS_BYTEALIGNWINDOW, val.byte_ailgn_window);
+        set_style(&mut ms_style, CS_DROPSHADOW, val.drop_shadrow);
+        ms_style | <DCtype as Into<WNDCLASS_STYLES>>::into(val.dc_type)
     }
 }
 #[derive(Clone, PartialEq, Copy, Default, Debug)]
@@ -134,10 +134,10 @@ pub enum DCtype {
     WindowDC, //CS_OWNDC
     ClassDC,  //CS_CLASSDC
 }
-impl Into<WNDCLASS_STYLES> for DCtype {
-    fn into(self) -> WNDCLASS_STYLES {
+impl From<DCtype> for WNDCLASS_STYLES {
+    fn from(val: DCtype) -> Self {
         use DCtype::*;
-        match self {
+        match val {
             WindowDC => CS_OWNDC,
             ClassDC => CS_CLASSDC,
             DefaultDC => 0u32,
@@ -174,12 +174,12 @@ impl From<WINDOW_STYLE> for WindowSizeState {
         }
     }
 }
-impl Into<WINDOW_STYLE> for WindowSizeState {
-    fn into(self) -> WINDOW_STYLE {
-        match self {
-            Self::Max => WS_MAXIMIZE,
-            Self::Min => WS_MINIMIZE,
-            Self::None => 0u32,
+impl From<WindowSizeState> for WINDOW_STYLE {
+    fn from(val: WindowSizeState) -> Self {
+        match val {
+            WindowSizeState::Max => WS_MAXIMIZE,
+            WindowSizeState::Min => WS_MINIMIZE,
+            WindowSizeState::None => 0u32,
         }
     }
 }
@@ -209,10 +209,10 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowContextBarButton {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowContextBarButton {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
+impl From<WindowContextBarButton> for (WINDOW_STYLE, WINDOW_EX_STYLE) {
+    fn from(val: WindowContextBarButton) -> Self {
         use WindowContextBarButton::*;
-        match self {
+        match val {
             NoButton => (0u32, 0u32),
             Minimize => (WS_MINIMIZEBOX, 0u32),
             Maximize => (WS_MAXIMIZEBOX, 0u32),
@@ -255,11 +255,11 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowBorderType {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for WindowBorderType {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
+impl From<WindowBorderType> for (WINDOW_STYLE, WINDOW_EX_STYLE) {
+    fn from(val: WindowBorderType) -> Self {
         use WindowBorderType::*;
         (
-            match self {
+            match val {
                 NoBorder => 0u32,
                 WindowBorderType::DlgFame => WS_DLGFRAME,
                 WindowBorderType::ThinLineDlgFame => WS_DLGFRAME | WS_BORDER,
@@ -282,10 +282,10 @@ pub enum WindowEdgeType {
     Sunken, //WS_EX_CLIENTEDGE
     ThreeD, //WS_EX_STATICEDGE
 }
-impl Into<WINDOW_EX_STYLE> for WindowEdgeType {
-    fn into(self) -> WINDOW_EX_STYLE {
+impl From<WindowEdgeType> for WINDOW_EX_STYLE {
+    fn from(val: WindowEdgeType) -> Self {
         use WindowEdgeType::*;
-        match self {
+        match val {
             None => 0u32,
             Raised => WS_EX_WINDOWEDGE,
             Sunken => WS_EX_CLIENTEDGE,
@@ -308,7 +308,7 @@ impl From<WINDOW_EX_STYLE> for WindowEdgeType {
     }
 }
 #[derive(Clone, PartialEq, Copy, Default, Debug)]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct NormalWindowStyles {
     pub size_box: bool,              // WS_SIZEBOX
     pub horizontal_roll: bool,       // WS_HSCROLL
@@ -336,7 +336,7 @@ pub struct NormalWindowStyles {
     pub border_type: WindowBorderType,
 }
 #[derive(Clone, PartialEq, Copy, Debug)]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct ChildWindowStyles {
     pub style: NormalWindowStyles,
     pub tab_stop: bool,      //WS_TABSTOP
@@ -390,36 +390,36 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for NormalWindowStyles {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
-        let (mut style, mut style_ex) = self.border_type.into();
-        set_style(&mut style, WS_SIZEBOX, self.size_box);
-        set_style(&mut style, WS_HSCROLL, self.horizontal_roll);
-        set_style(&mut style, WS_VSCROLL, self.vertical_roll);
-        set_style(&mut style, WS_CLIPCHILDREN, self.clip_children);
-        set_style(&mut style, WS_DISABLED, self.disabled);
-        set_style(&mut style, WS_VISIBLE, self.visible);
-        set_style(&mut style_ex, WS_EX_DLGMODALFRAME, self.dlg_modal_frame);
-        set_style(&mut style_ex, WS_EX_TOPMOST, self.top_most);
-        set_style(&mut style_ex, WS_EX_ACCEPTFILES, self.accept_files);
-        set_style(&mut style_ex, WS_EX_TRANSPARENT, self.transparent);
-        set_style(&mut style_ex, WS_EX_TOOLWINDOW, self.tool_window);
-        set_style(&mut style_ex, WS_EX_RIGHT, self.right_aligned);
-        set_style(&mut style_ex, WS_EX_RTLREADING, self.right_to_left_reading);
-        set_style(&mut style_ex, WS_EX_LEFTSCROLLBAR, self.left_scroll_bar);
-        set_style(&mut style_ex, WS_EX_CONTROLPARENT, self.control_parent);
-        set_style(&mut style_ex, WS_EX_APPWINDOW, self.app_window);
-        set_style(&mut style_ex, WS_EX_NOINHERITLAYOUT, self.no_inherit_layout);
-        set_style(&mut style_ex, WS_EX_LAYOUTRTL, self.right_layout);
-        set_style(&mut style_ex, WS_EX_COMPOSITED, self.com_posited);
-        set_style(&mut style_ex, WS_EX_NOACTIVATE, self.no_auto_active);
+impl From<NormalWindowStyles> for (WINDOW_STYLE, WINDOW_EX_STYLE) {
+    fn from(val: NormalWindowStyles) -> Self {
+        let (mut style, mut style_ex) = val.border_type.into();
+        set_style(&mut style, WS_SIZEBOX, val.size_box);
+        set_style(&mut style, WS_HSCROLL, val.horizontal_roll);
+        set_style(&mut style, WS_VSCROLL, val.vertical_roll);
+        set_style(&mut style, WS_CLIPCHILDREN, val.clip_children);
+        set_style(&mut style, WS_DISABLED, val.disabled);
+        set_style(&mut style, WS_VISIBLE, val.visible);
+        set_style(&mut style_ex, WS_EX_DLGMODALFRAME, val.dlg_modal_frame);
+        set_style(&mut style_ex, WS_EX_TOPMOST, val.top_most);
+        set_style(&mut style_ex, WS_EX_ACCEPTFILES, val.accept_files);
+        set_style(&mut style_ex, WS_EX_TRANSPARENT, val.transparent);
+        set_style(&mut style_ex, WS_EX_TOOLWINDOW, val.tool_window);
+        set_style(&mut style_ex, WS_EX_RIGHT, val.right_aligned);
+        set_style(&mut style_ex, WS_EX_RTLREADING, val.right_to_left_reading);
+        set_style(&mut style_ex, WS_EX_LEFTSCROLLBAR, val.left_scroll_bar);
+        set_style(&mut style_ex, WS_EX_CONTROLPARENT, val.control_parent);
+        set_style(&mut style_ex, WS_EX_APPWINDOW, val.app_window);
+        set_style(&mut style_ex, WS_EX_NOINHERITLAYOUT, val.no_inherit_layout);
+        set_style(&mut style_ex, WS_EX_LAYOUTRTL, val.right_layout);
+        set_style(&mut style_ex, WS_EX_COMPOSITED, val.com_posited);
+        set_style(&mut style_ex, WS_EX_NOACTIVATE, val.no_auto_active);
         set_style(
             &mut style_ex,
             WS_EX_NOREDIRECTIONBITMAP,
-            self.no_redirection_bitmap,
+            val.no_redirection_bitmap,
         );
-        style |= <WindowSizeState as Into<WINDOW_STYLE>>::into(self.size_state);
-        style_ex |= <WindowEdgeType as Into<WINDOW_EX_STYLE>>::into(self.edge_type);
+        style |= <WindowSizeState as Into<WINDOW_STYLE>>::into(val.size_state);
+        style_ex |= <WindowEdgeType as Into<WINDOW_EX_STYLE>>::into(val.edge_type);
         (style, style_ex)
     }
 }
@@ -436,13 +436,13 @@ impl From<(WINDOW_STYLE, WINDOW_EX_STYLE)> for ChildWindowStyles {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE)> for ChildWindowStyles {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE) {
-        let (mut style, mut style_ex) = self.style.into();
-        set_style(&mut style, WS_TABSTOP, self.tab_stop);
-        set_style(&mut style, WS_GROUP, self.group_leader);
-        set_style(&mut style, WS_CLIPSIBLINGS, self.clip_isblings);
-        set_style(&mut style_ex, WS_EX_NOPARENTNOTIFY, self.no_parent_notify);
+impl From<ChildWindowStyles> for (WINDOW_STYLE, WINDOW_EX_STYLE) {
+    fn from(val: ChildWindowStyles) -> Self {
+        let (mut style, mut style_ex) = val.style.into();
+        set_style(&mut style, WS_TABSTOP, val.tab_stop);
+        set_style(&mut style, WS_GROUP, val.group_leader);
+        set_style(&mut style, WS_CLIPSIBLINGS, val.clip_isblings);
+        set_style(&mut style_ex, WS_EX_NOPARENTNOTIFY, val.no_parent_notify);
         // set_style(&mut style_ex, WS_EX_MDICHILD, self.mid_child);
         (style | WS_CHILD, style_ex)
     }
@@ -488,11 +488,11 @@ impl Default for WindowType<'_> {
         }
     }
 }
-impl Into<(WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND)> for WindowType<'_> {
-    fn into(self) -> (WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND) {
+impl From<WindowType<'_>> for (WINDOW_STYLE, WINDOW_EX_STYLE, HMENU, HWND) {
+    fn from(val: WindowType<'_>) -> Self {
         use WindowType::*;
         unsafe {
-            match self {
+            match val {
                 Overlapped {
                     style,
                     menu,
@@ -575,19 +575,19 @@ impl WindowType<'_> {
             };
         };
         if ucontain(style, WS_POPUP) {
-            return Popup {
+            Popup {
                 style: (style, style_ex).into(),
                 menu: m,
                 owner: w,
                 is_layered: ucontain(style_ex, WS_EX_LAYERED),
-            };
+            }
         } else {
-            return Overlapped {
+            Overlapped {
                 style: (style, style_ex).into(),
                 menu: m,
                 owner: w,
                 is_layered: ucontain(style_ex, WS_EX_LAYERED),
-            };
-        };
+            }
+        }
     }
 }

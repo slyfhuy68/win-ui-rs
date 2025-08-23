@@ -105,7 +105,7 @@ impl WindowClassBuilder {
                 Some(x) => x.into(),
             },
             lpszMenuName: match self.default_menu_resource {
-                None => 0 as *const u16,
+                None => std::ptr::null::<u16>(),
                 Some(x) => x.to_pcwstr(),
             },
             lpszClassName: self.class_name.to_pcwstr(),
@@ -176,11 +176,11 @@ impl std::convert::TryFrom<u8> for ExtraMemory {
 ///如果窗口类名长度大于255或小于4（以字节为单位，而不是字符或字素）将失败并返回ERROR_SECRET_TOO_LONG
 ///如果class_extra和window_extra的值大于4，将失败并返回ERROR_NOT_ENOUGH_MEMORY
 impl WindowClass {
-    pub fn from_str(class_name: &'static CWideStr) -> Self {
-        Self {
-            name: class_name.to_pcwstr(),
-        }
-    }
+    // pub fn from_str(class_name: &'static CWideStr) -> Self {
+    //     Self {
+    //         name: class_name.to_pcwstr(),
+    //     }
+    // }
     pub fn from_raw(raw: PCWSTR) -> Self {
         Self { name: raw }
     }
@@ -227,7 +227,7 @@ impl WindowClass {
         let (width, height) = size
             .unwrap_or(Size::new(CW_USEDEFAULT, CW_USEDEFAULT))
             .to_tuple();
-        let hinstance = error_from_win32!(GetModuleHandleW(0 as *const u16))?;
+        let hinstance = error_from_win32!(GetModuleHandleW(std::ptr::null::<u16>()))?;
         let result = error_from_win32!(CreateWindowExW(
             ex_style,
             cname,
@@ -240,7 +240,7 @@ impl WindowClass {
             parent,
             menu,
             hinstance,
-            0 as *const c_void,
+            std::ptr::null::<c_void>(),
         ))?;
 
         Ok(result)

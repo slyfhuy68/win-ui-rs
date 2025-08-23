@@ -3,9 +3,9 @@ use super::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HelpId(NonZeroI32);
 
-impl Into<i32> for HelpId {
-    fn into(self) -> i32 {
-        self.0.into()
+impl From<HelpId> for i32 {
+    fn from(val: HelpId) -> Self {
+        val.0.into()
     }
 }
 impl HelpId {

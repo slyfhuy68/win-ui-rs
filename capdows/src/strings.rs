@@ -65,11 +65,11 @@ impl DerefMut for WideString {
         unsafe { widestr::from_utf16_unchecked_mut(self.0.as_mut_slice()) }
     }
 }
-impl Into<OsString> for &widestr {
+impl From<&widestr> for OsString {
     #[inline]
-    fn into(self) -> OsString {
+    fn from(val: &widestr) -> Self {
         use std::os::windows::ffi::OsStringExt;
-        OsString::from_wide(self.as_wide())
+        OsString::from_wide(val.as_wide())
     }
 }
 impl Ord for widestr {
@@ -119,11 +119,11 @@ impl From<String> for WideString {
         Self(s.encode_utf16().collect::<Vec<u16>>())
     }
 }
-impl Into<String> for WideString {
+impl From<WideString> for String {
     #[inline]
-    fn into(self) -> String {
+    fn from(val: WideString) -> Self {
         //创建self时已检查是否为有效utf16
-        String::from_utf16_lossy(&self.0)
+        String::from_utf16_lossy(&val.0)
     }
 }
 impl AsRef<widestr> for WideString {
@@ -195,11 +195,7 @@ pub const fn check_utf16(v: &[u16]) -> Result<(), Utf16Error> {
             // 当前 code unit 是没有配对的 low surrogate，无效
             return Err(Utf16Error {
                 //i-1是这一个，这一个无效，有效最大到i-2
-                valid_up_to: if i < 2 {
-                    0 //一开始的字符就无效
-                } else {
-                    i - 2
-                },
+                valid_up_to: i.saturating_sub(2),
                 invalid_code: u,
             });
         } else {
@@ -215,11 +211,7 @@ pub const fn check_utf16(v: &[u16]) -> Result<(), Utf16Error> {
                     return Err(Utf16Error {
                         //i是下一个，下一个不是 low surrogate，
                         //所以下一个和这一个无效，有效最大到这一个的上一个i-2
-                        valid_up_to: if i < 2 {
-                            0 //一开始的字符就无效
-                        } else {
-                            i - 2
-                        },
+                        valid_up_to: i.saturating_sub(2),
                         invalid_code: u,
                     });
                 }
@@ -227,11 +219,7 @@ pub const fn check_utf16(v: &[u16]) -> Result<(), Utf16Error> {
                 // 当前 code unit 是最后的 high surrogate，无配对，无效
                 return Err(Utf16Error {
                     //i-1是这一个，这一个无效，有效最大到i-2
-                    valid_up_to: if i < 2 {
-                        0 //一开始的字符就无效
-                    } else {
-                        i - 2
-                    },
+                    valid_up_to: i.saturating_sub(2),
                     invalid_code: u,
                 });
             }
@@ -258,14 +246,14 @@ impl widestr {
     #[inline]
     pub const fn from_utf16(v: &[u16]) -> Result<&widestr, Utf16Error> {
         match check_utf16(v) {
-            Ok(_) => Ok(unsafe { std::mem::transmute(v) }),
+            Ok(_) => Ok(unsafe { std::mem::transmute::<&[u16], &widestr>(v) }),
             Err(e) => Err(e),
         }
     }
     #[inline]
     pub const fn from_utf16_mut(v: &mut [u16]) -> Result<&mut widestr, Utf16Error> {
         match check_utf16(v) {
-            Ok(_) => Ok(unsafe { std::mem::transmute(v) }),
+            Ok(_) => Ok(unsafe { std::mem::transmute::<&mut [u16], &mut widestr>(v) }),
             Err(e) => Err(e),
         }
     }
@@ -379,7 +367,7 @@ impl widestr {
             if self.as_wide()[i] > 127 {
                 return false;
             }
-            i = i + 1;
+            i += 1;
         }
         true
     }

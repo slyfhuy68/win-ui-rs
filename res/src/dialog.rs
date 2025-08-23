@@ -192,7 +192,7 @@ impl From<DialogTempleType> for (WINDOW_STYLE, WINDOW_EX_STYLE) {
     }
 }
 #[derive(Clone, PartialEq, Copy, Debug, Default)]
-#[repr(packed)]
+#[repr(C, packed)]
 /// DS_CONTEXTHELP 请用替代 [`capdows::ui::style::WindowContextBarButton::Help`]
 /// 未包含DS_FIXEDSYS、DS_USEPIXELS。
 pub struct DialogStyles {

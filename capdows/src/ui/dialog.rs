@@ -218,7 +218,7 @@ impl DialogTempleInfo<'static> {
                     window_class
                 }
             };
-            let data_len = (*(p as *mut u16)) as usize;
+            let data_len = (*p) as usize;
             p = p.byte_add(2);
             let extra_data = std::slice::from_raw_parts(p as *const u8, data_len);
             p = p.byte_add(data_len);

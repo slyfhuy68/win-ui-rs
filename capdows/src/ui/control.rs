@@ -138,7 +138,7 @@ where
             nmhdr: NMHDR {
                 hwndFrom: handle,
                 idFrom: id,
-                code: code,
+                code,
             },
             data: mdata,
         }))
@@ -152,7 +152,7 @@ where
             if command {
                 let msg_ptr = ptr as *const NMHDR;
                 T::from_raw_control_msg(
-                    ((*(msg_ptr)).code) as u32,
+                    (*(msg_ptr)).code,
                     None,
                     Window::from_handle((*(msg_ptr)).hwndFrom),
                 )

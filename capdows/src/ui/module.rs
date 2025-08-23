@@ -20,8 +20,8 @@ impl From<HMODULE> for ExecutableFile {
         Self { handle: hi }
     }
 }
-impl Into<HMODULE> for ExecutableFile {
-    fn into(self) -> HMODULE {
-        self.handle
+impl From<ExecutableFile> for HMODULE {
+    fn from(val: ExecutableFile) -> Self {
+        val.handle
     }
 }
